@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Career Pivot Risk/Reward Analyzer</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    * {
+      margin: 0;
+    }
+    body {
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    img, picture, video, canvas, svg {
+      display: block;
+      max-width: 100%;
+    }
+    input, button, textarea, select {
+      font: inherit;
+    }
+    p, h1, h2, h3, h4, h5, h6 {
+      overflow-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const CareerPivotAnalyzer = () => {
+      const [screen, setScreen] = useState('intro');
+      const [currentPath, setCurrentPath] = useState({
+        role: '',
+        yearsExperience: '',
+        satisfaction: 5,
+        incomeLevel: '',
+        skills: ''
+      });
+      const [pivotOptions, setPivotOptions] = useState([
+        { id: 1, title: '', description: '', timeframe: '6-12 months', riskLevel: 'moderate' }
+      ]);
+      const [weights, setWeights] = useState({
+        financial: 25,
+        fulfillment: 25,
+        growth: 25,
+        security: 25
+      });
+      const [analysis, setAnalysis] = useState(null);
+
+      const riskLevels = [
+        { value: 'low', label: 'Low Risk', desc: 'Similar industry, transferable skills', color: '#10b981' },
+        { value: 'moderate', label: 'Moderate Risk', desc: 'Related field, some skill gaps', color: '#f59e0b' },
+        { value: 'high', label: 'High Risk', desc: 'New industry, significant learning curve', color: '#ef4444' }
+      ];
+
+      const timeframes = [
+        { value: '0-6 months', label: 'Quick (0-6 months)' },
+        { value: '6-12 months', label: 'Medium (6-12 months)' },
+        { value: '1-2 years', label: 'Extended (1-2 years)' },
+        { value: '2+ years', label: 'Long-term (2+ years)' }
+      ];
+
+      const dimensions = [
+        {
+          id: 'financial',
+          name: 'Financial Impact',
+          icon: '\uD83D\uDCB0',
+          color: '#10b981',
+          questions: [
+            { key: 'incomeChange', label: 'Expected income change in year 1', options: [
+              { value: -30, label: 'Significant decrease (>20% less)' },
+              { value: -15, label: 'Moderate decrease (10-20% less)' },
+              { value: 0, label: 'About the same' },
+              { value: 15, label: 'Moderate increase (10-20% more)' },
+              { value: 30, label: 'Significant increase (>20% more)' }
+            ]},
+            { key: 'incomeTrajectory', label: '5-year income potential', options: [
+              { value: 10, label: 'Lower ceiling than current path' },
+              { value: 50, label: 'Similar ceiling' },
+              { value: 80, label: 'Higher ceiling' },
+              { value: 100, label: 'Much higher ceiling' }
+            ]},
+            { key: 'transitionCost', label: 'Upfront costs (education, certification, lost income)', options: [
+              { value: 90, label: 'Minimal (<$5k)' },
+              { value: 70, label: 'Moderate ($5-25k)' },
+              { value: 40, label: 'Significant ($25-75k)' },
+              { value: 10, label: 'Major (>$75k)' }
+            ]}
+          ]
+        },
+        {
+          id: 'fulfillment',
+          name: 'Personal Fulfillment',
+          icon: '\u2728',
+          color: '#8b5cf6',
+          questions: [
+            { key: 'purposeAlignment', label: 'Alignment with your values and purpose', options: [
+              { value: 20, label: 'Weak alignment' },
+              { value: 50, label: 'Moderate alignment' },
+              { value: 80, label: 'Strong alignment' },
+              { value: 100, label: 'Perfect alignment' }
+            ]},
+            { key: 'dailyWork', label: 'How appealing is the day-to-day work?', options: [
+              { value: 20, label: 'Not appealing' },
+              { value: 50, label: 'Somewhat appealing' },
+              { value: 80, label: 'Very appealing' },
+              { value: 100, label: 'Dream work' }
+            ]},
+            { key: 'lifestyle', label: 'Work-life balance and lifestyle fit', options: [
+              { value: 20, label: 'Worse than current' },
+              { value: 50, label: 'About the same' },
+              { value: 80, label: 'Better than current' },
+              { value: 100, label: 'Ideal lifestyle' }
+            ]}
+          ]
+        },
+        {
+          id: 'growth',
+          name: 'Growth Potential',
+          icon: '\uD83D\uDCC8',
+          color: '#f59e0b',
+          questions: [
+            { key: 'skillDevelopment', label: 'Opportunity to develop valuable new skills', options: [
+              { value: 20, label: 'Limited new learning' },
+              { value: 50, label: 'Some new skills' },
+              { value: 80, label: 'Significant skill growth' },
+              { value: 100, label: 'Transformational learning' }
+            ]},
+            { key: 'marketDemand', label: 'Market demand for this role/field', options: [
+              { value: 20, label: 'Declining demand' },
+              { value: 50, label: 'Stable demand' },
+              { value: 80, label: 'Growing demand' },
+              { value: 100, label: 'High-growth field' }
+            ]},
+            { key: 'advancement', label: 'Clear path for advancement', options: [
+              { value: 20, label: 'Limited advancement' },
+              { value: 50, label: 'Some opportunities' },
+              { value: 80, label: 'Good advancement path' },
+              { value: 100, label: 'Excellent growth trajectory' }
+            ]}
+          ]
+        },
+        {
+          id: 'security',
+          name: 'Risk & Security',
+          icon: '\uD83D\uDEE1\uFE0F',
+          color: '#06b6d4',
+          questions: [
+            { key: 'jobSecurity', label: 'Job security in this field', options: [
+              { value: 20, label: 'High volatility/uncertainty' },
+              { value: 50, label: 'Moderate stability' },
+              { value: 80, label: 'Good stability' },
+              { value: 100, label: 'Very secure field' }
+            ]},
+            { key: 'reversibility', label: 'How easily can you reverse this decision?', options: [
+              { value: 20, label: 'Very difficult to reverse' },
+              { value: 50, label: 'Somewhat reversible' },
+              { value: 80, label: 'Fairly easy to reverse' },
+              { value: 100, label: 'Easily reversible' }
+            ]},
+            { key: 'networkTransfer', label: 'Can you leverage existing network/reputation?', options: [
+              { value: 20, label: 'Starting from scratch' },
+              { value: 50, label: 'Some transferable connections' },
+              { value: 80, label: 'Good network overlap' },
+              { value: 100, label: 'Strong network transfer' }
+            ]}
+          ]
+        }
+      ];
+
+      const addPivotOption = () => {
+        const newId = Math.max(...pivotOptions.map(o => o.id)) + 1;
+        setPivotOptions([...pivotOptions, {
+          id: newId,
+          title: '',
+          description: '',
+          timeframe: '6-12 months',
+          riskLevel: 'moderate'
+        }]);
+      };
+
+      const removePivotOption = (id) => {
+        if (pivotOptions.length > 1) {
+          setPivotOptions(pivotOptions.filter(o => o.id !== id));
+        }
+      };
+
+      const updatePivotOption = (id, field, value) => {
+        setPivotOptions(pivotOptions.map(o =>
+          o.id === id ? { ...o, [field]: value } : o
+        ));
+      };
+
+      const [optionScores, setOptionScores] = useState({});
+
+      const updateOptionScore = (optionId, questionKey, value) => {
+        setOptionScores(prev => ({
+          ...prev,
+          [optionId]: {
+            ...(prev[optionId] || {}),
+            [questionKey]: value
+          }
+        }));
+      };
+
+      const calculateAnalysis = () => {
+        const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
+        const normalizedWeights = {};
+        Object.entries(weights).forEach(([k, v]) => {
+          normalizedWeights[k] = v / totalWeight;
+        });
+
+        const analyzedOptions = pivotOptions.map(option => {
+          const scores = optionScores[option.id] || {};
+          const dimensionScores = {};
+          let totalScore = 0;
+
+          dimensions.forEach(dim => {
+            let dimTotal = 0;
+            let answered = 0;
+            dim.questions.forEach(q => {
+              if (scores[q.key] !== undefined) {
+                dimTotal += scores[q.key];
+                answered++;
+              }
+            });
+            const avgScore = answered > 0 ? dimTotal / answered : 50;
+            dimensionScores[dim.id] = avgScore;
+            totalScore += avgScore * normalizedWeights[dim.id];
+          });
+
+          // Apply regret minimization framework adjustment
+          const regretScore = calculateRegretScore(option, dimensionScores);
+
+          return {
+            ...option,
+            dimensionScores,
+            totalScore,
+            regretScore,
+            adjustedScore: (totalScore * 0.7) + (regretScore * 0.3)
+          };
+        });
+
+        // Sort by adjusted score
+        analyzedOptions.sort((a, b) => b.adjustedScore - a.adjustedScore);
+
+        setAnalysis({
+          options: analyzedOptions,
+          weights: normalizedWeights,
+          stayScore: calculateStayScore()
+        });
+        setScreen('results');
+      };
+
+      const calculateStayScore = () => {
+        const satisfactionScore = currentPath.satisfaction * 10;
+        return {
+          score: satisfactionScore,
+          assessment: satisfactionScore >= 70 ? 'Staying has merit' :
+            satisfactionScore >= 40 ? 'Change may be beneficial' :
+              'Strong case for change'
+        };
+      };
+
+      const calculateRegretScore = (option, dimensionScores) => {
+        // Regret minimization: "At 80, will I regret not trying this?"
+        const fulfillmentWeight = dimensionScores.fulfillment || 50;
+        const reversibility = optionScores[option.id]?.reversibility || 50;
+        const purposeAlignment = optionScores[option.id]?.purposeAlignment || 50;
+
+        // Higher score = lower future regret for NOT doing it
+        const regretForNotDoing = (fulfillmentWeight * 0.4 + purposeAlignment * 0.4 + (100 - reversibility) * 0.2);
+
+        return regretForNotDoing;
+      };
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: '#e2e8f0',
+          padding: '2rem'
+        }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(245, 158, 11, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                marginBottom: '1rem',
+                border: '1px solid rgba(245, 158, 11, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>{'\uD83D\uDD04'}</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#f59e0b' }}>
+                  Decision Matrix + Regret Minimization
+                </span>
+              </div>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                margin: '0 0 0.5rem 0',
+                background: 'linear-gradient(135deg, #e2e8f0 0%, #f59e0b 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Career Pivot Risk/Reward Analyzer
+              </h1>
+              <p style={{ color: '#94a3b8', margin: 0 }}>
+                Evidence-based framework for major career decisions
+              </p>
+            </div>
+
+            {/* Intro Screen */}
+            {screen === 'intro' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '2.5rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <div style={{ display: 'grid', gap: '2rem' }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    {[
+                      {
+                        icon: '\uD83D\uDCCA',
+                        title: 'Decision Matrix',
+                        desc: 'Systematically compare options across multiple dimensions',
+                        color: '#10b981'
+                      },
+                      {
+                        icon: '\uD83C\uDFAF',
+                        title: 'Regret Minimization',
+                        desc: 'Jeff Bezos\'s framework: minimize future regret',
+                        color: '#f59e0b'
+                      },
+                      {
+                        icon: '\u2696\uFE0F',
+                        title: 'Weighted Scoring',
+                        desc: 'Customize priorities to match your values',
+                        color: '#8b5cf6'
+                      },
+                      {
+                        icon: '\uD83D\uDD2E',
+                        title: 'Risk Analysis',
+                        desc: 'Evaluate reversibility and downside scenarios',
+                        color: '#06b6d4'
+                      }
+                    ].map((item, i) => (
+                      <div key={i} style={{
+                        background: `${item.color}10`,
+                        borderRadius: '1rem',
+                        padding: '1.25rem',
+                        border: `1px solid ${item.color}30`
+                      }}>
+                        <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{item.icon}</div>
+                        <div style={{ fontWeight: '600', color: item.color, marginBottom: '0.25rem' }}>
+                          {item.title}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{item.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{
+                    background: 'rgba(139, 92, 246, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.25rem',
+                    border: '1px solid rgba(139, 92, 246, 0.2)'
+                  }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#a78bfa', fontSize: '1rem' }}>
+                      {'\uD83E\uDDE0'} The Regret Minimization Framework
+                    </h3>
+                    <p style={{ margin: 0, color: '#c4b5fd', fontSize: '0.9rem', lineHeight: '1.6' }}>
+                      "I wanted to project myself forward to age 80... and I want to minimize the number
+                      of regrets I have. I knew that when I was 80, I was not going to regret having tried this.
+                      I was not going to regret trying to participate in this thing called the Internet..."
+                      <span style={{ display: 'block', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                        — Jeff Bezos on leaving Wall Street to start Amazon
+                      </span>
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setScreen('current')}
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1.25rem 2rem',
+                      fontSize: '1.125rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 20px rgba(245, 158, 11, 0.3)'
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                    onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+                  >
+                    Start Analysis {'\u2192'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Current Path Screen */}
+            {screen === 'current' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '2rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <h2 style={{ margin: '0 0 1.5rem 0', color: '#e2e8f0', fontSize: '1.5rem' }}>
+                  {'\uD83D\uDCCD'} Your Current Path
+                </h2>
+
+                <div style={{ display: 'grid', gap: '1.25rem' }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    <div>
+                      <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Current Role/Field
+                      </label>
+                      <input
+                        value={currentPath.role}
+                        onChange={(e) => setCurrentPath({ ...currentPath, role: e.target.value })}
+                        placeholder="e.g., Marketing Manager in Tech"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e2e8f0'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Years of Experience
+                      </label>
+                      <input
+                        type="number"
+                        value={currentPath.yearsExperience}
+                        onChange={(e) => setCurrentPath({ ...currentPath, yearsExperience: e.target.value })}
+                        placeholder="e.g., 8"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e2e8f0'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                      Current Satisfaction Level: {currentPath.satisfaction}/10
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={currentPath.satisfaction}
+                      onChange={(e) => setCurrentPath({ ...currentPath, satisfaction: parseInt(e.target.value) })}
+                      style={{ width: '100%', accentColor: '#f59e0b' }}
+                    />
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      color: '#64748b'
+                    }}>
+                      <span>Very Dissatisfied</span>
+                      <span>Very Satisfied</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                      Key Skills & Strengths
+                    </label>
+                    <textarea
+                      value={currentPath.skills}
+                      onChange={(e) => setCurrentPath({ ...currentPath, skills: e.target.value })}
+                      placeholder="List your transferable skills, domain expertise, and unique strengths..."
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem',
+                        color: '#e2e8f0',
+                        minHeight: '80px',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setScreen('options')}
+                  style={{
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    width: '100%',
+                    marginTop: '1.5rem'
+                  }}
+                >
+                  Define Pivot Options {'\u2192'}
+                </button>
+              </div>
+            )}
+
+            {/* Options Screen */}
+            {screen === 'options' && (
+              <div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h2 style={{ margin: 0, color: '#e2e8f0', fontSize: '1.5rem' }}>
+                    {'\uD83C\uDFAF'} Pivot Options
+                  </h2>
+                  {pivotOptions.length < 4 && (
+                    <button
+                      onClick={addPivotOption}
+                      style={{
+                        background: 'rgba(245, 158, 11, 0.1)',
+                        border: '2px solid rgba(245, 158, 11, 0.3)',
+                        borderRadius: '0.75rem',
+                        padding: '0.5rem 1rem',
+                        color: '#f59e0b',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      + Add Option
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gap: '1.5rem' }}>
+                  {pivotOptions.map((option, idx) => (
+                    <div key={option.id} style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      backdropFilter: 'blur(10px)',
+                      borderRadius: '1.5rem',
+                      padding: '1.5rem',
+                      border: '1px solid rgba(255, 255, 255, 0.08)'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '1rem'
+                      }}>
+                        <h3 style={{ margin: 0, color: '#f59e0b' }}>Option {idx + 1}</h3>
+                        {pivotOptions.length > 1 && (
+                          <button
+                            onClick={() => removePivotOption(option.id)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#64748b',
+                              cursor: 'pointer',
+                              fontSize: '1.25rem'
+                            }}
+                          >
+                            {'\u00D7'}
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '1rem' }}>
+                        <div>
+                          <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                            Pivot Destination
+                          </label>
+                          <input
+                            value={option.title}
+                            onChange={(e) => updatePivotOption(option.id, 'title', e.target.value)}
+                            placeholder="e.g., UX Design, Data Science, Starting a Business"
+                            style={{
+                              width: '100%',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '0.75rem',
+                              padding: '0.875rem',
+                              color: '#e2e8f0'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                            What draws you to this path?
+                          </label>
+                          <textarea
+                            value={option.description}
+                            onChange={(e) => updatePivotOption(option.id, 'description', e.target.value)}
+                            placeholder="Why are you considering this? What appeals to you?"
+                            style={{
+                              width: '100%',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '0.75rem',
+                              padding: '0.875rem',
+                              color: '#e2e8f0',
+                              minHeight: '60px',
+                              resize: 'vertical'
+                            }}
+                          />
+                        </div>
+
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                          gap: '1rem'
+                        }}>
+                          <div>
+                            <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                              Transition Timeframe
+                            </label>
+                            <select
+                              value={option.timeframe}
+                              onChange={(e) => updatePivotOption(option.id, 'timeframe', e.target.value)}
+                              style={{
+                                width: '100%',
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '0.75rem',
+                                padding: '0.875rem',
+                                color: '#e2e8f0'
+                              }}
+                            >
+                              {timeframes.map(t => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                              Risk Level
+                            </label>
+                            <select
+                              value={option.riskLevel}
+                              onChange={(e) => updatePivotOption(option.id, 'riskLevel', e.target.value)}
+                              style={{
+                                width: '100%',
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '0.75rem',
+                                padding: '0.875rem',
+                                color: '#e2e8f0'
+                              }}
+                            >
+                              {riskLevels.map(r => (
+                                <option key={r.value} value={r.value}>{r.label} - {r.desc}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                  <button
+                    onClick={() => setScreen('current')}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: '#94a3b8',
+                      border: '2px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      flex: 1
+                    }}
+                  >
+                    {'\u2190'} Back
+                  </button>
+                  <button
+                    onClick={() => setScreen('evaluate')}
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      flex: 2
+                    }}
+                  >
+                    Evaluate Options {'\u2192'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Evaluate Screen */}
+            {screen === 'evaluate' && (
+              <div>
+                <h2 style={{ margin: '0 0 1.5rem 0', color: '#e2e8f0', fontSize: '1.5rem' }}>
+                  {'\uD83D\uDCCA'} Evaluate Each Option
+                </h2>
+
+                {pivotOptions.map(option => (
+                  <div key={option.id} style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '1.5rem',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <h3 style={{ margin: '0 0 1.5rem 0', color: '#f59e0b', fontSize: '1.25rem' }}>
+                      {option.title || `Option ${option.id}`}
+                    </h3>
+
+                    {dimensions.map(dim => (
+                      <div key={dim.id} style={{ marginBottom: '1.5rem' }}>
+                        <h4 style={{
+                          margin: '0 0 1rem 0',
+                          color: dim.color,
+                          fontSize: '1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}>
+                          <span>{dim.icon}</span> {dim.name}
+                        </h4>
+
+                        {dim.questions.map(q => (
+                          <div key={q.key} style={{ marginBottom: '1rem' }}>
+                            <label style={{
+                              display: 'block',
+                              color: '#94a3b8',
+                              marginBottom: '0.5rem',
+                              fontSize: '0.9rem'
+                            }}>
+                              {q.label}
+                            </label>
+                            <select
+                              value={optionScores[option.id]?.[q.key] || ''}
+                              onChange={(e) => updateOptionScore(option.id, q.key, parseInt(e.target.value))}
+                              style={{
+                                width: '100%',
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '0.75rem',
+                                padding: '0.75rem',
+                                color: '#e2e8f0',
+                                fontSize: '0.9rem'
+                              }}
+                            >
+                              <option value="">Select...</option>
+                              {q.options.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+
+                {/* Weights Section */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#e2e8f0', fontSize: '1.125rem' }}>
+                    {'\u2696\uFE0F'} Customize Your Priorities
+                  </h3>
+
+                  {dimensions.map(dim => (
+                    <div key={dim.id} style={{ marginBottom: '1rem' }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.5rem'
+                      }}>
+                        <span style={{ color: dim.color, fontWeight: '500' }}>
+                          {dim.icon} {dim.name}
+                        </span>
+                        <span style={{ color: '#e2e8f0' }}>{weights[dim.id]}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="50"
+                        value={weights[dim.id]}
+                        onChange={(e) => setWeights({ ...weights, [dim.id]: parseInt(e.target.value) })}
+                        style={{ width: '100%', accentColor: dim.color }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button
+                    onClick={() => setScreen('options')}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: '#94a3b8',
+                      border: '2px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      flex: 1
+                    }}
+                  >
+                    {'\u2190'} Back
+                  </button>
+                  <button
+                    onClick={calculateAnalysis}
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      flex: 2
+                    }}
+                  >
+                    Generate Analysis {'\u2192'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Results Screen */}
+            {screen === 'results' && analysis && (
+              <div>
+                {/* Top Recommendation */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.1) 100%)',
+                  borderRadius: '1.5rem',
+                  padding: '2rem',
+                  border: '2px solid rgba(245, 158, 11, 0.3)',
+                  marginBottom: '1.5rem',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>{'\uD83C\uDFC6'}</div>
+                  <h2 style={{ margin: '0 0 0.5rem 0', color: '#f59e0b', fontSize: '1.75rem' }}>
+                    {analysis.options[0].title || 'Top Option'}
+                  </h2>
+                  <p style={{ color: '#fcd34d', margin: 0 }}>
+                    Combined Score: <strong>{analysis.options[0].adjustedScore.toFixed(1)}</strong> / 100
+                  </p>
+                  <p style={{ color: '#94a3b8', margin: '0.5rem 0 0 0', fontSize: '0.875rem' }}>
+                    (Weighted analysis + regret minimization adjustment)
+                  </p>
+                </div>
+
+                {/* Option Comparison */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${analysis.options.length}, 1fr)`,
+                  gap: '1rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  {analysis.options.map((option, idx) => (
+                    <div key={option.id} style={{
+                      background: idx === 0
+                        ? 'rgba(245, 158, 11, 0.05)'
+                        : 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '1.5rem',
+                      padding: '1.5rem',
+                      border: `2px solid ${idx === 0 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`
+                    }}>
+                      <h3 style={{
+                        margin: '0 0 1rem 0',
+                        color: idx === 0 ? '#f59e0b' : '#e2e8f0',
+                        fontSize: '1.125rem'
+                      }}>
+                        {idx === 0 && '\uD83E\uDD47 '}{option.title || `Option ${idx + 1}`}
+                      </h3>
+
+                      {/* Dimension Scores */}
+                      {dimensions.map(dim => (
+                        <div key={dim.id} style={{ marginBottom: '0.75rem' }}>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            fontSize: '0.75rem',
+                            marginBottom: '0.25rem'
+                          }}>
+                            <span style={{ color: '#94a3b8' }}>{dim.icon} {dim.name}</span>
+                            <span style={{ color: dim.color }}>{option.dimensionScores[dim.id]?.toFixed(0) || 0}</span>
+                          </div>
+                          <div style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '0.25rem',
+                            height: '6px'
+                          }}>
+                            <div style={{
+                              background: dim.color,
+                              height: '100%',
+                              width: `${option.dimensionScores[dim.id] || 0}%`,
+                              borderRadius: '0.25rem'
+                            }} />
+                          </div>
+                        </div>
+                      ))}
+
+                      <div style={{
+                        marginTop: '1rem',
+                        paddingTop: '1rem',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: '0.5rem'
+                        }}>
+                          <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Regret Score</span>
+                          <span style={{ color: '#a78bfa', fontWeight: '600' }}>
+                            {option.regretScore.toFixed(0)}/100
+                          </span>
+                        </div>
+                        <p style={{
+                          margin: 0,
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          fontStyle: 'italic'
+                        }}>
+                          Higher = more likely to regret NOT trying
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Stay Comparison */}
+                <div style={{
+                  background: 'rgba(6, 182, 212, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(6, 182, 212, 0.2)'
+                }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#22d3ee', fontSize: '1.125rem' }}>
+                    {'\uD83D\uDCCD'} Staying on Current Path
+                  </h3>
+                  <p style={{ color: '#a5f3fc', margin: 0 }}>
+                    Satisfaction Score: <strong>{analysis.stayScore.score}</strong>/100 — {analysis.stayScore.assessment}
+                  </p>
+                </div>
+
+                {/* Decision Framework */}
+                <div style={{
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(139, 92, 246, 0.2)'
+                }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#a78bfa', fontSize: '1.125rem' }}>
+                    {'\uD83E\uDDE0'} Decision Framework
+                  </h3>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: '1.25rem',
+                    color: '#c4b5fd',
+                    lineHeight: '1.8'
+                  }}>
+                    <li>
+                      <strong>If regret score is high (&gt;70):</strong> Even if other factors are uncertain,
+                      the psychological cost of not trying may outweigh the risks.
+                    </li>
+                    <li>
+                      <strong>If financial impact is negative but temporary:</strong> Consider if you have
+                      runway and whether the long-term trajectory justifies short-term sacrifice.
+                    </li>
+                    <li>
+                      <strong>If reversibility is high:</strong> The "two-way door" principle suggests
+                      trying it—you can always return if it doesn't work.
+                    </li>
+                    <li>
+                      <strong>If current satisfaction is low (&lt;40):</strong> The cost of staying may be
+                      higher than you think—factor in opportunity cost and mental health.
+                    </li>
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setScreen('evaluate');
+                    setAnalysis(null);
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#e2e8f0',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  {'\u21BA'} Adjust & Recalculate
+                </button>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '2rem',
+              color: '#334155',
+              fontSize: '0.75rem'
+            }}>
+              Framework: Decision Matrix Analysis + Bezos's Regret Minimization Framework
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<CareerPivotAnalyzer />);
+  </script>
+</body>
+</html>

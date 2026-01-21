@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meeting Effectiveness Scorecard</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+const MeetingEffectivenessScorecard = () => {
+  const [screen, setScreen] = useState('intro');
+  const [currentMeeting, setCurrentMeeting] = useState({
+    name: '',
+    date: new Date().toISOString().split('T')[0],
+    ratings: {}
+  });
+  const [meetingHistory, setMeetingHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Research-backed meeting effectiveness dimensions
+  const dimensions = {
+    'clarity': {
+      name: 'Clarity of Purpose',
+      description: 'Meeting had clear objectives that were communicated upfront',
+      icon: '\u{1F3AF}',
+      color: '#6366f1',
+      research: 'Research by Rogelberg (2019) shows meetings with clear agendas are 30% more productive',
+      tips: {
+        low: [
+          'Send agenda 24 hours in advance with specific objectives',
+          'Start with a clear statement: "By the end of this meeting, we will..."',
+          'Distinguish between informational, decision-making, and brainstorming meetings',
+          'Cancel meetings without clear objectives - send an email instead'
+        ],
+        medium: [
+          'Include time estimates for each agenda item',
+          'Ask attendees to add questions before the meeting',
+          'Review objectives at the end to confirm they were met'
+        ],
+        high: [
+          'Continue sharing your agenda practices as a model',
+          'Coach others on writing effective meeting objectives',
+          'Document what makes your meeting purposes clear for onboarding'
+        ]
+      }
+    },
+    'inclusion': {
+      name: 'Inclusion of Voices',
+      description: 'All participants had opportunity to contribute meaningfully',
+      icon: '\u{1F5E3}\uFE0F',
+      color: '#10b981',
+      research: 'Google\'s Project Aristotle found equal speaking time correlates with team intelligence',
+      tips: {
+        low: [
+          'Use round-robin techniques to hear from everyone',
+          'Call on quieter participants by name: "Sarah, what\'s your perspective?"',
+          'Implement a "no interrupting" rule and enforce it consistently',
+          'Consider pre-meeting input channels for introverts',
+          'Track speaking time and adjust facilitation accordingly'
+        ],
+        medium: [
+          'Use breakout rooms or pairs for larger groups',
+          'Try "think-pair-share" before group discussions',
+          'Actively manage dominant voices with redirection'
+        ],
+        high: [
+          'Share facilitation techniques with other meeting leaders',
+          'Continue creating space for diverse communication styles',
+          'Model inclusive behavior in cross-functional meetings'
+        ]
+      }
+    },
+    'decisions': {
+      name: 'Decision Quality',
+      description: 'Decisions were made with clear ownership and next steps',
+      icon: '\u2696\uFE0F',
+      color: '#f59e0b',
+      research: 'Bain & Company found that decision effectiveness correlates 95% with financial performance',
+      tips: {
+        low: [
+          'Clarify decision rights before the meeting: who decides?',
+          'Use structured decision frameworks (RAPID, DACI)',
+          'Document decisions in real-time, visible to all',
+          'Distinguish between "input sought" vs "decision being made"',
+          'End with explicit: "The decision is X, owner is Y"'
+        ],
+        medium: [
+          'Create a decision log accessible to the whole team',
+          'Follow up on decisions in subsequent meetings',
+          'Time-box decision discussions to maintain momentum'
+        ],
+        high: [
+          'Share your decision-making frameworks with the organization',
+          'Document patterns of effective decision-making',
+          'Mentor others in facilitating decision discussions'
+        ]
+      }
+    },
+    'time': {
+      name: 'Time Efficiency',
+      description: 'Meeting stayed on track and respected everyone\'s time',
+      icon: '\u23F1\uFE0F',
+      color: '#8b5cf6',
+      research: 'Microsoft research shows the optimal meeting length is 25 or 50 minutes, not 30 or 60',
+      tips: {
+        low: [
+          'Default to 25-minute meetings instead of 30',
+          'Assign a timekeeper role that rotates each meeting',
+          'Use a visible timer for each agenda item',
+          'Start on time regardless of who\'s missing',
+          'Create a "parking lot" for off-topic items'
+        ],
+        medium: [
+          'Review meeting length vs. actual content needed',
+          'Identify recurring topics that could be async',
+          'Build in 5-minute buffers between meetings'
+        ],
+        high: [
+          'Continue respecting time as a form of respect',
+          'Share time management techniques with peers',
+          'Advocate for meeting-free blocks organization-wide'
+        ]
+      }
+    },
+    'actions': {
+      name: 'Action Item Clarity',
+      description: 'Clear action items with owners and deadlines were established',
+      icon: '\u2705',
+      color: '#ec4899',
+      research: 'Research shows action items with deadlines are 3x more likely to be completed',
+      tips: {
+        low: [
+          'End every meeting by reviewing action items aloud',
+          'Use the format: WHO will do WHAT by WHEN',
+          'Send written summary within 1 hour of meeting end',
+          'Make one person responsible for tracking follow-through',
+          'Start next meeting by reviewing previous action items'
+        ],
+        medium: [
+          'Use shared task management for action items',
+          'Build accountability check-ins into recurring meetings',
+          'Celebrate completed action items publicly'
+        ],
+        high: [
+          'Document your action item system for others',
+          'Coach teams struggling with follow-through',
+          'Consider automated reminders for deadlines'
+        ]
+      }
+    },
+    'safety': {
+      name: 'Psychological Safety',
+      description: 'Participants felt safe to share ideas, disagree, and ask questions',
+      icon: '\u{1F6E1}\uFE0F',
+      color: '#22d3ee',
+      research: 'Amy Edmondson\'s research shows psychological safety is the #1 factor in high-performing teams',
+      tips: {
+        low: [
+          'Model vulnerability: "I might be wrong, but..."',
+          'Thank people explicitly for dissenting views',
+          'Never punish or dismiss questions, even basic ones',
+          'Create anonymous input channels for sensitive topics',
+          'Address any ridicule or dismissive behavior immediately'
+        ],
+        medium: [
+          'Encourage constructive devil\'s advocate roles',
+          'Ask explicitly: "What might we be missing?"',
+          'Separate idea generation from idea evaluation'
+        ],
+        high: [
+          'Share your team\'s safety practices as a model',
+          'Continue maintaining high standards for respect',
+          'Mentor others in creating safe meeting environments'
+        ]
+      }
+    }
+  };
+
+  const handleRating = (dimensionKey, score) => {
+    setCurrentMeeting(prev => ({
+      ...prev,
+      ratings: {
+        ...prev.ratings,
+        [dimensionKey]: score
+      }
+    }));
+  };
+
+  const submitMeeting = () => {
+    if (!currentMeeting.name.trim()) {
+      alert('Please enter a meeting name');
+      return;
+    }
+    if (Object.keys(currentMeeting.ratings).length !== Object.keys(dimensions).length) {
+      alert('Please rate all dimensions');
+      return;
+    }
+
+    const meeting = {
+      ...currentMeeting,
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      overallScore: Object.values(currentMeeting.ratings).reduce((a, b) => a + b, 0) / Object.keys(dimensions).length
+    };
+
+    setMeetingHistory(prev => [meeting, ...prev]);
+    setScreen('results');
+  };
+
+  const startNewAssessment = () => {
+    setCurrentMeeting({
+      name: '',
+      date: new Date().toISOString().split('T')[0],
+      ratings: {}
+    });
+    setScreen('rate');
+  };
+
+  const getScoreLevel = (score) => {
+    if (score < 2.5) return 'low';
+    if (score < 3.75) return 'medium';
+    return 'high';
+  };
+
+  const getScoreLabel = (score) => {
+    if (score < 2.5) return 'Needs Improvement';
+    if (score < 3.75) return 'Developing';
+    return 'Effective';
+  };
+
+  const getScoreColor = (score) => {
+    if (score < 2.5) return '#ef4444';
+    if (score < 3.75) return '#f59e0b';
+    return '#10b981';
+  };
+
+  const calculateTrends = () => {
+    if (meetingHistory.length < 2) return null;
+
+    const recentMeetings = meetingHistory.slice(0, 5);
+    const olderMeetings = meetingHistory.slice(5, 10);
+
+    if (olderMeetings.length === 0) return null;
+
+    const recentAvg = recentMeetings.reduce((sum, m) => sum + m.overallScore, 0) / recentMeetings.length;
+    const olderAvg = olderMeetings.reduce((sum, m) => sum + m.overallScore, 0) / olderMeetings.length;
+
+    return {
+      direction: recentAvg > olderAvg ? 'up' : recentAvg < olderAvg ? 'down' : 'stable',
+      change: ((recentAvg - olderAvg) / olderAvg * 100).toFixed(1)
+    };
+  };
+
+  const getDimensionAverages = () => {
+    if (meetingHistory.length === 0) return {};
+
+    const averages = {};
+    Object.keys(dimensions).forEach(key => {
+      const scores = meetingHistory.map(m => m.ratings[key]).filter(Boolean);
+      if (scores.length > 0) {
+        averages[key] = scores.reduce((a, b) => a + b, 0) / scores.length;
+      }
+    });
+    return averages;
+  };
+
+  const latestMeeting = meetingHistory[0];
+  const trend = calculateTrends();
+  const dimensionAverages = getDimensionAverages();
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      color: '#e0e7ff',
+      padding: '2rem'
+    }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            background: 'rgba(139, 92, 246, 0.15)',
+            padding: '0.5rem 1rem',
+            borderRadius: '2rem',
+            marginBottom: '1rem',
+            border: '1px solid rgba(139, 92, 246, 0.3)'
+          }}>
+            <span style={{ fontSize: '1.25rem' }}>{'\u{1F4CA}'}</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#a78bfa' }}>
+              Research-Backed Assessment
+            </span>
+          </div>
+          <h1 style={{
+            fontSize: '2.5rem',
+            fontWeight: '700',
+            margin: '0 0 0.5rem 0',
+            background: 'linear-gradient(135deg, #e0e7ff 0%, #a78bfa 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
+            Meeting Effectiveness Scorecard
+          </h1>
+          <p style={{ color: '#a5b4fc', margin: 0 }}>
+            Track and improve your meeting quality over time
+          </p>
+        </div>
+
+        {/* Intro Screen */}
+        {screen === 'intro' && (
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '1.5rem',
+            padding: '3rem',
+            border: '1px solid rgba(255, 255, 255, 0.1)'
+          }}>
+            <div style={{ display: 'grid', gap: '2rem' }}>
+              <div style={{
+                background: 'rgba(139, 92, 246, 0.1)',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                border: '1px solid rgba(139, 92, 246, 0.2)'
+              }}>
+                <h2 style={{
+                  margin: '0 0 0.75rem 0',
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  color: '#a78bfa'
+                }}>
+                  Why Meeting Effectiveness Matters
+                </h2>
+                <p style={{
+                  margin: 0,
+                  color: '#c7d2fe',
+                  lineHeight: '1.7'
+                }}>
+                  Professionals spend an average of 23 hours per week in meetings, yet studies show
+                  that 71% of meetings are considered unproductive. This tool helps you assess and
+                  improve six research-backed dimensions of meeting effectiveness.
+                </p>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1rem'
+              }}>
+                {Object.entries(dimensions).map(([key, dim]) => (
+                  <div key={key} style={{
+                    background: `${dim.color}10`,
+                    borderRadius: '1rem',
+                    padding: '1.25rem',
+                    border: `1px solid ${dim.color}30`
+                  }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '0.75rem',
+                      background: `${dim.color}30`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.25rem',
+                      fontWeight: '700',
+                      color: dim.color,
+                      marginBottom: '0.75rem'
+                    }}>
+                      {dim.icon}
+                    </div>
+                    <div style={{ fontWeight: '600', color: '#e0e7ff', marginBottom: '0.25rem' }}>
+                      {dim.name}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#a5b4fc' }}>
+                      {dim.description}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '1rem'
+              }}>
+                {[
+                  { icon: '\u{1F4D0}', label: '6 Dimensions', desc: 'Research-backed criteria' },
+                  { icon: '\u{1F4C8}', label: 'Track History', desc: 'See trends over time' },
+                  { icon: '\u{1F4A1}', label: 'Actionable Tips', desc: 'Evidence-based improvements' }
+                ].map((item, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '1rem',
+                    padding: '1rem',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      background: 'rgba(139, 92, 246, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      color: '#a78bfa'
+                    }}>
+                      {item.icon}
+                    </div>
+                    <div style={{ fontWeight: '600', color: '#e0e7ff', fontSize: '0.9rem' }}>{item.label}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#a5b4fc' }}>{item.desc}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setScreen('rate')}
+                  style={{
+                    flex: '1',
+                    minWidth: '200px',
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '1rem',
+                    padding: '1.25rem 2rem',
+                    fontSize: '1.125rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 20px rgba(139, 92, 246, 0.3)'
+                  }}
+                  onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  Rate a Meeting
+                </button>
+
+                {meetingHistory.length > 0 && (
+                  <button
+                    onClick={() => setShowHistory(true)}
+                    style={{
+                      flex: '1',
+                      minWidth: '200px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: '#e0e7ff',
+                      border: '2px solid rgba(139, 92, 246, 0.3)',
+                      borderRadius: '1rem',
+                      padding: '1.25rem 2rem',
+                      fontSize: '1.125rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = 'rgba(139, 92, 246, 0.1)';
+                      e.target.style.borderColor = 'rgba(139, 92, 246, 0.5)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.target.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                    }}
+                  >
+                    View History ({meetingHistory.length})
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rating Screen */}
+        {screen === 'rate' && (
+          <div>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '1.5rem',
+              padding: '2rem',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                margin: '0 0 1.5rem 0',
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                color: '#e0e7ff'
+              }}>
+                Meeting Details
+              </h2>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontSize: '0.875rem',
+                    color: '#a5b4fc'
+                  }}>
+                    Meeting Name
+                  </label>
+                  <input
+                    type="text"
+                    value={currentMeeting.name}
+                    onChange={(e) => setCurrentMeeting(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Weekly Team Standup"
+                    style={{
+                      width: '100%',
+                      padding: '0.875rem 1rem',
+                      borderRadius: '0.75rem',
+                      border: '2px solid rgba(139, 92, 246, 0.3)',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: '#e0e7ff',
+                      fontSize: '1rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontSize: '0.875rem',
+                    color: '#a5b4fc'
+                  }}>
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={currentMeeting.date}
+                    onChange={(e) => setCurrentMeeting(prev => ({ ...prev, date: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.875rem 1rem',
+                      borderRadius: '0.75rem',
+                      border: '2px solid rgba(139, 92, 246, 0.3)',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: '#e0e7ff',
+                      fontSize: '1rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '1.5rem',
+              padding: '2rem',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                margin: '0 0 0.5rem 0',
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                color: '#e0e7ff'
+              }}>
+                Rate Each Dimension
+              </h2>
+              <p style={{
+                margin: '0 0 1.5rem 0',
+                color: '#a5b4fc',
+                fontSize: '0.9rem'
+              }}>
+                Score from 1 (Poor) to 5 (Excellent) based on how this meeting performed
+              </p>
+
+              <div style={{ display: 'grid', gap: '1.5rem' }}>
+                {Object.entries(dimensions).map(([key, dim]) => (
+                  <div key={key} style={{
+                    background: `${dim.color}08`,
+                    borderRadius: '1rem',
+                    padding: '1.25rem',
+                    border: `1px solid ${dim.color}20`
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '1rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '0.75rem',
+                        background: `${dim.color}25`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.125rem',
+                        fontWeight: '700',
+                        color: dim.color,
+                        flexShrink: 0
+                      }}>
+                        {dim.icon}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <h3 style={{
+                          margin: '0 0 0.25rem 0',
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: '#e0e7ff'
+                        }}>
+                          {dim.name}
+                        </h3>
+                        <p style={{
+                          margin: 0,
+                          fontSize: '0.85rem',
+                          color: '#a5b4fc'
+                        }}>
+                          {dim.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'flex',
+                      gap: '0.5rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      {[1, 2, 3, 4, 5].map((score) => (
+                        <button
+                          key={score}
+                          onClick={() => handleRating(key, score)}
+                          style={{
+                            flex: '1',
+                            minWidth: '60px',
+                            padding: '0.875rem 0.5rem',
+                            borderRadius: '0.75rem',
+                            border: currentMeeting.ratings[key] === score
+                              ? `2px solid ${dim.color}`
+                              : '2px solid rgba(255, 255, 255, 0.1)',
+                            background: currentMeeting.ratings[key] === score
+                              ? `${dim.color}30`
+                              : 'rgba(255, 255, 255, 0.03)',
+                            color: currentMeeting.ratings[key] === score
+                              ? dim.color
+                              : '#a5b4fc',
+                            fontSize: '1.125rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {score}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginTop: '0.5rem',
+                      fontSize: '0.75rem',
+                      color: '#6b7280'
+                    }}>
+                      <span>Poor</span>
+                      <span>Excellent</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={() => setScreen('intro')}
+                style={{
+                  flex: '1',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#a5b4fc',
+                  border: '2px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '1rem',
+                  padding: '1rem 2rem',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitMeeting}
+                style={{
+                  flex: '2',
+                  background: Object.keys(currentMeeting.ratings).length === Object.keys(dimensions).length && currentMeeting.name.trim()
+                    ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'
+                    : 'rgba(139, 92, 246, 0.3)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '1rem',
+                  padding: '1rem 2rem',
+                  fontSize: '1rem',
+                  fontWeight: '700',
+                  cursor: Object.keys(currentMeeting.ratings).length === Object.keys(dimensions).length && currentMeeting.name.trim()
+                    ? 'pointer'
+                    : 'not-allowed',
+                  transition: 'all 0.2s ease',
+                  boxShadow: Object.keys(currentMeeting.ratings).length === Object.keys(dimensions).length && currentMeeting.name.trim()
+                    ? '0 4px 20px rgba(139, 92, 246, 0.3)'
+                    : 'none'
+                }}
+              >
+                Submit Assessment ({Object.keys(currentMeeting.ratings).length}/6)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Results Screen */}
+        {screen === 'results' && latestMeeting && (
+          <div>
+            {/* Overall Score */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '1.5rem',
+              padding: '2.5rem',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              marginBottom: '1.5rem',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#a5b4fc',
+                marginBottom: '0.5rem'
+              }}>
+                {latestMeeting.name} - {new Date(latestMeeting.date).toLocaleDateString()}
+              </div>
+              <h2 style={{
+                margin: '0 0 1.5rem 0',
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                color: '#e0e7ff'
+              }}>
+                Meeting Effectiveness Score
+              </h2>
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '2rem',
+                marginBottom: '1.5rem',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{
+                  width: '140px',
+                  height: '140px',
+                  borderRadius: '50%',
+                  background: `conic-gradient(${getScoreColor(latestMeeting.overallScore)} ${latestMeeting.overallScore / 5 * 100}%, rgba(255,255,255,0.1) 0%)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{
+                    width: '110px',
+                    height: '110px',
+                    borderRadius: '50%',
+                    background: '#1e1b4b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column'
+                  }}>
+                    <span style={{
+                      fontSize: '2.5rem',
+                      fontWeight: '700',
+                      color: getScoreColor(latestMeeting.overallScore)
+                    }}>
+                      {latestMeeting.overallScore.toFixed(1)}
+                    </span>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      color: '#a5b4fc'
+                    }}>
+                      out of 5
+                    </span>
+                  </div>
+                </div>
+
+                {trend && (
+                  <div style={{
+                    background: trend.direction === 'up'
+                      ? 'rgba(16, 185, 129, 0.15)'
+                      : trend.direction === 'down'
+                        ? 'rgba(239, 68, 68, 0.15)'
+                        : 'rgba(139, 92, 246, 0.15)',
+                    borderRadius: '1rem',
+                    padding: '1.25rem 1.5rem',
+                    border: `1px solid ${trend.direction === 'up'
+                      ? 'rgba(16, 185, 129, 0.3)'
+                      : trend.direction === 'down'
+                        ? 'rgba(239, 68, 68, 0.3)'
+                        : 'rgba(139, 92, 246, 0.3)'}`
+                  }}>
+                    <div style={{
+                      fontSize: '0.8rem',
+                      color: '#a5b4fc',
+                      marginBottom: '0.25rem'
+                    }}>
+                      Trend (last 5 vs previous 5)
+                    </div>
+                    <div style={{
+                      fontSize: '1.5rem',
+                      fontWeight: '700',
+                      color: trend.direction === 'up'
+                        ? '#10b981'
+                        : trend.direction === 'down'
+                          ? '#ef4444'
+                          : '#a78bfa'
+                    }}>
+                      {trend.direction === 'up' ? '+' : ''}{trend.change}%
+                      {trend.direction === 'up' ? ' Improving' : trend.direction === 'down' ? ' Declining' : ' Stable'}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{
+                display: 'inline-block',
+                background: `${getScoreColor(latestMeeting.overallScore)}20`,
+                color: getScoreColor(latestMeeting.overallScore),
+                padding: '0.5rem 1.5rem',
+                borderRadius: '2rem',
+                fontWeight: '600',
+                fontSize: '1rem'
+              }}>
+                {getScoreLabel(latestMeeting.overallScore)}
+              </div>
+            </div>
+
+            {/* Dimension Breakdown */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '1.5rem',
+              padding: '2rem',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              marginBottom: '1.5rem'
+            }}>
+              <h3 style={{
+                margin: '0 0 1.5rem 0',
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: '#e0e7ff'
+              }}>
+                Dimension Scores
+              </h3>
+
+              <div style={{ display: 'grid', gap: '1.25rem' }}>
+                {Object.entries(latestMeeting.ratings)
+                  .sort((a, b) => a[1] - b[1])
+                  .map(([dimKey, score]) => {
+                    const dim = dimensions[dimKey];
+                    const avg = dimensionAverages[dimKey];
+                    return (
+                      <div key={dimKey}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '0.5rem'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '0.5rem',
+                              background: `${dim.color}25`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.875rem',
+                              fontWeight: '700',
+                              color: dim.color
+                            }}>
+                              {dim.icon}
+                            </div>
+                            <span style={{ fontWeight: '600', color: '#e0e7ff' }}>{dim.name}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            {avg && meetingHistory.length > 1 && (
+                              <span style={{
+                                fontSize: '0.75rem',
+                                color: '#6b7280'
+                              }}>
+                                Avg: {avg.toFixed(1)}
+                              </span>
+                            )}
+                            <div style={{
+                              background: `${getScoreColor(score)}20`,
+                              color: getScoreColor(score),
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: '1rem',
+                              fontSize: '0.85rem',
+                              fontWeight: '600'
+                            }}>
+                              {score}/5
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.5rem',
+                          height: '10px',
+                          overflow: 'hidden',
+                          position: 'relative'
+                        }}>
+                          <div style={{
+                            background: `linear-gradient(90deg, ${dim.color}, ${dim.color}88)`,
+                            height: '100%',
+                            width: `${score / 5 * 100}%`,
+                            borderRadius: '0.5rem',
+                            transition: 'width 0.5s ease'
+                          }} />
+                          {avg && meetingHistory.length > 1 && (
+                            <div style={{
+                              position: 'absolute',
+                              left: `${avg / 5 * 100}%`,
+                              top: 0,
+                              bottom: 0,
+                              width: '2px',
+                              background: '#ffffff',
+                              opacity: 0.5
+                            }} />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Improvement Tips */}
+            <div style={{
+              display: 'grid',
+              gap: '1.5rem',
+              marginBottom: '1.5rem'
+            }}>
+              {Object.entries(latestMeeting.ratings)
+                .sort((a, b) => a[1] - b[1])
+                .slice(0, 3)
+                .map(([dimKey, score]) => {
+                  const dim = dimensions[dimKey];
+                  const level = getScoreLevel(score);
+                  const tips = dim.tips[level];
+
+                  return (
+                    <div key={dimKey} style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: '1.5rem',
+                      padding: '1.5rem',
+                      border: `1px solid ${dim.color}30`
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        marginBottom: '1rem'
+                      }}>
+                        <div style={{
+                          background: `${dim.color}20`,
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.25rem',
+                          fontWeight: '700',
+                          color: dim.color
+                        }}>
+                          {dim.icon}
+                        </div>
+                        <div>
+                          <h4 style={{
+                            margin: 0,
+                            fontSize: '1rem',
+                            fontWeight: '600',
+                            color: dim.color
+                          }}>
+                            {dim.name}
+                          </h4>
+                          <p style={{
+                            margin: 0,
+                            fontSize: '0.8rem',
+                            color: '#a5b4fc'
+                          }}>
+                            {level === 'low' ? 'Priority area for improvement' :
+                              level === 'medium' ? 'Good foundation, room to grow' :
+                                'Strength - maintain and share'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{
+                        background: 'rgba(139, 92, 246, 0.08)',
+                        borderRadius: '0.75rem',
+                        padding: '0.875rem 1rem',
+                        marginBottom: '1rem',
+                        fontSize: '0.85rem',
+                        color: '#c7d2fe',
+                        fontStyle: 'italic'
+                      }}>
+                        Research: {dim.research}
+                      </div>
+
+                      <h5 style={{
+                        margin: '0 0 0.75rem 0',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#e0e7ff',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        Recommended Actions
+                      </h5>
+
+                      <ul style={{
+                        margin: 0,
+                        paddingLeft: '1.25rem',
+                        color: '#c7d2fe',
+                        lineHeight: '1.8',
+                        fontSize: '0.9rem'
+                      }}>
+                        {tips.slice(0, level === 'low' ? 5 : 3).map((tip, i) => (
+                          <li key={i}>{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* Research Attribution */}
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              borderRadius: '1.5rem',
+              padding: '1.5rem',
+              marginBottom: '1.5rem',
+              border: '1px solid rgba(139, 92, 246, 0.2)'
+            }}>
+              <h4 style={{
+                margin: '0 0 0.75rem 0',
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: '#a78bfa'
+              }}>
+                Research Foundation
+              </h4>
+              <p style={{
+                margin: 0,
+                color: '#c7d2fe',
+                lineHeight: '1.7',
+                fontSize: '0.9rem'
+              }}>
+                This assessment draws on research from: Steven Rogelberg's "The Surprising Science of Meetings" (2019),
+                Google's Project Aristotle on team effectiveness, Amy Edmondson's work on psychological safety at Harvard,
+                and Bain & Company's research on organizational decision-making. The six dimensions represent
+                evidence-based factors that distinguish effective meetings from unproductive ones.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={startNewAssessment}
+                style={{
+                  flex: '1',
+                  minWidth: '200px',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '1rem',
+                  padding: '1rem 2rem',
+                  fontSize: '1rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 20px rgba(139, 92, 246, 0.3)'
+                }}
+              >
+                Rate Another Meeting
+              </button>
+              <button
+                onClick={() => setScreen('intro')}
+                style={{
+                  flex: '1',
+                  minWidth: '200px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#e0e7ff',
+                  border: '2px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '1rem',
+                  padding: '1rem 2rem',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* History Modal */}
+        {showHistory && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+              borderRadius: '1.5rem',
+              padding: '2rem',
+              maxWidth: '700px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              border: '1px solid rgba(139, 92, 246, 0.3)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.5rem'
+              }}>
+                <h2 style={{
+                  margin: 0,
+                  fontSize: '1.25rem',
+                  fontWeight: '600',
+                  color: '#e0e7ff'
+                }}>
+                  Meeting History ({meetingHistory.length} assessments)
+                </h2>
+                <button
+                  onClick={() => setShowHistory(false)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    color: '#a5b4fc',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+
+              {/* Overall Averages */}
+              {meetingHistory.length > 0 && (
+                <div style={{
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  borderRadius: '1rem',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(139, 92, 246, 0.2)'
+                }}>
+                  <h3 style={{
+                    margin: '0 0 1rem 0',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: '#a78bfa'
+                  }}>
+                    Dimension Averages (All Meetings)
+                  </h3>
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {Object.entries(dimensionAverages)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([dimKey, avg]) => {
+                        const dim = dimensions[dimKey];
+                        return (
+                          <div key={dimKey} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem'
+                          }}>
+                            <div style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '0.375rem',
+                              background: `${dim.color}25`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              color: dim.color
+                            }}>
+                              {dim.icon}
+                            </div>
+                            <span style={{ flex: 1, fontSize: '0.875rem', color: '#c7d2fe' }}>
+                              {dim.name}
+                            </span>
+                            <div style={{
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              borderRadius: '0.375rem',
+                              height: '6px',
+                              width: '100px',
+                              overflow: 'hidden'
+                            }}>
+                              <div style={{
+                                background: dim.color,
+                                height: '100%',
+                                width: `${avg / 5 * 100}%`
+                              }} />
+                            </div>
+                            <span style={{
+                              fontSize: '0.85rem',
+                              fontWeight: '600',
+                              color: dim.color,
+                              width: '35px',
+                              textAlign: 'right'
+                            }}>
+                              {avg.toFixed(1)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {/* Meeting List */}
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                {meetingHistory.map((meeting) => (
+                  <div key={meeting.id} style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '1rem',
+                    padding: '1rem 1.25rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '0.75rem'
+                    }}>
+                      <div>
+                        <div style={{
+                          fontWeight: '600',
+                          color: '#e0e7ff',
+                          marginBottom: '0.25rem'
+                        }}>
+                          {meeting.name}
+                        </div>
+                        <div style={{
+                          fontSize: '0.8rem',
+                          color: '#6b7280'
+                        }}>
+                          {new Date(meeting.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div style={{
+                        background: `${getScoreColor(meeting.overallScore)}20`,
+                        color: getScoreColor(meeting.overallScore),
+                        padding: '0.5rem 1rem',
+                        borderRadius: '0.75rem',
+                        fontWeight: '700',
+                        fontSize: '1.125rem'
+                      }}>
+                        {meeting.overallScore.toFixed(1)}
+                      </div>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      gap: '0.5rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      {Object.entries(meeting.ratings).map(([dimKey, score]) => {
+                        const dim = dimensions[dimKey];
+                        return (
+                          <div key={dimKey} style={{
+                            background: `${dim.color}15`,
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.75rem',
+                            color: dim.color,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            <span style={{ fontWeight: '600' }}>{dim.icon}</span>
+                            <span>{score}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{
+          textAlign: 'center',
+          marginTop: '2rem',
+          color: '#4c1d95',
+          fontSize: '0.75rem'
+        }}>
+          Based on research by Rogelberg, Edmondson, Google Project Aristotle, and Bain & Company
+        </div>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<MeetingEffectivenessScorecard />);
+  </script>
+</body>
+</html>

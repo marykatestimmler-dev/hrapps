@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Negotiation Prep Simulator</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    input, textarea, select, button {
+      font-family: inherit;
+    }
+    option {
+      background: #1e1b4b;
+      color: #e0e7ff;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const NegotiationPrepSimulator = () => {
+      const [screen, setScreen] = useState('intro');
+      const [scenario, setScenario] = useState({
+        type: 'salary',
+        currentSituation: '',
+        targetOutcome: '',
+        walkaway: '',
+        theirPriorities: '',
+        relationship: 'ongoing',
+        leverage: 'moderate'
+      });
+      const [batna, setBatna] = useState({
+        alternatives: ['', '', ''],
+        bestAlternative: '',
+        reservationPoint: ''
+      });
+      const [analysis, setAnalysis] = useState(null);
+
+      const negotiationTypes = [
+        { id: 'salary', label: 'Salary Negotiation', icon: '💰' },
+        { id: 'promotion', label: 'Promotion Discussion', icon: '📈' },
+        { id: 'resources', label: 'Team Resources', icon: '👥' },
+        { id: 'timeline', label: 'Project Timeline', icon: '📅' },
+        { id: 'workload', label: 'Workload/Scope', icon: '⚖️' },
+        { id: 'remote', label: 'Remote Work', icon: '🏠' },
+        { id: 'exit', label: 'Exit Package', icon: '🚪' }
+      ];
+
+      const scriptTemplates = {
+        salary: {
+          opener: [
+            "I'd like to discuss my compensation. Based on my research and contributions, I believe an adjustment is warranted.",
+            "Thank you for meeting with me. I want to have a conversation about aligning my compensation with the value I'm bringing to the team.",
+            "I've been reflecting on my role and impact here, and I'd like to discuss how my compensation might better reflect my contributions."
+          ],
+          anchor: [
+            "Based on market data for this role in our area, combined with my [specific achievements], I'm targeting a salary of [ANCHOR - 10-15% above target].",
+            "Looking at comparable positions and my track record of [achievements], I believe a salary in the range of [ANCHOR] would be appropriate.",
+            "My research indicates that professionals with my experience and results are earning [ANCHOR]. Given my [specific value], I'd like to discuss reaching that level."
+          ],
+          respond: [
+            "I appreciate you sharing that perspective. Help me understand the constraints you're working with.",
+            "I hear you. Can you tell me more about what factors are influencing that position?",
+            "I understand. What would need to be true for us to get closer to what I've outlined?"
+          ],
+          tradeoffs: [
+            "If base salary is constrained, I'm open to discussing other forms of compensation—signing bonus, equity, or accelerated review timeline.",
+            "I understand budget constraints. Could we explore a performance-based path to reach my target within [timeframe]?",
+            "What if we structured this differently? I'm flexible on the form the compensation takes."
+          ]
+        },
+        promotion: {
+          opener: [
+            "I'd like to discuss my career trajectory here. I believe I'm ready for additional responsibility and recognition.",
+            "Thank you for your time. I want to talk about how my role might evolve to match my contributions and potential.",
+            "I've been thinking about my growth path, and I'd like to understand what it would take to move to the next level."
+          ],
+          anchor: [
+            "Based on my demonstrated ability to [achievements], I believe I'm ready for a [specific title/role] position.",
+            "Looking at the scope of work I'm already doing and my impact on [metrics], I'd like to formalize my role as [target position].",
+            "My work on [projects] has prepared me for [next level]. I'd like to discuss making that transition."
+          ],
+          respond: [
+            "I appreciate that feedback. What specific milestones would help demonstrate readiness?",
+            "I understand timing is a factor. Can we map out a concrete path with checkpoints?",
+            "What concerns would we need to address for you to feel confident in this move?"
+          ],
+          tradeoffs: [
+            "If the title change isn't possible now, could we discuss expanded scope and a commitment to revisit in [timeframe]?",
+            "I'm willing to take on a stretch project to demonstrate readiness. What would be most valuable?",
+            "Could we structure this as an acting role initially with a path to permanence?"
+          ]
+        },
+        default: {
+          opener: [
+            "I'd like to discuss [topic] with you. I've thought through this carefully and have some ideas to share.",
+            "Thank you for meeting. I want to have a productive conversation about [topic] that works for both of us.",
+            "I appreciate your time. I'd like to explore how we might approach [topic] in a way that serves our shared goals."
+          ],
+          anchor: [
+            "Based on my analysis, I believe [specific proposal] would be the ideal outcome for the following reasons...",
+            "Here's what I'm proposing: [specific ask]. Let me walk you through my thinking.",
+            "I've identified [target outcome] as my goal. Here's the case for why this makes sense..."
+          ],
+          respond: [
+            "I hear your concerns. Help me understand what's driving that perspective.",
+            "Thank you for being direct. What would need to be different for you to feel comfortable with this?",
+            "I appreciate you sharing that. What constraints are you working within?"
+          ],
+          tradeoffs: [
+            "I'm open to creative solutions. What alternatives might work better from your perspective?",
+            "If [original ask] isn't possible, what aspects could we make progress on?",
+            "I'm flexible on the specifics. What's most important to you in this situation?"
+          ]
+        }
+      };
+
+      const generateAnalysis = () => {
+        const scripts = scriptTemplates[scenario.type] || scriptTemplates.default;
+
+        // Calculate BATNA strength
+        const filledAlternatives = batna.alternatives.filter(a => a.trim() !== '');
+        const batnaStrength = filledAlternatives.length >= 2 ? 'strong' : filledAlternatives.length === 1 ? 'moderate' : 'weak';
+
+        // Generate personalized scripts
+        const personalizedScripts = {
+          opener: scripts.opener[Math.floor(Math.random() * scripts.opener.length)]
+            .replace('[topic]', scenario.type),
+          anchor: scripts.anchor[Math.floor(Math.random() * scripts.anchor.length)]
+            .replace('[ANCHOR]', scenario.targetOutcome)
+            .replace('[achievements]', 'specific achievements'),
+          respond: scripts.respond,
+          tradeoffs: scripts.tradeoffs
+        };
+
+        // Generate tactics based on leverage
+        const tactics = [];
+        if (scenario.leverage === 'high') {
+          tactics.push('Lead with your value proposition confidently');
+          tactics.push('Set an ambitious anchor—research shows first offers strongly influence outcomes');
+          tactics.push('Be comfortable with silence after making your ask');
+        } else if (scenario.leverage === 'moderate') {
+          tactics.push('Emphasize mutual benefit and shared interests');
+          tactics.push('Prepare multiple options to increase flexibility');
+          tactics.push('Focus on interests, not positions (Fisher & Ury principle)');
+        } else {
+          tactics.push('Focus on relationship and long-term value');
+          tactics.push('Ask questions to uncover their constraints');
+          tactics.push('Look for creative trades that cost them little but matter to you');
+        }
+
+        // Anchoring advice
+        const anchoringAdvice = {
+          recommendation: 'Set your anchor 10-20% above your target',
+          rationale: 'Research on anchoring effects shows that first offers strongly influence final outcomes, even when counterparties know the anchor is arbitrary.',
+          yourAnchor: scenario.targetOutcome ? `Your anchor should be approximately ${scenario.targetOutcome} (adjust 10-20% higher)` : 'Define your target to calculate anchor'
+        };
+
+        setAnalysis({
+          scripts: personalizedScripts,
+          batnaStrength,
+          tactics,
+          anchoringAdvice,
+          zopa: {
+            yourRange: `${scenario.walkaway || '[Define walkaway]'} to ${scenario.targetOutcome || '[Define target]'}`,
+            theirPriorities: scenario.theirPriorities || 'Not yet defined'
+          }
+        });
+        setScreen('analysis');
+      };
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: '#e0e7ff',
+          padding: '2rem'
+        }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(139, 92, 246, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                marginBottom: '1rem',
+                border: '1px solid rgba(139, 92, 246, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>🤝</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#a78bfa' }}>
+                  Fisher & Ury's Principled Negotiation
+                </span>
+              </div>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                margin: '0 0 0.5rem 0',
+                background: 'linear-gradient(135deg, #e0e7ff 0%, #a78bfa 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Negotiation Prep Simulator
+              </h1>
+              <p style={{ color: '#a5b4fc', margin: 0 }}>
+                Build your BATNA worksheet and get scripted language
+              </p>
+            </div>
+
+            {/* Intro Screen */}
+            {screen === 'intro' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '2.5rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <div style={{ display: 'grid', gap: '2rem' }}>
+                  {/* Key Concepts */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    {[
+                      {
+                        icon: '🎯',
+                        title: 'BATNA',
+                        desc: 'Best Alternative to Negotiated Agreement—your power source',
+                        color: '#8b5cf6'
+                      },
+                      {
+                        icon: '⚓',
+                        title: 'Anchoring',
+                        desc: 'First numbers shape the entire negotiation range',
+                        color: '#f59e0b'
+                      },
+                      {
+                        icon: '🔄',
+                        title: 'Interests vs Positions',
+                        desc: 'Focus on why, not what—find creative solutions',
+                        color: '#10b981'
+                      },
+                      {
+                        icon: '📊',
+                        title: 'ZOPA',
+                        desc: 'Zone of Possible Agreement—where deals happen',
+                        color: '#06b6d4'
+                      }
+                    ].map((item, i) => (
+                      <div key={i} style={{
+                        background: `${item.color}10`,
+                        borderRadius: '1rem',
+                        padding: '1.25rem',
+                        border: `1px solid ${item.color}30`
+                      }}>
+                        <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{item.icon}</div>
+                        <div style={{ fontWeight: '600', color: item.color, marginBottom: '0.25rem' }}>
+                          {item.title}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#a5b4fc' }}>{item.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p style={{
+                    color: '#c7d2fe',
+                    lineHeight: '1.7',
+                    margin: 0
+                  }}>
+                    This tool helps you prepare using Harvard Negotiation Project methodology from
+                    "Getting to Yes" by Roger Fisher and William Ury, combined with behavioral economics
+                    research on anchoring and framing effects. You'll build a BATNA worksheet and get
+                    scripted language tailored to your situation.
+                  </p>
+
+                  <button
+                    onClick={() => setScreen('scenario')}
+                    style={{
+                      background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1.25rem 2rem',
+                      fontSize: '1.125rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 20px rgba(139, 92, 246, 0.3)'
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                    onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+                  >
+                    Start Preparation →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Scenario Screen */}
+            {screen === 'scenario' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '2rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <h2 style={{ margin: '0 0 1.5rem 0', color: '#e0e7ff', fontSize: '1.5rem' }}>
+                  📋 Define Your Scenario
+                </h2>
+
+                {/* Negotiation Type */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.75rem', fontWeight: '500' }}>
+                    What are you negotiating?
+                  </label>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                    gap: '0.75rem'
+                  }}>
+                    {negotiationTypes.map(type => (
+                      <button
+                        key={type.id}
+                        onClick={() => setScenario(prev => ({ ...prev, type: type.id }))}
+                        style={{
+                          background: scenario.type === type.id ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                          border: `2px solid ${scenario.type === type.id ? '#8b5cf6' : 'rgba(255, 255, 255, 0.1)'}`,
+                          borderRadius: '0.75rem',
+                          padding: '1rem',
+                          cursor: 'pointer',
+                          color: scenario.type === type.id ? '#a78bfa' : '#94a3b8',
+                          textAlign: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{type.icon}</div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>{type.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Situation Fields */}
+                <div style={{ display: 'grid', gap: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                      Current Situation
+                    </label>
+                    <textarea
+                      value={scenario.currentSituation}
+                      onChange={(e) => setScenario(prev => ({ ...prev, currentSituation: e.target.value }))}
+                      placeholder="Describe your current state (e.g., current salary, role, situation)"
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem',
+                        color: '#e0e7ff',
+                        minHeight: '80px',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    <div>
+                      <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        🎯 Target Outcome (Ideal)
+                      </label>
+                      <input
+                        value={scenario.targetOutcome}
+                        onChange={(e) => setScenario(prev => ({ ...prev, targetOutcome: e.target.value }))}
+                        placeholder="e.g., $150,000 or Senior Manager title"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e0e7ff'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        🚪 Walkaway Point (Minimum)
+                      </label>
+                      <input
+                        value={scenario.walkaway}
+                        onChange={(e) => setScenario(prev => ({ ...prev, walkaway: e.target.value }))}
+                        placeholder="Below this, you'd walk away"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e0e7ff'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                      Their Likely Priorities/Constraints
+                    </label>
+                    <textarea
+                      value={scenario.theirPriorities}
+                      onChange={(e) => setScenario(prev => ({ ...prev, theirPriorities: e.target.value }))}
+                      placeholder="What matters to them? Budget cycles? Retention? Politics? (Understanding their interests is key)"
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem',
+                        color: '#e0e7ff',
+                        minHeight: '80px',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    <div>
+                      <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Relationship Type
+                      </label>
+                      <select
+                        value={scenario.relationship}
+                        onChange={(e) => setScenario(prev => ({ ...prev, relationship: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e0e7ff'
+                        }}
+                      >
+                        <option value="ongoing">Ongoing (need to preserve)</option>
+                        <option value="transactional">Transactional (one-time)</option>
+                        <option value="ending">Ending (exit negotiation)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Your Leverage
+                      </label>
+                      <select
+                        value={scenario.leverage}
+                        onChange={(e) => setScenario(prev => ({ ...prev, leverage: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e0e7ff'
+                        }}
+                      >
+                        <option value="high">High (strong alternatives, in-demand)</option>
+                        <option value="moderate">Moderate (some alternatives)</option>
+                        <option value="low">Low (few alternatives, need this)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setScreen('batna')}
+                  style={{
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    width: '100%',
+                    marginTop: '1.5rem'
+                  }}
+                >
+                  Build Your BATNA →
+                </button>
+              </div>
+            )}
+
+            {/* BATNA Screen */}
+            {screen === 'batna' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '2rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <h2 style={{ margin: '0 0 0.5rem 0', color: '#e0e7ff', fontSize: '1.5rem' }}>
+                  🎯 BATNA Worksheet
+                </h2>
+                <p style={{ color: '#a5b4fc', marginBottom: '1.5rem' }}>
+                  Your Best Alternative to Negotiated Agreement is your source of power.
+                  The stronger your BATNA, the more confidently you can negotiate.
+                </p>
+
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  borderRadius: '1rem',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(245, 158, 11, 0.2)'
+                }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#f59e0b', fontSize: '0.95rem' }}>
+                    💡 Why BATNA Matters
+                  </h4>
+                  <p style={{ margin: 0, color: '#fcd34d', fontSize: '0.875rem', lineHeight: '1.6' }}>
+                    Research shows that negotiators with strong alternatives get better outcomes—not because
+                    they threaten to leave, but because confidence changes behavior. Knowing your alternatives
+                    lets you set higher anchors and hold firm on key points.
+                  </p>
+                </div>
+
+                <div style={{ display: 'grid', gap: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.75rem', fontWeight: '500' }}>
+                      List Your Alternatives (What could you do if this negotiation fails?)
+                    </label>
+                    {batna.alternatives.map((alt, idx) => (
+                      <input
+                        key={idx}
+                        value={alt}
+                        onChange={(e) => {
+                          const newAlts = [...batna.alternatives];
+                          newAlts[idx] = e.target.value;
+                          setBatna(prev => ({ ...prev, alternatives: newAlts }));
+                        }}
+                        placeholder={`Alternative ${idx + 1} (e.g., competing offer, stay put, freelance)`}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e0e7ff',
+                          marginBottom: '0.75rem'
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                      Best Alternative (Which is your strongest option?)
+                    </label>
+                    <textarea
+                      value={batna.bestAlternative}
+                      onChange={(e) => setBatna(prev => ({ ...prev, bestAlternative: e.target.value }))}
+                      placeholder="Describe your best alternative in detail. Be honest—a weak BATNA means you need to strengthen it before negotiating."
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem',
+                        color: '#e0e7ff',
+                        minHeight: '80px',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                      Reservation Point (Your true bottom line based on BATNA)
+                    </label>
+                    <input
+                      value={batna.reservationPoint}
+                      onChange={(e) => setBatna(prev => ({ ...prev, reservationPoint: e.target.value }))}
+                      placeholder="At what point is your BATNA better than continuing to negotiate?"
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '0.75rem',
+                        padding: '0.875rem',
+                        color: '#e0e7ff'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                  <button
+                    onClick={() => setScreen('scenario')}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: '#a5b4fc',
+                      border: '2px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      flex: 1
+                    }}
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={generateAnalysis}
+                    style={{
+                      background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      flex: 2
+                    }}
+                  >
+                    Generate Prep Kit →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Analysis Screen */}
+            {screen === 'analysis' && analysis && (
+              <div>
+                {/* BATNA Strength Indicator */}
+                <div style={{
+                  background: analysis.batnaStrength === 'strong' ? 'rgba(16, 185, 129, 0.1)' :
+                    analysis.batnaStrength === 'moderate' ? 'rgba(245, 158, 11, 0.1)' :
+                      'rgba(239, 68, 68, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: `2px solid ${analysis.batnaStrength === 'strong' ? 'rgba(16, 185, 129, 0.3)' :
+                    analysis.batnaStrength === 'moderate' ? 'rgba(245, 158, 11, 0.3)' :
+                      'rgba(239, 68, 68, 0.3)'}`
+                }}>
+                  <h3 style={{
+                    margin: '0 0 0.5rem 0',
+                    color: analysis.batnaStrength === 'strong' ? '#10b981' :
+                      analysis.batnaStrength === 'moderate' ? '#f59e0b' : '#ef4444',
+                    fontSize: '1.125rem'
+                  }}>
+                    🎯 BATNA Strength: {analysis.batnaStrength.charAt(0).toUpperCase() + analysis.batnaStrength.slice(1)}
+                  </h3>
+                  <p style={{
+                    margin: 0,
+                    color: analysis.batnaStrength === 'strong' ? '#6ee7b7' :
+                      analysis.batnaStrength === 'moderate' ? '#fcd34d' : '#fca5a5',
+                    fontSize: '0.9rem'
+                  }}>
+                    {analysis.batnaStrength === 'strong' ?
+                      'You have solid alternatives. Negotiate from a position of confidence.' :
+                      analysis.batnaStrength === 'moderate' ?
+                        'Consider strengthening your alternatives before negotiating if possible.' :
+                        'Warning: Weak BATNA means limited leverage. Focus on creative solutions and building the relationship.'}
+                  </p>
+                </div>
+
+                {/* Recommended Tactics */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#a78bfa', fontSize: '1.125rem' }}>
+                    ⚡ Recommended Tactics
+                  </h3>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: '1.25rem',
+                    color: '#c7d2fe',
+                    lineHeight: '1.8'
+                  }}>
+                    {analysis.tactics.map((tactic, i) => (
+                      <li key={i}>{tactic}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Anchoring Advice */}
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(245, 158, 11, 0.2)'
+                }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#f59e0b', fontSize: '1.125rem' }}>
+                    ⚓ Anchoring Strategy
+                  </h3>
+                  <p style={{ color: '#fcd34d', marginBottom: '1rem', lineHeight: '1.6' }}>
+                    <strong>{analysis.anchoringAdvice.recommendation}</strong>
+                  </p>
+                  <p style={{ color: '#fde68a', fontSize: '0.875rem', margin: 0, lineHeight: '1.6' }}>
+                    {analysis.anchoringAdvice.rationale}
+                  </p>
+                </div>
+
+                {/* Scripted Language */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  <h3 style={{ margin: '0 0 1.5rem 0', color: '#e0e7ff', fontSize: '1.125rem' }}>
+                    💬 Scripted Language
+                  </h3>
+
+                  {/* Opening */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{
+                      margin: '0 0 0.75rem 0',
+                      color: '#8b5cf6',
+                      fontSize: '0.95rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{
+                        background: 'rgba(139, 92, 246, 0.2)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.75rem'
+                      }}>
+                        OPENER
+                      </span>
+                      Setting the Tone
+                    </h4>
+                    <div style={{
+                      background: 'rgba(139, 92, 246, 0.1)',
+                      borderRadius: '0.75rem',
+                      padding: '1rem',
+                      borderLeft: '3px solid #8b5cf6'
+                    }}>
+                      <p style={{ margin: 0, color: '#c7d2fe', fontStyle: 'italic', lineHeight: '1.6' }}>
+                        "{analysis.scripts.opener}"
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Anchor */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{
+                      margin: '0 0 0.75rem 0',
+                      color: '#f59e0b',
+                      fontSize: '0.95rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{
+                        background: 'rgba(245, 158, 11, 0.2)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.75rem'
+                      }}>
+                        ANCHOR
+                      </span>
+                      Making Your Ask
+                    </h4>
+                    <div style={{
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      borderRadius: '0.75rem',
+                      padding: '1rem',
+                      borderLeft: '3px solid #f59e0b'
+                    }}>
+                      <p style={{ margin: 0, color: '#fde68a', fontStyle: 'italic', lineHeight: '1.6' }}>
+                        "{analysis.scripts.anchor}"
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Responses */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{
+                      margin: '0 0 0.75rem 0',
+                      color: '#06b6d4',
+                      fontSize: '0.95rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{
+                        background: 'rgba(6, 182, 212, 0.2)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.75rem'
+                      }}>
+                        RESPOND
+                      </span>
+                      When They Push Back
+                    </h4>
+                    {analysis.scripts.respond.map((response, i) => (
+                      <div key={i} style={{
+                        background: 'rgba(6, 182, 212, 0.1)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem',
+                        borderLeft: '3px solid #06b6d4',
+                        marginBottom: '0.75rem'
+                      }}>
+                        <p style={{ margin: 0, color: '#a5f3fc', fontStyle: 'italic', lineHeight: '1.6' }}>
+                          "{response}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Tradeoffs */}
+                  <div>
+                    <h4 style={{
+                      margin: '0 0 0.75rem 0',
+                      color: '#10b981',
+                      fontSize: '0.95rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{
+                        background: 'rgba(16, 185, 129, 0.2)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.75rem'
+                      }}>
+                        TRADE
+                      </span>
+                      Finding Creative Solutions
+                    </h4>
+                    {analysis.scripts.tradeoffs.map((trade, i) => (
+                      <div key={i} style={{
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem',
+                        borderLeft: '3px solid #10b981',
+                        marginBottom: '0.75rem'
+                      }}>
+                        <p style={{ margin: 0, color: '#a7f3d0', fontStyle: 'italic', lineHeight: '1.6' }}>
+                          "{trade}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pre-Negotiation Checklist */}
+                <div style={{
+                  background: 'rgba(99, 102, 241, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(99, 102, 241, 0.2)'
+                }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#818cf8', fontSize: '1.125rem' }}>
+                    ✅ Pre-Negotiation Checklist
+                  </h3>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: '1.25rem',
+                    color: '#c7d2fe',
+                    lineHeight: '2'
+                  }}>
+                    <li>Have I researched comparable data to support my ask?</li>
+                    <li>Do I understand their likely constraints and priorities?</li>
+                    <li>Have I practiced my opening and anchor out loud?</li>
+                    <li>Am I prepared to be silent after making my ask?</li>
+                    <li>Do I have 2-3 creative alternatives if they can't meet my primary ask?</li>
+                    <li>Am I emotionally ready to hear "no" without reacting defensively?</li>
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setScreen('scenario');
+                    setAnalysis(null);
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#e0e7ff',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  ↺ Revise Scenario
+                </button>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '2rem',
+              color: '#4338ca',
+              fontSize: '0.75rem'
+            }}>
+              Framework: Fisher & Ury's "Getting to Yes" + Anchoring Research (Kahneman & Tversky)
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<NegotiationPrepSimulator />);
+  </script>
+</body>
+</html>

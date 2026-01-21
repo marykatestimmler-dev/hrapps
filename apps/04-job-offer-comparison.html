@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Offer Comparison Calculator</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const JobOfferComparisonCalculator = () => {
+      const [screen, setScreen] = useState('intro');
+      const [offers, setOffers] = useState([
+        { id: 1, name: 'Offer A', details: {} },
+        { id: 2, name: 'Offer B', details: {} }
+      ]);
+      const [currentOffer, setCurrentOffer] = useState(0);
+      const [currentCategory, setCurrentCategory] = useState(0);
+      const [weights, setWeights] = useState({});
+      const [results, setResults] = useState(null);
+
+      // Categories based on research on job satisfaction predictors
+      const categories = [
+        {
+          id: 'compensation',
+          name: 'Total Compensation',
+          icon: '\u{1F4B0}',
+          color: '#10b981',
+          description: 'Beyond base salary - consider the full package',
+          fields: [
+            { key: 'baseSalary', label: 'Base Salary', type: 'currency', weight: 1.0 },
+            { key: 'bonus', label: 'Expected Annual Bonus', type: 'currency', weight: 0.7, note: 'Discount by probability of receiving full amount' },
+            { key: 'equity', label: 'Annual Equity Value', type: 'currency', weight: 0.5, note: 'Heavily discounted - high uncertainty' },
+            { key: 'signingBonus', label: 'Signing Bonus', type: 'currency', weight: 0.3, note: 'One-time, hedonic adaptation reduces impact' },
+            { key: '401k', label: '401k Match (Annual)', type: 'currency', weight: 1.0 }
+          ]
+        },
+        {
+          id: 'worklife',
+          name: 'Work-Life Factors',
+          icon: '\u2696\uFE0F',
+          color: '#8b5cf6',
+          description: 'Research shows these affect long-term satisfaction more than compensation above a threshold',
+          fields: [
+            { key: 'commute', label: 'Daily Commute (minutes one-way)', type: 'number', inverse: true, note: 'Studies show commute is a strong negative predictor of happiness' },
+            { key: 'hoursWeek', label: 'Expected Hours/Week', type: 'number', inverse: true },
+            { key: 'pto', label: 'PTO Days/Year', type: 'number' },
+            { key: 'flexibility', label: 'Remote/Flexible Work (1-10)', type: 'scale' },
+            { key: 'travel', label: 'Travel Requirements (1-10, 10=no travel)', type: 'scale' }
+          ]
+        },
+        {
+          id: 'growth',
+          name: 'Growth & Development',
+          icon: '\u{1F4C8}',
+          color: '#f59e0b',
+          description: 'Self-determination theory: autonomy, mastery, and purpose drive intrinsic motivation',
+          fields: [
+            { key: 'learningOpp', label: 'Learning Opportunities (1-10)', type: 'scale' },
+            { key: 'promotionPath', label: 'Clear Promotion Path (1-10)', type: 'scale' },
+            { key: 'mentorship', label: 'Mentorship/Coaching (1-10)', type: 'scale' },
+            { key: 'roleClarity', label: 'Role Clarity & Autonomy (1-10)', type: 'scale' },
+            { key: 'impactScope', label: 'Scope of Impact (1-10)', type: 'scale' }
+          ]
+        },
+        {
+          id: 'culture',
+          name: 'Culture & Environment',
+          icon: '\u{1F3E2}',
+          color: '#06b6d4',
+          description: 'Person-organization fit predicts tenure and performance',
+          fields: [
+            { key: 'managerFit', label: 'Manager Impression (1-10)', type: 'scale', note: 'Research shows manager relationship is top predictor of engagement' },
+            { key: 'teamVibe', label: 'Team Culture Fit (1-10)', type: 'scale' },
+            { key: 'companyValues', label: 'Values Alignment (1-10)', type: 'scale' },
+            { key: 'diversity', label: 'Diversity & Inclusion (1-10)', type: 'scale' },
+            { key: 'stability', label: 'Company Stability (1-10)', type: 'scale' }
+          ]
+        },
+        {
+          id: 'risk',
+          name: 'Risk & Security',
+          icon: '\u{1F6E1}\uFE0F',
+          color: '#ef4444',
+          description: 'Loss aversion: potential losses weigh 2x heavier than equivalent gains',
+          fields: [
+            { key: 'jobSecurity', label: 'Job Security (1-10)', type: 'scale' },
+            { key: 'healthBenefits', label: 'Health Benefits Quality (1-10)', type: 'scale' },
+            { key: 'industryOutlook', label: 'Industry Growth Outlook (1-10)', type: 'scale' },
+            { key: 'skillMarketability', label: 'Skills Marketability (1-10)', type: 'scale' },
+            { key: 'reputationBoost', label: 'Resume/Brand Value (1-10)', type: 'scale' }
+          ]
+        }
+      ];
+
+      const defaultWeights = {
+        compensation: 25,
+        worklife: 25,
+        growth: 20,
+        culture: 20,
+        risk: 10
+      };
+
+      const formatCurrency = (value) => {
+        if (!value) return '$0';
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          maximumFractionDigits: 0
+        }).format(value);
+      };
+
+      const handleFieldChange = (offerId, fieldKey, value) => {
+        setOffers(prev => prev.map(offer =>
+          offer.id === offerId
+            ? { ...offer, details: { ...offer.details, [fieldKey]: value } }
+            : offer
+        ));
+      };
+
+      const handleNameChange = (offerId, name) => {
+        setOffers(prev => prev.map(offer =>
+          offer.id === offerId ? { ...offer, name } : offer
+        ));
+      };
+
+      const handleWeightChange = (catId, value) => {
+        setWeights(prev => ({ ...prev, [catId]: value }));
+      };
+
+      const addOffer = () => {
+        const newId = Math.max(...offers.map(o => o.id)) + 1;
+        setOffers(prev => [...prev, { id: newId, name: `Offer ${String.fromCharCode(64 + newId)}`, details: {} }]);
+      };
+
+      const removeOffer = (id) => {
+        if (offers.length > 2) {
+          setOffers(prev => prev.filter(o => o.id !== id));
+        }
+      };
+
+      const calculateResults = () => {
+        const usedWeights = { ...defaultWeights, ...weights };
+        const totalWeight = Object.values(usedWeights).reduce((a, b) => a + b, 0);
+        const normalizedWeights = {};
+        Object.entries(usedWeights).forEach(([k, v]) => {
+          normalizedWeights[k] = v / totalWeight;
+        });
+
+        const offerScores = offers.map(offer => {
+          const categoryScores = {};
+
+          categories.forEach(cat => {
+            let catScore = 0;
+            let maxPossible = 0;
+
+            cat.fields.forEach(field => {
+              const value = offer.details[field.key] || 0;
+              const fieldWeight = field.weight || 1;
+
+              if (field.type === 'currency') {
+                // Normalize currency to 0-100 scale based on all offers
+                const allValues = offers.map(o => o.details[field.key] || 0);
+                const maxVal = Math.max(...allValues, 1);
+                catScore += (value / maxVal) * 100 * fieldWeight;
+                maxPossible += 100 * fieldWeight;
+              } else if (field.type === 'scale') {
+                catScore += value * 10 * fieldWeight;
+                maxPossible += 100 * fieldWeight;
+              } else if (field.type === 'number') {
+                // Normalize numbers
+                const allValues = offers.map(o => o.details[field.key] || 0);
+                const maxVal = Math.max(...allValues, 1);
+                if (field.inverse) {
+                  catScore += ((maxVal - value) / maxVal) * 100 * fieldWeight;
+                } else {
+                  catScore += (value / maxVal) * 100 * fieldWeight;
+                }
+                maxPossible += 100 * fieldWeight;
+              }
+            });
+
+            categoryScores[cat.id] = maxPossible > 0 ? (catScore / maxPossible) * 100 : 0;
+          });
+
+          // Calculate weighted total
+          let totalScore = 0;
+          Object.entries(categoryScores).forEach(([catId, score]) => {
+            totalScore += score * normalizedWeights[catId];
+          });
+
+          // Calculate effective annual compensation (adjusted for research findings)
+          const details = offer.details;
+          const effectiveComp = (
+            (details.baseSalary || 0) +
+            (details.bonus || 0) * 0.7 +
+            (details.equity || 0) * 0.5 +
+            (details.signingBonus || 0) * 0.15 + // Amortized over 2 years, further discounted
+            (details['401k'] || 0)
+          );
+
+          // Calculate hourly effective rate
+          const hoursPerYear = (details.hoursWeek || 40) * 50;
+          const effectiveHourly = effectiveComp / hoursPerYear;
+
+          // Commute cost calculation
+          const commuteHours = ((details.commute || 0) * 2 * 250) / 60; // Annual hours
+          const commuteCost = commuteHours * effectiveHourly;
+
+          return {
+            ...offer,
+            categoryScores,
+            totalScore,
+            effectiveComp,
+            effectiveHourly,
+            commuteHours,
+            commuteCost,
+            trueComp: effectiveComp - commuteCost
+          };
+        });
+
+        // Apply loss aversion adjustment
+        const maxScore = Math.max(...offerScores.map(o => o.totalScore));
+        offerScores.forEach(score => {
+          const gap = maxScore - score.totalScore;
+          score.lossAdjustedScore = score.totalScore - (gap * 0.5); // Loss aversion factor
+        });
+
+        setResults({
+          offers: offerScores.sort((a, b) => b.totalScore - a.totalScore),
+          weights: normalizedWeights
+        });
+        setScreen('results');
+      };
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: '#e2e8f0',
+          padding: '2rem'
+        }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(16, 185, 129, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                marginBottom: '1rem',
+                border: '1px solid rgba(16, 185, 129, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>{'\u{1F9E0}'}</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#10b981' }}>
+                  Behavioral Economics Framework
+                </span>
+              </div>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                margin: '0 0 0.5rem 0',
+                background: 'linear-gradient(135deg, #e2e8f0 0%, #10b981 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Job Offer Comparison Calculator
+              </h1>
+              <p style={{ color: '#94a3b8', margin: 0 }}>
+                Beyond salary: what actually predicts job satisfaction
+              </p>
+            </div>
+
+            {/* Intro Screen */}
+            {screen === 'intro' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '2.5rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <div style={{ display: 'grid', gap: '2rem' }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    {[
+                      { icon: '\u{1F4CA}', title: 'Prospect Theory', desc: 'Accounts for how we actually value gains vs losses' },
+                      { icon: '\u23F0', title: 'Hedonic Adaptation', desc: 'Discounts one-time bonuses that fade quickly' },
+                      { icon: '\u{1F52C}', title: 'Research-Based', desc: 'Weights factors by actual satisfaction impact' },
+                      { icon: '\u{1F4A1}', title: 'Hidden Costs', desc: 'Calculates commute cost in real dollars' }
+                    ].map((item, i) => (
+                      <div key={i} style={{
+                        background: 'rgba(16, 185, 129, 0.05)',
+                        borderRadius: '1rem',
+                        padding: '1.25rem',
+                        border: '1px solid rgba(16, 185, 129, 0.1)'
+                      }}>
+                        <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{item.icon}</div>
+                        <div style={{ fontWeight: '600', color: '#e2e8f0', marginBottom: '0.25rem' }}>{item.title}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{item.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.25rem',
+                    border: '1px solid rgba(245, 158, 11, 0.2)'
+                  }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#f59e0b', fontSize: '1rem' }}>
+                      {'\u26A0\uFE0F'} Why This Matters
+                    </h3>
+                    <p style={{ margin: 0, color: '#fcd34d', fontSize: '0.9rem', lineHeight: '1.6' }}>
+                      Research from behavioral economics shows we systematically misjudge what makes us happy.
+                      We overweight salary and underweight commute, flexibility, and manager quality.
+                      This calculator adjusts for these biases.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setScreen('input')}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1.25rem 2rem',
+                      fontSize: '1.125rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3)'
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                    onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+                  >
+                    Compare Offers {'\u2192'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Input Screen */}
+            {screen === 'input' && (
+              <div>
+                {/* Offer Tabs */}
+                <div style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  marginBottom: '1rem',
+                  flexWrap: 'wrap',
+                  alignItems: 'center'
+                }}>
+                  {offers.map((offer, idx) => (
+                    <button
+                      key={offer.id}
+                      onClick={() => setCurrentOffer(idx)}
+                      style={{
+                        background: currentOffer === idx ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                        border: `2px solid ${currentOffer === idx ? '#10b981' : 'rgba(255, 255, 255, 0.1)'}`,
+                        borderRadius: '0.75rem',
+                        padding: '0.75rem 1.25rem',
+                        color: currentOffer === idx ? '#10b981' : '#94a3b8',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      {offer.name}
+                      {offers.length > 2 && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); removeOffer(offer.id); }}
+                          style={{ opacity: 0.5, cursor: 'pointer' }}
+                        >
+                          {'\u00D7'}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                  {offers.length < 4 && (
+                    <button
+                      onClick={addOffer}
+                      style={{
+                        background: 'transparent',
+                        border: '2px dashed rgba(255, 255, 255, 0.2)',
+                        borderRadius: '0.75rem',
+                        padding: '0.75rem 1.25rem',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      + Add Offer
+                    </button>
+                  )}
+                </div>
+
+                {/* Offer Name Input */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '1rem',
+                  padding: '1rem 1.5rem',
+                  marginBottom: '1rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  <label style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Offer Name</label>
+                  <input
+                    type="text"
+                    value={offers[currentOffer].name}
+                    onChange={(e) => handleNameChange(offers[currentOffer].id, e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '0.5rem',
+                      padding: '0.75rem',
+                      color: '#e2e8f0',
+                      marginTop: '0.5rem',
+                      fontSize: '1rem'
+                    }}
+                    placeholder="e.g., Google, Startup XYZ"
+                  />
+                </div>
+
+                {/* Category Tabs */}
+                <div style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  marginBottom: '1rem',
+                  overflowX: 'auto',
+                  paddingBottom: '0.5rem'
+                }}>
+                  {categories.map((cat, idx) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setCurrentCategory(idx)}
+                      style={{
+                        background: currentCategory === idx ? `${cat.color}20` : 'rgba(255, 255, 255, 0.03)',
+                        border: `2px solid ${currentCategory === idx ? cat.color : 'transparent'}`,
+                        borderRadius: '0.75rem',
+                        padding: '0.5rem 1rem',
+                        color: currentCategory === idx ? cat.color : '#64748b',
+                        cursor: 'pointer',
+                        fontWeight: '500',
+                        fontSize: '0.875rem',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {cat.icon} {cat.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Category Input Form */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '2rem',
+                  border: `1px solid ${categories[currentCategory].color}30`
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    marginBottom: '0.5rem'
+                  }}>
+                    <span style={{ fontSize: '1.5rem' }}>{categories[currentCategory].icon}</span>
+                    <h3 style={{ margin: 0, color: categories[currentCategory].color }}>
+                      {categories[currentCategory].name}
+                    </h3>
+                  </div>
+                  <p style={{
+                    color: '#94a3b8',
+                    fontSize: '0.875rem',
+                    marginBottom: '1.5rem'
+                  }}>
+                    {categories[currentCategory].description}
+                  </p>
+
+                  <div style={{ display: 'grid', gap: '1.25rem' }}>
+                    {categories[currentCategory].fields.map(field => (
+                      <div key={field.key}>
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          marginBottom: '0.5rem',
+                          fontWeight: '500'
+                        }}>
+                          {field.label}
+                        </label>
+                        {field.note && (
+                          <p style={{
+                            color: '#64748b',
+                            fontSize: '0.75rem',
+                            margin: '0 0 0.5rem 0',
+                            fontStyle: 'italic'
+                          }}>
+                            {'\u{1F4A1}'} {field.note}
+                          </p>
+                        )}
+                        <div style={{ position: 'relative' }}>
+                          {field.type === 'currency' && (
+                            <span style={{
+                              position: 'absolute',
+                              left: '1rem',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              color: '#64748b'
+                            }}>
+                              $
+                            </span>
+                          )}
+                          <input
+                            type="number"
+                            value={offers[currentOffer].details[field.key] || ''}
+                            onChange={(e) => handleFieldChange(
+                              offers[currentOffer].id,
+                              field.key,
+                              parseFloat(e.target.value) || 0
+                            )}
+                            style={{
+                              width: '100%',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '0.75rem',
+                              padding: field.type === 'currency' ? '0.875rem 1rem 0.875rem 2rem' : '0.875rem 1rem',
+                              color: '#e2e8f0',
+                              fontSize: '1rem'
+                            }}
+                            placeholder={field.type === 'scale' ? '1-10' : '0'}
+                            min={field.type === 'scale' ? 1 : 0}
+                            max={field.type === 'scale' ? 10 : undefined}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Navigation */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: '1.5rem',
+                  gap: '1rem'
+                }}>
+                  <button
+                    onClick={() => setScreen('weights')}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: '#94a3b8',
+                      border: '2px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      flex: 1
+                    }}
+                  >
+                    Adjust Weights {'\u2192'}
+                  </button>
+                  <button
+                    onClick={calculateResults}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      flex: 1,
+                      boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    Calculate Results {'\u2192'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Weights Screen */}
+            {screen === 'weights' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '2.5rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <h2 style={{
+                  margin: '0 0 0.5rem 0',
+                  color: '#e2e8f0',
+                  fontSize: '1.5rem'
+                }}>
+                  Customize Your Priorities
+                </h2>
+                <p style={{
+                  color: '#94a3b8',
+                  marginBottom: '2rem'
+                }}>
+                  Adjust how much each category matters to you. Default weights are based on research,
+                  but your personal priorities may differ.
+                </p>
+
+                <div style={{ display: 'grid', gap: '1.5rem' }}>
+                  {categories.map(cat => (
+                    <div key={cat.id}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '0.5rem'
+                      }}>
+                        <span style={{ color: cat.color, fontWeight: '600' }}>
+                          {cat.icon} {cat.name}
+                        </span>
+                        <span style={{ color: '#e2e8f0', fontWeight: '600' }}>
+                          {weights[cat.id] || defaultWeights[cat.id]}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="50"
+                        value={weights[cat.id] || defaultWeights[cat.id]}
+                        onChange={(e) => handleWeightChange(cat.id, parseInt(e.target.value))}
+                        style={{
+                          width: '100%',
+                          accentColor: cat.color
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  marginTop: '2rem'
+                }}>
+                  <button
+                    onClick={() => setScreen('input')}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: '#94a3b8',
+                      border: '2px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      flex: 1
+                    }}
+                  >
+                    {'\u2190'} Back
+                  </button>
+                  <button
+                    onClick={calculateResults}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1rem 1.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      flex: 1,
+                      boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    Calculate Results {'\u2192'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Results Screen */}
+            {screen === 'results' && results && (
+              <div>
+                {/* Winner Announcement */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
+                  borderRadius: '1.5rem',
+                  padding: '2rem',
+                  border: '2px solid rgba(16, 185, 129, 0.3)',
+                  marginBottom: '1.5rem',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>{'\u{1F3C6}'}</div>
+                  <h2 style={{ margin: '0 0 0.5rem 0', color: '#10b981', fontSize: '1.75rem' }}>
+                    {results.offers[0].name}
+                  </h2>
+                  <p style={{ color: '#6ee7b7', margin: 0 }}>
+                    Overall Score: <strong>{results.offers[0].totalScore.toFixed(1)}</strong> / 100
+                  </p>
+                </div>
+
+                {/* Comparison Cards */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${results.offers.length}, 1fr)`,
+                  gap: '1rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  {results.offers.map((offer, idx) => (
+                    <div key={offer.id} style={{
+                      background: idx === 0
+                        ? 'rgba(16, 185, 129, 0.05)'
+                        : 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '1.5rem',
+                      padding: '1.5rem',
+                      border: `2px solid ${idx === 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`
+                    }}>
+                      <h3 style={{
+                        margin: '0 0 1rem 0',
+                        color: idx === 0 ? '#10b981' : '#e2e8f0',
+                        fontSize: '1.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        {idx === 0 && '\u{1F947}'} {offer.name}
+                      </h3>
+
+                      {/* Score Bars */}
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        {categories.map(cat => (
+                          <div key={cat.id} style={{ marginBottom: '0.75rem' }}>
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              fontSize: '0.75rem',
+                              marginBottom: '0.25rem'
+                            }}>
+                              <span style={{ color: '#94a3b8' }}>{cat.icon} {cat.name}</span>
+                              <span style={{ color: cat.color }}>{offer.categoryScores[cat.id].toFixed(0)}</span>
+                            </div>
+                            <div style={{
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              borderRadius: '0.25rem',
+                              height: '6px'
+                            }}>
+                              <div style={{
+                                background: cat.color,
+                                height: '100%',
+                                width: `${offer.categoryScores[cat.id]}%`,
+                                borderRadius: '0.25rem',
+                                transition: 'width 0.5s ease'
+                              }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Financial Breakdown */}
+                      <div style={{
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        borderRadius: '1rem',
+                        padding: '1rem',
+                        fontSize: '0.875rem'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: '0.5rem'
+                        }}>
+                          <span style={{ color: '#94a3b8' }}>Effective Annual Comp</span>
+                          <span style={{ color: '#10b981', fontWeight: '600' }}>
+                            {formatCurrency(offer.effectiveComp)}
+                          </span>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: '0.5rem'
+                        }}>
+                          <span style={{ color: '#94a3b8' }}>Effective Hourly</span>
+                          <span style={{ color: '#e2e8f0' }}>
+                            {formatCurrency(offer.effectiveHourly)}/hr
+                          </span>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: '0.5rem'
+                        }}>
+                          <span style={{ color: '#94a3b8' }}>Commute Cost (Annual)</span>
+                          <span style={{ color: '#ef4444' }}>
+                            -{formatCurrency(offer.commuteCost)}
+                          </span>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          paddingTop: '0.5rem',
+                          borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}>
+                          <span style={{ color: '#e2e8f0', fontWeight: '600' }}>True Compensation</span>
+                          <span style={{ color: '#f59e0b', fontWeight: '700' }}>
+                            {formatCurrency(offer.trueComp)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Insights */}
+                <div style={{
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(139, 92, 246, 0.2)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#a78bfa', fontSize: '1rem' }}>
+                    {'\u{1F9E0}'} Behavioral Economics Insights
+                  </h3>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: '1.25rem',
+                    color: '#c4b5fd',
+                    lineHeight: '1.8'
+                  }}>
+                    <li><strong>Signing bonuses</strong> are weighted at only 15% because hedonic adaptation means the happiness boost fades within months.</li>
+                    <li><strong>Equity</strong> is weighted at 50% due to high uncertainty and illiquidity - it's not real money until you can spend it.</li>
+                    <li><strong>Commute time</strong> is converted to dollar cost using your effective hourly rate - this hidden cost is often underestimated.</li>
+                    <li><strong>Manager relationship</strong> is the single strongest predictor of job satisfaction in research - weigh it accordingly.</li>
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setScreen('input');
+                    setResults(null);
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#e2e8f0',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  {'\u21BA'} Adjust & Recalculate
+                </button>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '2rem',
+              color: '#334155',
+              fontSize: '0.75rem'
+            }}>
+              Framework: Kahneman & Tversky's Prospect Theory + Job Satisfaction Research
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<JobOfferComparisonCalculator />);
+  </script>
+</body>
+</html>

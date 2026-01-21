@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Microlearning Module Generator</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback } = React;
+
+    // Cognitive Science Principles Database
+    const COGNITIVE_PRINCIPLES = {
+      spacedRepetition: {
+        name: "Spaced Repetition",
+        description: "Reviewing information at increasing intervals strengthens long-term retention",
+        researcher: "Ebbinghaus (1885), Pimsleur (1967)",
+        application: "Schedule reviews at 1 day, 3 days, 1 week, 2 weeks, 1 month intervals"
+      },
+      retrievalPractice: {
+        name: "Retrieval Practice (Testing Effect)",
+        description: "Actively recalling information strengthens memory more than passive review",
+        researcher: "Roediger & Karpicke (2006)",
+        application: "Include frequent low-stakes quizzes and self-testing opportunities"
+      },
+      desirableDifficulties: {
+        name: "Desirable Difficulties",
+        description: "Challenges that slow learning initially but enhance long-term retention",
+        researcher: "Robert Bjork (1994)",
+        application: "Vary practice conditions, interleave topics, generate answers before seeing them"
+      },
+      chunking: {
+        name: "Chunking",
+        description: "Breaking information into meaningful units that fit working memory limits",
+        researcher: "Miller (1956)",
+        application: "Limit concepts to 3-5 items per chunk, group related ideas"
+      },
+      interleaving: {
+        name: "Interleaving",
+        description: "Mixing different topics or problem types during practice",
+        researcher: "Rohrer & Taylor (2007)",
+        application: "Alternate between related concepts rather than blocking by topic"
+      },
+      elaboration: {
+        name: "Elaborative Interrogation",
+        description: "Asking 'why' and 'how' questions to deepen understanding",
+        researcher: "Pressley et al. (1987)",
+        application: "Prompt learners to explain concepts in their own words"
+      },
+      dualCoding: {
+        name: "Dual Coding",
+        description: "Combining verbal and visual information enhances learning",
+        researcher: "Paivio (1971)",
+        application: "Pair text explanations with diagrams, images, or visual metaphors"
+      },
+      generationEffect: {
+        name: "Generation Effect",
+        description: "Information we generate ourselves is better remembered than information we read",
+        researcher: "Slamecka & Graf (1978)",
+        application: "Have learners complete partial information or predict outcomes"
+      }
+    };
+
+    // Content Type Templates
+    const CONTENT_TEMPLATES = {
+      conceptual: {
+        name: "Conceptual Understanding",
+        icon: "\uD83D\uDCA1",
+        structure: ["Definition", "Key Characteristics", "Examples", "Non-Examples", "Connections"],
+        questionTypes: ["Define in your own words", "Compare and contrast", "Identify examples", "Explain relationships"],
+        activities: ["Concept mapping", "Analogy creation", "Teaching to a peer", "Real-world identification"]
+      },
+      procedural: {
+        name: "Procedural Knowledge",
+        icon: "\u2699\uFE0F",
+        structure: ["Overview", "Prerequisites", "Step-by-Step Process", "Common Errors", "Variations"],
+        questionTypes: ["Sequence ordering", "Error identification", "Step prediction", "Troubleshooting scenarios"],
+        activities: ["Guided practice", "Independent practice", "Process documentation", "Peer review"]
+      },
+      factual: {
+        name: "Factual Information",
+        icon: "\uD83D\uDCCA",
+        structure: ["Core Facts", "Context", "Significance", "Related Facts", "Applications"],
+        questionTypes: ["Recall questions", "Fill-in-the-blank", "Matching", "Timeline ordering"],
+        activities: ["Flashcard creation", "Mnemonic development", "Fact categorization", "Quiz games"]
+      },
+      analytical: {
+        name: "Analytical Skills",
+        icon: "\uD83D\uDD0D",
+        structure: ["Framework Introduction", "Analysis Components", "Example Analysis", "Practice Cases", "Synthesis"],
+        questionTypes: ["Case analysis", "Data interpretation", "Pattern recognition", "Evidence evaluation"],
+        activities: ["Case studies", "Data analysis exercises", "Debate preparation", "Research projects"]
+      },
+      creative: {
+        name: "Creative Application",
+        icon: "\uD83C\uDFA8",
+        structure: ["Principles", "Inspiration Examples", "Constraints", "Ideation Prompts", "Iteration Process"],
+        questionTypes: ["Design challenges", "What-if scenarios", "Combination prompts", "Constraint-based creation"],
+        activities: ["Brainstorming sessions", "Prototype creation", "Peer feedback loops", "Portfolio development"]
+      }
+    };
+
+    // Spaced Repetition Schedules
+    const SPACED_SCHEDULES = {
+      intensive: {
+        name: "Intensive (7 days)",
+        intervals: ["Immediately", "4 hours", "1 day", "2 days", "4 days", "7 days"],
+        description: "For time-sensitive learning or exam preparation",
+        retention: "High initial retention, requires maintenance"
+      },
+      standard: {
+        name: "Standard (30 days)",
+        intervals: ["Immediately", "1 day", "3 days", "1 week", "2 weeks", "1 month"],
+        description: "Balanced approach for most learning goals",
+        retention: "Strong long-term retention with moderate effort"
+      },
+      extended: {
+        name: "Extended (90 days)",
+        intervals: ["Immediately", "1 day", "1 week", "2 weeks", "1 month", "2 months", "3 months"],
+        description: "For deep, lasting mastery of material",
+        retention: "Excellent long-term retention, lower maintenance"
+      },
+      maintenance: {
+        name: "Maintenance Mode",
+        intervals: ["Monthly review", "Quarterly deep-dive", "Annual refresher"],
+        description: "For previously learned material",
+        retention: "Prevents forgetting of established knowledge"
+      }
+    };
+
+    // Question Templates
+    const generateRetrievalQuestions = (topic, concepts, contentType) => {
+      const template = CONTENT_TEMPLATES[contentType];
+      const questions = [];
+
+      // Recall questions
+      questions.push({
+        type: "Free Recall",
+        difficulty: "Foundation",
+        question: `Without looking at your notes, list everything you remember about ${topic}.`,
+        principle: "retrievalPractice",
+        timing: "Start of each review session"
+      });
+
+      // Elaboration questions
+      concepts.forEach((concept, index) => {
+        questions.push({
+          type: "Elaborative Interrogation",
+          difficulty: "Intermediate",
+          question: `Why is "${concept}" important in the context of ${topic}? Explain in your own words.`,
+          principle: "elaboration",
+          timing: "After initial learning"
+        });
+      });
+
+      // Application questions
+      questions.push({
+        type: "Application",
+        difficulty: "Advanced",
+        question: `Describe a real-world situation where you would apply your knowledge of ${topic}. What specific concepts would you use and how?`,
+        principle: "generationEffect",
+        timing: "Later review sessions"
+      });
+
+      // Interleaved questions
+      questions.push({
+        type: "Comparison",
+        difficulty: "Advanced",
+        question: `How does ${topic} relate to or differ from similar concepts you've learned before?`,
+        principle: "interleaving",
+        timing: "After multiple topics learned"
+      });
+
+      // Teaching question
+      questions.push({
+        type: "Teaching",
+        difficulty: "Mastery",
+        question: `Explain ${topic} to someone who has never heard of it. Use analogies and examples they would understand.`,
+        principle: "generationEffect",
+        timing: "Final mastery check"
+      });
+
+      return questions;
+    };
+
+    // Generate Application Activities
+    const generateActivities = (topic, audience, contentType, concepts) => {
+      const activities = [];
+      const template = CONTENT_TEMPLATES[contentType];
+
+      activities.push({
+        name: "Concept Map Creation",
+        duration: "15-20 minutes",
+        description: `Create a visual map showing how the key concepts of ${topic} relate to each other. Include at least ${concepts.length} main nodes with connections.`,
+        principle: "dualCoding",
+        materials: ["Paper/digital canvas", "Colored markers/tools"],
+        assessment: "Self-check: Can you explain each connection to someone else?"
+      });
+
+      activities.push({
+        name: "Real-World Hunt",
+        duration: "Ongoing (1 week)",
+        description: `Identify 3-5 examples of ${topic} in your daily life or work. Document each with a brief explanation of why it's relevant.`,
+        principle: "elaboration",
+        materials: ["Notes app or journal"],
+        assessment: "Share findings with a peer or learning group"
+      });
+
+      activities.push({
+        name: "Teach-Back Session",
+        duration: "10-15 minutes",
+        description: `Explain the core concepts of ${topic} to a colleague, friend, or even a rubber duck. Note where you struggle to explain clearly.`,
+        principle: "generationEffect",
+        materials: ["Willing listener or recording device"],
+        assessment: "Can you explain without referring to notes? Where did you hesitate?"
+      });
+
+      activities.push({
+        name: "Error Analysis",
+        duration: "20 minutes",
+        description: `Review common mistakes related to ${topic}. For each error, explain why it happens and how to avoid it.`,
+        principle: "desirableDifficulties",
+        materials: ["Error examples or case studies"],
+        assessment: "Create a 'mistakes to avoid' checklist"
+      });
+
+      activities.push({
+        name: "Application Challenge",
+        duration: "30-45 minutes",
+        description: `Solve a real problem or complete a project using your knowledge of ${topic}. Focus on applying concepts to achieve a practical outcome.`,
+        principle: "retrievalPractice",
+        materials: ["Project materials as needed"],
+        assessment: "Did the solution work? What would you do differently?"
+      });
+
+      return activities;
+    };
+
+    // Main Component
+    function MicrolearningGenerator() {
+      const [topic, setTopic] = useState('');
+      const [audience, setAudience] = useState('');
+      const [contentType, setContentType] = useState('conceptual');
+      const [schedule, setSchedule] = useState('standard');
+      const [concepts, setConcepts] = useState(['', '', '', '', '']);
+      const [objectives, setObjectives] = useState(['', '', '']);
+      const [generatedModule, setGeneratedModule] = useState(null);
+      const [activeTab, setActiveTab] = useState('input');
+      const [showPrinciples, setShowPrinciples] = useState(false);
+      const [expandedSections, setExpandedSections] = useState({});
+
+      const updateConcept = (index, value) => {
+        const newConcepts = [...concepts];
+        newConcepts[index] = value;
+        setConcepts(newConcepts);
+      };
+
+      const updateObjective = (index, value) => {
+        const newObjectives = [...objectives];
+        newObjectives[index] = value;
+        setObjectives(newObjectives);
+      };
+
+      const addConcept = () => {
+        if (concepts.length < 7) {
+          setConcepts([...concepts, '']);
+        }
+      };
+
+      const removeConcept = (index) => {
+        if (concepts.length > 1) {
+          setConcepts(concepts.filter((_, i) => i !== index));
+        }
+      };
+
+      const toggleSection = (section) => {
+        setExpandedSections(prev => ({
+          ...prev,
+          [section]: !prev[section]
+        }));
+      };
+
+      const generateModule = useCallback(() => {
+        const filteredConcepts = concepts.filter(c => c.trim() !== '');
+        const filteredObjectives = objectives.filter(o => o.trim() !== '');
+
+        if (!topic.trim() || filteredConcepts.length === 0) {
+          return;
+        }
+
+        const module = {
+          metadata: {
+            topic: topic.trim(),
+            audience: audience.trim() || 'General learners',
+            contentType,
+            createdAt: new Date().toISOString(),
+            estimatedDuration: `${filteredConcepts.length * 10}-${filteredConcepts.length * 15} minutes initial learning`
+          },
+          learningObjectives: filteredObjectives.length > 0 ? filteredObjectives : [
+            `Understand the fundamental concepts of ${topic}`,
+            `Apply knowledge of ${topic} in practical situations`,
+            `Evaluate and analyze information related to ${topic}`
+          ],
+          conceptChunks: filteredConcepts.map((concept, index) => ({
+            id: index + 1,
+            concept,
+            chunkSize: 'optimal',
+            cognitiveLoad: index < 3 ? 'low' : index < 5 ? 'medium' : 'high',
+            prerequisite: index > 0 ? filteredConcepts[index - 1] : null,
+            estimatedTime: '3-5 minutes'
+          })),
+          retrievalQuestions: generateRetrievalQuestions(topic, filteredConcepts, contentType),
+          spacedSchedule: SPACED_SCHEDULES[schedule],
+          activities: generateActivities(topic, audience, contentType, filteredConcepts),
+          template: CONTENT_TEMPLATES[contentType],
+          principles: Object.values(COGNITIVE_PRINCIPLES)
+        };
+
+        setGeneratedModule(module);
+        setActiveTab('output');
+        setExpandedSections({
+          objectives: true,
+          concepts: true,
+          questions: false,
+          schedule: false,
+          activities: false,
+          principles: false
+        });
+      }, [topic, audience, contentType, schedule, concepts, objectives]);
+
+      const exportModule = () => {
+        if (!generatedModule) return;
+
+        const exportData = JSON.stringify(generatedModule, null, 2);
+        const blob = new Blob([exportData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `microlearning-${topic.toLowerCase().replace(/\s+/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+
+      return (
+        <div style={styles.container}>
+          {/* Header */}
+          <header style={styles.header}>
+            <div style={styles.headerContent}>
+              <div style={styles.logo}>
+                <div style={styles.logoIcon}>{"\uD83E\uDDE0"}</div>
+                <div>
+                  <h1 style={styles.title}>Microlearning Module Generator</h1>
+                  <p style={styles.subtitle}>Evidence-based learning design powered by cognitive science</p>
+                </div>
+              </div>
+              <button
+                style={styles.principlesButton}
+                onClick={() => setShowPrinciples(!showPrinciples)}
+              >
+                {showPrinciples ? '\u2715 Close' : '\uD83D\uDCDA Cognitive Principles'}
+              </button>
+            </div>
+          </header>
+
+          {/* Principles Modal */}
+          {showPrinciples && (
+            <div style={styles.modalOverlay} onClick={() => setShowPrinciples(false)}>
+              <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                <h2 style={styles.modalTitle}>Cognitive Science Foundations</h2>
+                <div style={styles.principlesGrid}>
+                  {Object.values(COGNITIVE_PRINCIPLES).map((principle, index) => (
+                    <div key={index} style={styles.principleCard}>
+                      <h3 style={styles.principleName}>{principle.name}</h3>
+                      <p style={styles.principleDescription}>{principle.description}</p>
+                      <p style={styles.principleResearcher}>{"\uD83D\uDCD6"} {principle.researcher}</p>
+                      <p style={styles.principleApplication}>
+                        <strong>Application:</strong> {principle.application}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main Content */}
+          <main style={styles.main}>
+            {/* Tab Navigation */}
+            <div style={styles.tabs}>
+              <button
+                style={{
+                  ...styles.tab,
+                  ...(activeTab === 'input' ? styles.activeTab : {})
+                }}
+                onClick={() => setActiveTab('input')}
+              >
+                <span style={styles.tabIcon}>{"\u270F\uFE0F"}</span>
+                Configure Module
+              </button>
+              <button
+                style={{
+                  ...styles.tab,
+                  ...(activeTab === 'output' ? styles.activeTab : {}),
+                  opacity: generatedModule ? 1 : 0.5
+                }}
+                onClick={() => generatedModule && setActiveTab('output')}
+                disabled={!generatedModule}
+              >
+                <span style={styles.tabIcon}>{"\uD83D\uDCCB"}</span>
+                Generated Module
+              </button>
+              <button
+                style={{
+                  ...styles.tab,
+                  ...(activeTab === 'templates' ? styles.activeTab : {})
+                }}
+                onClick={() => setActiveTab('templates')}
+              >
+                <span style={styles.tabIcon}>{"\uD83D\uDCD1"}</span>
+                Templates
+              </button>
+            </div>
+
+            {/* Input Tab */}
+            {activeTab === 'input' && (
+              <div style={styles.inputContainer}>
+                <div style={styles.formGrid}>
+                  {/* Left Column */}
+                  <div style={styles.formColumn}>
+                    <div style={styles.formSection}>
+                      <h3 style={styles.sectionTitle}>
+                        <span style={styles.sectionIcon}>{"\uD83D\uDCCC"}</span>
+                        Basic Information
+                      </h3>
+
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Topic / Subject</label>
+                        <input
+                          type="text"
+                          value={topic}
+                          onChange={(e) => setTopic(e.target.value)}
+                          placeholder="e.g., Introduction to Machine Learning"
+                          style={styles.input}
+                        />
+                      </div>
+
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Target Audience</label>
+                        <input
+                          type="text"
+                          value={audience}
+                          onChange={(e) => setAudience(e.target.value)}
+                          placeholder="e.g., Software developers with 2+ years experience"
+                          style={styles.input}
+                        />
+                      </div>
+
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Content Type</label>
+                        <div style={styles.contentTypeGrid}>
+                          {Object.entries(CONTENT_TEMPLATES).map(([key, template]) => (
+                            <button
+                              key={key}
+                              style={{
+                                ...styles.contentTypeButton,
+                                ...(contentType === key ? styles.contentTypeButtonActive : {})
+                              }}
+                              onClick={() => setContentType(key)}
+                            >
+                              <span style={styles.contentTypeIcon}>{template.icon}</span>
+                              <span style={styles.contentTypeName}>{template.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Spaced Repetition Schedule</label>
+                        <select
+                          value={schedule}
+                          onChange={(e) => setSchedule(e.target.value)}
+                          style={styles.select}
+                        >
+                          {Object.entries(SPACED_SCHEDULES).map(([key, sched]) => (
+                            <option key={key} value={key}>{sched.name}</option>
+                          ))}
+                        </select>
+                        <p style={styles.hint}>{SPACED_SCHEDULES[schedule].description}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div style={styles.formColumn}>
+                    <div style={styles.formSection}>
+                      <h3 style={styles.sectionTitle}>
+                        <span style={styles.sectionIcon}>{"\uD83C\uDFAF"}</span>
+                        Learning Objectives
+                      </h3>
+                      <p style={styles.sectionHint}>What should learners be able to do after completing this module?</p>
+
+                      {objectives.map((objective, index) => (
+                        <div key={index} style={styles.objectiveRow}>
+                          <span style={styles.objectiveNumber}>{index + 1}</span>
+                          <input
+                            type="text"
+                            value={objective}
+                            onChange={(e) => updateObjective(index, e.target.value)}
+                            placeholder={`Learning objective ${index + 1}`}
+                            style={styles.objectiveInput}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={styles.formSection}>
+                      <h3 style={styles.sectionTitle}>
+                        <span style={styles.sectionIcon}>{"\uD83E\uDDE9"}</span>
+                        Key Concepts (Chunks)
+                      </h3>
+                      <p style={styles.sectionHint}>
+                        Break down the topic into 3-7 digestible chunks (Miller's Law: 7\u00B12 items)
+                      </p>
+
+                      {concepts.map((concept, index) => (
+                        <div key={index} style={styles.conceptRow}>
+                          <span style={{
+                            ...styles.conceptNumber,
+                            backgroundColor: index < 3 ? '#10b981' : index < 5 ? '#f59e0b' : '#ef4444'
+                          }}>
+                            {index + 1}
+                          </span>
+                          <input
+                            type="text"
+                            value={concept}
+                            onChange={(e) => updateConcept(index, e.target.value)}
+                            placeholder={`Concept ${index + 1}`}
+                            style={styles.conceptInput}
+                          />
+                          {concepts.length > 1 && (
+                            <button
+                              style={styles.removeButton}
+                              onClick={() => removeConcept(index)}
+                            >
+                              {"\u2715"}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      {concepts.length < 7 && (
+                        <button style={styles.addButton} onClick={addConcept}>
+                          + Add Concept
+                        </button>
+                      )}
+
+                      <div style={styles.loadIndicator}>
+                        <span style={styles.loadLabel}>Cognitive Load:</span>
+                        <div style={styles.loadBar}>
+                          <div
+                            style={{
+                              ...styles.loadFill,
+                              width: `${(concepts.filter(c => c.trim()).length / 7) * 100}%`,
+                              backgroundColor: concepts.filter(c => c.trim()).length <= 3 ? '#10b981' :
+                                              concepts.filter(c => c.trim()).length <= 5 ? '#f59e0b' : '#ef4444'
+                            }}
+                          />
+                        </div>
+                        <span style={styles.loadValue}>
+                          {concepts.filter(c => c.trim()).length}/7
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={styles.generateSection}>
+                  <button
+                    style={{
+                      ...styles.generateButton,
+                      opacity: topic.trim() && concepts.some(c => c.trim()) ? 1 : 0.5
+                    }}
+                    onClick={generateModule}
+                    disabled={!topic.trim() || !concepts.some(c => c.trim())}
+                  >
+                    <span style={styles.generateIcon}>{"\u26A1"}</span>
+                    Generate Microlearning Module
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Output Tab */}
+            {activeTab === 'output' && generatedModule && (
+              <div style={styles.outputContainer}>
+                {/* Module Header */}
+                <div style={styles.moduleHeader}>
+                  <div style={styles.moduleInfo}>
+                    <h2 style={styles.moduleTopic}>{generatedModule.metadata.topic}</h2>
+                    <div style={styles.moduleMeta}>
+                      <span style={styles.metaItem}>
+                        <span style={styles.metaIcon}>{"\uD83D\uDC65"}</span>
+                        {generatedModule.metadata.audience}
+                      </span>
+                      <span style={styles.metaItem}>
+                        <span style={styles.metaIcon}>{CONTENT_TEMPLATES[generatedModule.metadata.contentType].icon}</span>
+                        {CONTENT_TEMPLATES[generatedModule.metadata.contentType].name}
+                      </span>
+                      <span style={styles.metaItem}>
+                        <span style={styles.metaIcon}>{"\u23F1\uFE0F"}</span>
+                        {generatedModule.metadata.estimatedDuration}
+                      </span>
+                    </div>
+                  </div>
+                  <button style={styles.exportButton} onClick={exportModule}>
+                    {"\uD83D\uDCE5"} Export JSON
+                  </button>
+                </div>
+
+                {/* Collapsible Sections */}
+                <div style={styles.sections}>
+                  {/* Learning Objectives */}
+                  <div style={styles.section}>
+                    <button
+                      style={styles.sectionHeader}
+                      onClick={() => toggleSection('objectives')}
+                    >
+                      <div style={styles.sectionHeaderLeft}>
+                        <span style={styles.sectionEmoji}>{"\uD83C\uDFAF"}</span>
+                        <span>Learning Objectives</span>
+                      </div>
+                      <span style={styles.expandIcon}>
+                        {expandedSections.objectives ? '\u2212' : '+'}
+                      </span>
+                    </button>
+                    {expandedSections.objectives && (
+                      <div style={styles.sectionContent}>
+                        <ol style={styles.objectivesList}>
+                          {generatedModule.learningObjectives.map((obj, index) => (
+                            <li key={index} style={styles.objectiveItem}>{obj}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Concept Chunks */}
+                  <div style={styles.section}>
+                    <button
+                      style={styles.sectionHeader}
+                      onClick={() => toggleSection('concepts')}
+                    >
+                      <div style={styles.sectionHeaderLeft}>
+                        <span style={styles.sectionEmoji}>{"\uD83E\uDDE9"}</span>
+                        <span>Concept Chunks ({generatedModule.conceptChunks.length})</span>
+                      </div>
+                      <span style={styles.expandIcon}>
+                        {expandedSections.concepts ? '\u2212' : '+'}
+                      </span>
+                    </button>
+                    {expandedSections.concepts && (
+                      <div style={styles.sectionContent}>
+                        <div style={styles.conceptsGrid}>
+                          {generatedModule.conceptChunks.map((chunk) => (
+                            <div key={chunk.id} style={styles.chunkCard}>
+                              <div style={styles.chunkHeader}>
+                                <span style={{
+                                  ...styles.chunkNumber,
+                                  backgroundColor: chunk.cognitiveLoad === 'low' ? '#10b981' :
+                                                  chunk.cognitiveLoad === 'medium' ? '#f59e0b' : '#ef4444'
+                                }}>
+                                  {chunk.id}
+                                </span>
+                                <span style={styles.chunkLoad}>
+                                  {chunk.cognitiveLoad} load
+                                </span>
+                              </div>
+                              <h4 style={styles.chunkConcept}>{chunk.concept}</h4>
+                              <div style={styles.chunkMeta}>
+                                <span>{"\u23F1\uFE0F"} {chunk.estimatedTime}</span>
+                                {chunk.prerequisite && (
+                                  <span>{"\uD83D\uDCCC"} Requires: {chunk.prerequisite}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={styles.principleNote}>
+                          <strong>Cognitive Principle:</strong> Chunking (Miller, 1956) - Information is grouped into meaningful units that fit within working memory limits of 7\u00B12 items.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Retrieval Practice Questions */}
+                  <div style={styles.section}>
+                    <button
+                      style={styles.sectionHeader}
+                      onClick={() => toggleSection('questions')}
+                    >
+                      <div style={styles.sectionHeaderLeft}>
+                        <span style={styles.sectionEmoji}>{"\u2753"}</span>
+                        <span>Retrieval Practice Questions ({generatedModule.retrievalQuestions.length})</span>
+                      </div>
+                      <span style={styles.expandIcon}>
+                        {expandedSections.questions ? '\u2212' : '+'}
+                      </span>
+                    </button>
+                    {expandedSections.questions && (
+                      <div style={styles.sectionContent}>
+                        <div style={styles.questionsList}>
+                          {generatedModule.retrievalQuestions.map((q, index) => (
+                            <div key={index} style={styles.questionCard}>
+                              <div style={styles.questionHeader}>
+                                <span style={styles.questionType}>{q.type}</span>
+                                <span style={{
+                                  ...styles.questionDifficulty,
+                                  backgroundColor: q.difficulty === 'Foundation' ? '#10b981' :
+                                                  q.difficulty === 'Intermediate' ? '#3b82f6' :
+                                                  q.difficulty === 'Advanced' ? '#f59e0b' : '#8b5cf6'
+                                }}>
+                                  {q.difficulty}
+                                </span>
+                              </div>
+                              <p style={styles.questionText}>{q.question}</p>
+                              <div style={styles.questionMeta}>
+                                <span style={styles.questionPrinciple}>
+                                  {"\uD83D\uDCDA"} {COGNITIVE_PRINCIPLES[q.principle]?.name}
+                                </span>
+                                <span style={styles.questionTiming}>
+                                  {"\u23F0"} {q.timing}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Spaced Repetition Schedule */}
+                  <div style={styles.section}>
+                    <button
+                      style={styles.sectionHeader}
+                      onClick={() => toggleSection('schedule')}
+                    >
+                      <div style={styles.sectionHeaderLeft}>
+                        <span style={styles.sectionEmoji}>{"\uD83D\uDCC5"}</span>
+                        <span>Spaced Repetition Schedule</span>
+                      </div>
+                      <span style={styles.expandIcon}>
+                        {expandedSections.schedule ? '\u2212' : '+'}
+                      </span>
+                    </button>
+                    {expandedSections.schedule && (
+                      <div style={styles.sectionContent}>
+                        <div style={styles.scheduleCard}>
+                          <h4 style={styles.scheduleName}>{generatedModule.spacedSchedule.name}</h4>
+                          <p style={styles.scheduleDescription}>{generatedModule.spacedSchedule.description}</p>
+
+                          <div style={styles.timeline}>
+                            {generatedModule.spacedSchedule.intervals.map((interval, index) => (
+                              <div key={index} style={styles.timelineItem}>
+                                <div style={styles.timelineDot}>
+                                  {index + 1}
+                                </div>
+                                <div style={styles.timelineContent}>
+                                  <span style={styles.timelineLabel}>Review {index + 1}</span>
+                                  <span style={styles.timelineInterval}>{interval}</span>
+                                </div>
+                                {index < generatedModule.spacedSchedule.intervals.length - 1 && (
+                                  <div style={styles.timelineLine} />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          <div style={styles.retentionNote}>
+                            <span style={styles.retentionIcon}>{"\uD83D\uDCC8"}</span>
+                            <span>{generatedModule.spacedSchedule.retention}</span>
+                          </div>
+                        </div>
+                        <div style={styles.principleNote}>
+                          <strong>Cognitive Principle:</strong> Spaced Repetition (Ebbinghaus, 1885) - Reviewing information at increasing intervals optimizes long-term retention while minimizing study time.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Application Activities */}
+                  <div style={styles.section}>
+                    <button
+                      style={styles.sectionHeader}
+                      onClick={() => toggleSection('activities')}
+                    >
+                      <div style={styles.sectionHeaderLeft}>
+                        <span style={styles.sectionEmoji}>{"\uD83C\uDFAC"}</span>
+                        <span>Application Activities ({generatedModule.activities.length})</span>
+                      </div>
+                      <span style={styles.expandIcon}>
+                        {expandedSections.activities ? '\u2212' : '+'}
+                      </span>
+                    </button>
+                    {expandedSections.activities && (
+                      <div style={styles.sectionContent}>
+                        <div style={styles.activitiesList}>
+                          {generatedModule.activities.map((activity, index) => (
+                            <div key={index} style={styles.activityCard}>
+                              <div style={styles.activityHeader}>
+                                <h4 style={styles.activityName}>{activity.name}</h4>
+                                <span style={styles.activityDuration}>{"\u23F1\uFE0F"} {activity.duration}</span>
+                              </div>
+                              <p style={styles.activityDescription}>{activity.description}</p>
+                              <div style={styles.activityDetails}>
+                                <div style={styles.activityMaterials}>
+                                  <strong>Materials:</strong>
+                                  <ul style={styles.materialsList}>
+                                    {activity.materials.map((m, i) => (
+                                      <li key={i}>{m}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <div style={styles.activityAssessment}>
+                                  <strong>Self-Assessment:</strong>
+                                  <p>{activity.assessment}</p>
+                                </div>
+                              </div>
+                              <div style={styles.activityPrinciple}>
+                                {"\uD83D\uDCDA"} Based on: {COGNITIVE_PRINCIPLES[activity.principle]?.name}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cognitive Principles Reference */}
+                  <div style={styles.section}>
+                    <button
+                      style={styles.sectionHeader}
+                      onClick={() => toggleSection('principles')}
+                    >
+                      <div style={styles.sectionHeaderLeft}>
+                        <span style={styles.sectionEmoji}>{"\uD83D\uDD2C"}</span>
+                        <span>Applied Cognitive Science Principles</span>
+                      </div>
+                      <span style={styles.expandIcon}>
+                        {expandedSections.principles ? '\u2212' : '+'}
+                      </span>
+                    </button>
+                    {expandedSections.principles && (
+                      <div style={styles.sectionContent}>
+                        <div style={styles.principlesReference}>
+                          {generatedModule.principles.map((principle, index) => (
+                            <div key={index} style={styles.principleRefCard}>
+                              <h4 style={styles.principleRefName}>{principle.name}</h4>
+                              <p style={styles.principleRefDesc}>{principle.description}</p>
+                              <p style={styles.principleRefResearcher}>
+                                <em>{principle.researcher}</em>
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Templates Tab */}
+            {activeTab === 'templates' && (
+              <div style={styles.templatesContainer}>
+                <h2 style={styles.templatesTitle}>Content Type Templates</h2>
+                <p style={styles.templatesSubtitle}>
+                  Choose the appropriate template based on your learning content type
+                </p>
+
+                <div style={styles.templatesGrid}>
+                  {Object.entries(CONTENT_TEMPLATES).map(([key, template]) => (
+                    <div
+                      key={key}
+                      style={{
+                        ...styles.templateCard,
+                        ...(contentType === key ? styles.templateCardActive : {})
+                      }}
+                      onClick={() => {
+                        setContentType(key);
+                        setActiveTab('input');
+                      }}
+                    >
+                      <div style={styles.templateHeader}>
+                        <span style={styles.templateIcon}>{template.icon}</span>
+                        <h3 style={styles.templateName}>{template.name}</h3>
+                      </div>
+
+                      <div style={styles.templateSection}>
+                        <h4 style={styles.templateSectionTitle}>Structure</h4>
+                        <ul style={styles.templateList}>
+                          {template.structure.map((item, i) => (
+                            <li key={i}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div style={styles.templateSection}>
+                        <h4 style={styles.templateSectionTitle}>Question Types</h4>
+                        <ul style={styles.templateList}>
+                          {template.questionTypes.map((item, i) => (
+                            <li key={i}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div style={styles.templateSection}>
+                        <h4 style={styles.templateSectionTitle}>Activities</h4>
+                        <ul style={styles.templateList}>
+                          {template.activities.map((item, i) => (
+                            <li key={i}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <button style={styles.useTemplateButton}>
+                        Use This Template {"\u2192"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* Footer */}
+          <footer style={styles.footer}>
+            <p>Built on evidence-based learning science principles</p>
+            <p style={styles.footerLinks}>
+              Bjork's Desirable Difficulties {"\u2022"} Testing Effect {"\u2022"} Spaced Repetition {"\u2022"} Chunking {"\u2022"} Dual Coding
+            </p>
+          </footer>
+        </div>
+      );
+    }
+
+    // Styles
+    const styles = {
+      container: {
+        minHeight: '100vh',
+        backgroundColor: '#0f172a',
+        color: '#e2e8f0',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      },
+      header: {
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        borderBottom: '1px solid #334155',
+        padding: '20px 32px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+      },
+      headerContent: {
+        maxWidth: '1400px',
+        margin: '0 auto',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      },
+      logo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+      },
+      logoIcon: {
+        fontSize: '40px',
+        filter: 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.5))',
+      },
+      title: {
+        fontSize: '24px',
+        fontWeight: '700',
+        color: '#f8fafc',
+        margin: 0,
+      },
+      subtitle: {
+        fontSize: '14px',
+        color: '#94a3b8',
+        margin: '4px 0 0 0',
+      },
+      principlesButton: {
+        padding: '10px 20px',
+        backgroundColor: '#3b82f6',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '600',
+        transition: 'all 0.2s',
+      },
+      main: {
+        maxWidth: '1400px',
+        margin: '0 auto',
+        padding: '24px 32px',
+      },
+      tabs: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        borderBottom: '1px solid #334155',
+        paddingBottom: '16px',
+      },
+      tab: {
+        padding: '12px 24px',
+        backgroundColor: 'transparent',
+        color: '#94a3b8',
+        border: '1px solid #334155',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '500',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        transition: 'all 0.2s',
+      },
+      activeTab: {
+        backgroundColor: '#1e40af',
+        color: '#fff',
+        borderColor: '#3b82f6',
+      },
+      tabIcon: {
+        fontSize: '16px',
+      },
+      inputContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+      },
+      formGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+        gap: '24px',
+      },
+      formColumn: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+      },
+      formSection: {
+        backgroundColor: '#1e293b',
+        borderRadius: '12px',
+        padding: '24px',
+        border: '1px solid #334155',
+      },
+      sectionTitle: {
+        fontSize: '18px',
+        fontWeight: '600',
+        color: '#f8fafc',
+        margin: '0 0 16px 0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+      },
+      sectionIcon: {
+        fontSize: '20px',
+      },
+      sectionHint: {
+        fontSize: '13px',
+        color: '#64748b',
+        marginBottom: '16px',
+      },
+      formGroup: {
+        marginBottom: '20px',
+      },
+      label: {
+        display: 'block',
+        fontSize: '14px',
+        fontWeight: '500',
+        color: '#cbd5e1',
+        marginBottom: '8px',
+      },
+      input: {
+        width: '100%',
+        padding: '12px 16px',
+        backgroundColor: '#0f172a',
+        border: '1px solid #334155',
+        borderRadius: '8px',
+        color: '#f8fafc',
+        fontSize: '15px',
+        outline: 'none',
+        boxSizing: 'border-box',
+        transition: 'border-color 0.2s',
+      },
+      select: {
+        width: '100%',
+        padding: '12px 16px',
+        backgroundColor: '#0f172a',
+        border: '1px solid #334155',
+        borderRadius: '8px',
+        color: '#f8fafc',
+        fontSize: '15px',
+        outline: 'none',
+        boxSizing: 'border-box',
+        cursor: 'pointer',
+      },
+      hint: {
+        fontSize: '12px',
+        color: '#64748b',
+        marginTop: '8px',
+      },
+      contentTypeGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        gap: '10px',
+      },
+      contentTypeButton: {
+        padding: '12px',
+        backgroundColor: '#0f172a',
+        border: '1px solid #334155',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '6px',
+        transition: 'all 0.2s',
+      },
+      contentTypeButtonActive: {
+        backgroundColor: '#1e40af',
+        borderColor: '#3b82f6',
+      },
+      contentTypeIcon: {
+        fontSize: '24px',
+      },
+      contentTypeName: {
+        fontSize: '12px',
+        color: '#cbd5e1',
+        textAlign: 'center',
+      },
+      objectiveRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '12px',
+      },
+      objectiveNumber: {
+        width: '28px',
+        height: '28px',
+        backgroundColor: '#3b82f6',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '14px',
+        fontWeight: '600',
+        flexShrink: 0,
+      },
+      objectiveInput: {
+        flex: 1,
+        padding: '10px 14px',
+        backgroundColor: '#0f172a',
+        border: '1px solid #334155',
+        borderRadius: '8px',
+        color: '#f8fafc',
+        fontSize: '14px',
+        outline: 'none',
+      },
+      conceptRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '12px',
+      },
+      conceptNumber: {
+        width: '28px',
+        height: '28px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '14px',
+        fontWeight: '600',
+        flexShrink: 0,
+        color: '#fff',
+      },
+      conceptInput: {
+        flex: 1,
+        padding: '10px 14px',
+        backgroundColor: '#0f172a',
+        border: '1px solid #334155',
+        borderRadius: '8px',
+        color: '#f8fafc',
+        fontSize: '14px',
+        outline: 'none',
+      },
+      removeButton: {
+        width: '28px',
+        height: '28px',
+        backgroundColor: 'transparent',
+        border: '1px solid #475569',
+        borderRadius: '6px',
+        color: '#94a3b8',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '14px',
+        transition: 'all 0.2s',
+      },
+      addButton: {
+        padding: '10px 16px',
+        backgroundColor: 'transparent',
+        border: '1px dashed #475569',
+        borderRadius: '8px',
+        color: '#94a3b8',
+        cursor: 'pointer',
+        fontSize: '14px',
+        width: '100%',
+        marginTop: '8px',
+        transition: 'all 0.2s',
+      },
+      loadIndicator: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginTop: '16px',
+        padding: '12px',
+        backgroundColor: '#0f172a',
+        borderRadius: '8px',
+      },
+      loadLabel: {
+        fontSize: '13px',
+        color: '#94a3b8',
+      },
+      loadBar: {
+        flex: 1,
+        height: '8px',
+        backgroundColor: '#334155',
+        borderRadius: '4px',
+        overflow: 'hidden',
+      },
+      loadFill: {
+        height: '100%',
+        borderRadius: '4px',
+        transition: 'all 0.3s',
+      },
+      loadValue: {
+        fontSize: '13px',
+        color: '#cbd5e1',
+        fontWeight: '600',
+      },
+      generateSection: {
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '24px 0',
+      },
+      generateButton: {
+        padding: '16px 48px',
+        backgroundColor: '#8b5cf6',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '12px',
+        cursor: 'pointer',
+        fontSize: '18px',
+        fontWeight: '600',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        transition: 'all 0.2s',
+        boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4)',
+      },
+      generateIcon: {
+        fontSize: '24px',
+      },
+      outputContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+      },
+      moduleHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        backgroundColor: '#1e293b',
+        borderRadius: '12px',
+        padding: '24px',
+        border: '1px solid #334155',
+      },
+      moduleInfo: {
+        flex: 1,
+      },
+      moduleTopic: {
+        fontSize: '28px',
+        fontWeight: '700',
+        color: '#f8fafc',
+        margin: '0 0 12px 0',
+      },
+      moduleMeta: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '20px',
+      },
+      metaItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        fontSize: '14px',
+        color: '#94a3b8',
+      },
+      metaIcon: {
+        fontSize: '16px',
+      },
+      exportButton: {
+        padding: '12px 20px',
+        backgroundColor: '#059669',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '600',
+        transition: 'all 0.2s',
+      },
+      sections: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+      },
+      section: {
+        backgroundColor: '#1e293b',
+        borderRadius: '12px',
+        border: '1px solid #334155',
+        overflow: 'hidden',
+      },
+      sectionHeader: {
+        width: '100%',
+        padding: '18px 24px',
+        backgroundColor: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        color: '#f8fafc',
+        fontSize: '16px',
+        fontWeight: '600',
+        transition: 'background-color 0.2s',
+      },
+      sectionHeaderLeft: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+      },
+      sectionEmoji: {
+        fontSize: '20px',
+      },
+      expandIcon: {
+        fontSize: '24px',
+        color: '#64748b',
+      },
+      sectionContent: {
+        padding: '0 24px 24px',
+      },
+      objectivesList: {
+        margin: 0,
+        paddingLeft: '20px',
+      },
+      objectiveItem: {
+        fontSize: '15px',
+        color: '#cbd5e1',
+        marginBottom: '10px',
+        lineHeight: '1.6',
+      },
+      conceptsGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: '16px',
+        marginBottom: '16px',
+      },
+      chunkCard: {
+        backgroundColor: '#0f172a',
+        borderRadius: '10px',
+        padding: '16px',
+        border: '1px solid #334155',
+      },
+      chunkHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '12px',
+      },
+      chunkNumber: {
+        width: '32px',
+        height: '32px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '16px',
+        fontWeight: '700',
+        color: '#fff',
+      },
+      chunkLoad: {
+        fontSize: '12px',
+        color: '#64748b',
+        textTransform: 'capitalize',
+      },
+      chunkConcept: {
+        fontSize: '16px',
+        fontWeight: '600',
+        color: '#f8fafc',
+        margin: '0 0 12px 0',
+      },
+      chunkMeta: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        fontSize: '12px',
+        color: '#64748b',
+      },
+      principleNote: {
+        backgroundColor: '#0f172a',
+        borderRadius: '8px',
+        padding: '16px',
+        fontSize: '13px',
+        color: '#94a3b8',
+        borderLeft: '3px solid #8b5cf6',
+      },
+      questionsList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+      },
+      questionCard: {
+        backgroundColor: '#0f172a',
+        borderRadius: '10px',
+        padding: '20px',
+        border: '1px solid #334155',
+      },
+      questionHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '12px',
+      },
+      questionType: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#8b5cf6',
+      },
+      questionDifficulty: {
+        padding: '4px 12px',
+        borderRadius: '20px',
+        fontSize: '12px',
+        fontWeight: '600',
+        color: '#fff',
+      },
+      questionText: {
+        fontSize: '15px',
+        color: '#f8fafc',
+        lineHeight: '1.6',
+        margin: '0 0 16px 0',
+      },
+      questionMeta: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: '12px',
+        color: '#64748b',
+      },
+      questionPrinciple: {},
+      questionTiming: {},
+      scheduleCard: {
+        backgroundColor: '#0f172a',
+        borderRadius: '10px',
+        padding: '24px',
+        marginBottom: '16px',
+      },
+      scheduleName: {
+        fontSize: '20px',
+        fontWeight: '600',
+        color: '#f8fafc',
+        margin: '0 0 8px 0',
+      },
+      scheduleDescription: {
+        fontSize: '14px',
+        color: '#94a3b8',
+        margin: '0 0 24px 0',
+      },
+      timeline: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '16px',
+        marginBottom: '20px',
+      },
+      timelineItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        position: 'relative',
+      },
+      timelineDot: {
+        width: '36px',
+        height: '36px',
+        backgroundColor: '#3b82f6',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '14px',
+        fontWeight: '700',
+        color: '#fff',
+        flexShrink: 0,
+      },
+      timelineContent: {
+        display: 'flex',
+        flexDirection: 'column',
+      },
+      timelineLabel: {
+        fontSize: '12px',
+        color: '#64748b',
+      },
+      timelineInterval: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#f8fafc',
+      },
+      timelineLine: {
+        width: '30px',
+        height: '2px',
+        backgroundColor: '#334155',
+      },
+      retentionNote: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '12px 16px',
+        backgroundColor: '#1e293b',
+        borderRadius: '8px',
+        fontSize: '14px',
+        color: '#10b981',
+      },
+      retentionIcon: {
+        fontSize: '18px',
+      },
+      activitiesList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+      },
+      activityCard: {
+        backgroundColor: '#0f172a',
+        borderRadius: '10px',
+        padding: '20px',
+        border: '1px solid #334155',
+      },
+      activityHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '12px',
+      },
+      activityName: {
+        fontSize: '18px',
+        fontWeight: '600',
+        color: '#f8fafc',
+        margin: 0,
+      },
+      activityDuration: {
+        fontSize: '13px',
+        color: '#64748b',
+      },
+      activityDescription: {
+        fontSize: '14px',
+        color: '#cbd5e1',
+        lineHeight: '1.6',
+        margin: '0 0 16px 0',
+      },
+      activityDetails: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '16px',
+        marginBottom: '16px',
+      },
+      activityMaterials: {
+        fontSize: '13px',
+        color: '#94a3b8',
+      },
+      materialsList: {
+        margin: '8px 0 0 0',
+        paddingLeft: '18px',
+      },
+      activityAssessment: {
+        fontSize: '13px',
+        color: '#94a3b8',
+      },
+      activityPrinciple: {
+        fontSize: '12px',
+        color: '#8b5cf6',
+        paddingTop: '12px',
+        borderTop: '1px solid #334155',
+      },
+      principlesReference: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+        gap: '16px',
+      },
+      principleRefCard: {
+        backgroundColor: '#0f172a',
+        borderRadius: '10px',
+        padding: '20px',
+        border: '1px solid #334155',
+      },
+      principleRefName: {
+        fontSize: '16px',
+        fontWeight: '600',
+        color: '#8b5cf6',
+        margin: '0 0 8px 0',
+      },
+      principleRefDesc: {
+        fontSize: '14px',
+        color: '#cbd5e1',
+        margin: '0 0 8px 0',
+        lineHeight: '1.5',
+      },
+      principleRefResearcher: {
+        fontSize: '12px',
+        color: '#64748b',
+        margin: 0,
+      },
+      templatesContainer: {
+        padding: '20px 0',
+      },
+      templatesTitle: {
+        fontSize: '28px',
+        fontWeight: '700',
+        color: '#f8fafc',
+        margin: '0 0 8px 0',
+      },
+      templatesSubtitle: {
+        fontSize: '15px',
+        color: '#94a3b8',
+        margin: '0 0 32px 0',
+      },
+      templatesGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+        gap: '20px',
+      },
+      templateCard: {
+        backgroundColor: '#1e293b',
+        borderRadius: '12px',
+        padding: '24px',
+        border: '1px solid #334155',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+      },
+      templateCardActive: {
+        borderColor: '#8b5cf6',
+        boxShadow: '0 0 20px rgba(139, 92, 246, 0.2)',
+      },
+      templateHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '20px',
+      },
+      templateIcon: {
+        fontSize: '32px',
+      },
+      templateName: {
+        fontSize: '18px',
+        fontWeight: '600',
+        color: '#f8fafc',
+        margin: 0,
+      },
+      templateSection: {
+        marginBottom: '16px',
+      },
+      templateSectionTitle: {
+        fontSize: '13px',
+        fontWeight: '600',
+        color: '#8b5cf6',
+        margin: '0 0 8px 0',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+      },
+      templateList: {
+        margin: 0,
+        paddingLeft: '18px',
+        fontSize: '13px',
+        color: '#cbd5e1',
+        lineHeight: '1.8',
+      },
+      useTemplateButton: {
+        width: '100%',
+        padding: '12px',
+        backgroundColor: '#3b82f6',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '600',
+        marginTop: '16px',
+        transition: 'all 0.2s',
+      },
+      modalOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '20px',
+      },
+      modal: {
+        backgroundColor: '#1e293b',
+        borderRadius: '16px',
+        padding: '32px',
+        maxWidth: '1000px',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        border: '1px solid #334155',
+      },
+      modalTitle: {
+        fontSize: '24px',
+        fontWeight: '700',
+        color: '#f8fafc',
+        margin: '0 0 24px 0',
+      },
+      principlesGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: '16px',
+      },
+      principleCard: {
+        backgroundColor: '#0f172a',
+        borderRadius: '10px',
+        padding: '20px',
+        border: '1px solid #334155',
+      },
+      principleName: {
+        fontSize: '16px',
+        fontWeight: '600',
+        color: '#8b5cf6',
+        margin: '0 0 8px 0',
+      },
+      principleDescription: {
+        fontSize: '14px',
+        color: '#cbd5e1',
+        margin: '0 0 12px 0',
+        lineHeight: '1.5',
+      },
+      principleResearcher: {
+        fontSize: '12px',
+        color: '#64748b',
+        margin: '0 0 12px 0',
+      },
+      principleApplication: {
+        fontSize: '13px',
+        color: '#94a3b8',
+        margin: 0,
+        paddingTop: '12px',
+        borderTop: '1px solid #334155',
+      },
+      footer: {
+        borderTop: '1px solid #334155',
+        padding: '24px 32px',
+        textAlign: 'center',
+        color: '#64748b',
+        fontSize: '14px',
+      },
+      footerLinks: {
+        fontSize: '12px',
+        color: '#475569',
+        marginTop: '8px',
+      },
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<MicrolearningGenerator />);
+  </script>
+</body>
+</html>

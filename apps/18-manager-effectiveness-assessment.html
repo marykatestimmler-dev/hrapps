@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manager Effectiveness Self-Assessment</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // Manager Effectiveness Self-Assessment
+    // Based on Google's Project Oxygen and Gallup's Q12 Research
+    const ManagerEffectivenessAssessment = () => {
+      const [currentSection, setCurrentSection] = useState(0);
+      const [responses, setResponses] = useState({});
+      const [showResults, setShowResults] = useState(false);
+      const [expandedArea, setExpandedArea] = useState(null);
+
+      const categories = [
+        {
+          id: 'coach',
+          name: 'Good Coach',
+          icon: '\uD83C\uDFAF',
+          description: 'Provides specific, constructive feedback and has regular one-on-ones',
+          research: 'Project Oxygen #1',
+          color: '#10b981'
+        },
+        {
+          id: 'empower',
+          name: 'Empowers Team',
+          icon: '\uD83D\uDE80',
+          description: 'Empowers team and does not micromanage',
+          research: 'Project Oxygen #2',
+          color: '#6366f1'
+        },
+        {
+          id: 'inclusive',
+          name: 'Creates Inclusive Environment',
+          icon: '\uD83E\uDD1D',
+          description: 'Creates an inclusive team environment showing concern for success and well-being',
+          research: 'Project Oxygen #3 & Gallup Q5',
+          color: '#ec4899'
+        },
+        {
+          id: 'results',
+          name: 'Results-Oriented',
+          icon: '\uD83D\uDCCA',
+          description: 'Is productive and results-oriented',
+          research: 'Project Oxygen #4',
+          color: '#f59e0b'
+        },
+        {
+          id: 'communicator',
+          name: 'Good Communicator',
+          icon: '\uD83D\uDCAC',
+          description: 'Is a good communicator who listens and shares information',
+          research: 'Project Oxygen #5 & Gallup Q2',
+          color: '#14b8a6'
+        },
+        {
+          id: 'career',
+          name: 'Career Development',
+          icon: '\uD83D\uDCC8',
+          description: 'Supports career development and discusses progress',
+          research: 'Project Oxygen #6 & Gallup Q6, Q11',
+          color: '#8b5cf6'
+        },
+        {
+          id: 'vision',
+          name: 'Clear Vision & Strategy',
+          icon: '\uD83D\uDD2D',
+          description: 'Has a clear vision and strategy for the team',
+          research: 'Project Oxygen #7 & Gallup Q8',
+          color: '#0ea5e9'
+        },
+        {
+          id: 'technical',
+          name: 'Technical Skills',
+          icon: '\u2699\uFE0F',
+          description: 'Has key technical skills to help advise the team',
+          research: 'Project Oxygen #8',
+          color: '#ef4444'
+        }
+      ];
+
+      const questions = [
+        // Good Coach (3 questions)
+        {
+          id: 1,
+          category: 'coach',
+          text: 'I provide timely, specific feedback that helps my team members improve their performance.',
+          reverse: false
+        },
+        {
+          id: 2,
+          category: 'coach',
+          text: 'I hold regular one-on-one meetings focused on my team members\' development needs.',
+          reverse: false
+        },
+        {
+          id: 3,
+          category: 'coach',
+          text: 'When giving feedback, I focus on behaviors and outcomes rather than personal attributes.',
+          reverse: false
+        },
+        // Empowers Team (2 questions)
+        {
+          id: 4,
+          category: 'empower',
+          text: 'I give my team members autonomy to make decisions within their areas of responsibility.',
+          reverse: false
+        },
+        {
+          id: 5,
+          category: 'empower',
+          text: 'I trust my team to complete their work without needing to check in constantly.',
+          reverse: false
+        },
+        // Creates Inclusive Environment (3 questions)
+        {
+          id: 6,
+          category: 'inclusive',
+          text: 'I actively ensure all team members feel comfortable sharing their opinions.',
+          reverse: false
+        },
+        {
+          id: 7,
+          category: 'inclusive',
+          text: 'I show genuine concern for my team members\' well-being, not just their work output.',
+          reverse: false
+        },
+        {
+          id: 8,
+          category: 'inclusive',
+          text: 'I address behaviors that exclude or marginalize team members promptly.',
+          reverse: false
+        },
+        // Results-Oriented (2 questions)
+        {
+          id: 9,
+          category: 'results',
+          text: 'I set clear, measurable goals and hold myself and the team accountable for achieving them.',
+          reverse: false
+        },
+        {
+          id: 10,
+          category: 'results',
+          text: 'I remove obstacles that prevent my team from accomplishing their work efficiently.',
+          reverse: false
+        },
+        // Good Communicator (3 questions)
+        {
+          id: 11,
+          category: 'communicator',
+          text: 'My team members understand what is expected of them in their roles.',
+          reverse: false
+        },
+        {
+          id: 12,
+          category: 'communicator',
+          text: 'I listen actively and ensure team members feel heard before responding.',
+          reverse: false
+        },
+        {
+          id: 13,
+          category: 'communicator',
+          text: 'I share relevant information and context to help my team understand the bigger picture.',
+          reverse: false
+        },
+        // Career Development (2 questions)
+        {
+          id: 14,
+          category: 'career',
+          text: 'I regularly discuss career goals and growth opportunities with each team member.',
+          reverse: false
+        },
+        {
+          id: 15,
+          category: 'career',
+          text: 'I provide stretch assignments and learning opportunities aligned with team members\' aspirations.',
+          reverse: false
+        },
+        // Clear Vision & Strategy (2 questions)
+        {
+          id: 16,
+          category: 'vision',
+          text: 'I communicate a clear vision that helps my team understand how their work contributes to organizational goals.',
+          reverse: false
+        },
+        {
+          id: 17,
+          category: 'vision',
+          text: 'My team understands our priorities and how decisions are made about what to focus on.',
+          reverse: false
+        },
+        // Technical Skills (2 questions)
+        {
+          id: 18,
+          category: 'technical',
+          text: 'I have sufficient technical knowledge to provide meaningful guidance to my team.',
+          reverse: false
+        },
+        {
+          id: 19,
+          category: 'technical',
+          text: 'I stay current with developments in my field to better support my team\'s work.',
+          reverse: false
+        }
+      ];
+
+      const scaleLabels = [
+        { value: 1, label: 'Strongly Disagree' },
+        { value: 2, label: 'Disagree' },
+        { value: 3, label: 'Slightly Disagree' },
+        { value: 4, label: 'Neutral' },
+        { value: 5, label: 'Slightly Agree' },
+        { value: 6, label: 'Agree' },
+        { value: 7, label: 'Strongly Agree' }
+      ];
+
+      const developmentActions = {
+        coach: {
+          low: [
+            'Schedule recurring 30-minute one-on-ones with each direct report',
+            'Use the SBI (Situation-Behavior-Impact) model for all feedback',
+            'Practice "feedforward" - focus on future improvements, not past mistakes',
+            'Ask team members how they prefer to receive feedback'
+          ],
+          medium: [
+            'Increase feedback frequency - aim for weekly informal check-ins',
+            'Document coaching conversations to track themes and progress',
+            'Develop a coaching question bank to guide developmental conversations',
+            'Practice active listening techniques during one-on-ones'
+          ],
+          high: [
+            'Mentor other managers on effective coaching techniques',
+            'Implement peer coaching sessions within your team',
+            'Create a feedback culture where team members coach each other',
+            'Develop personalized development plans with each team member'
+          ]
+        },
+        empower: {
+          low: [
+            'Identify decisions you can delegate immediately',
+            'Replace status updates with outcome reviews',
+            'Practice asking "What do you think we should do?" before giving direction',
+            'Set clear boundaries: what requires approval vs. autonomous decisions'
+          ],
+          medium: [
+            'Gradually increase decision-making authority for proven performers',
+            'Create a RACI matrix to clarify responsibilities',
+            'Celebrate autonomous problem-solving, even when the approach differs from yours',
+            'Implement a "15% time" concept for self-directed projects'
+          ],
+          high: [
+            'Delegate entire project ownership, not just tasks',
+            'Support team members in leading cross-functional initiatives',
+            'Create opportunities for team members to represent the team externally',
+            'Build redundancy so no single person (including you) is a bottleneck'
+          ]
+        },
+        inclusive: {
+          low: [
+            'Learn and use each team member\'s preferred name and pronouns',
+            'Actively solicit input from quieter team members in meetings',
+            'Review your meeting practices for unintentional exclusion',
+            'Take unconscious bias training and apply learnings'
+          ],
+          medium: [
+            'Implement rotating meeting facilitators to share voice',
+            'Create psychological safety by admitting your own mistakes first',
+            'Establish team norms collaboratively',
+            'Check in privately with team members after difficult conversations'
+          ],
+          high: [
+            'Champion diversity and inclusion initiatives beyond your team',
+            'Mentor employees from underrepresented groups',
+            'Create inclusive hiring practices and diverse interview panels',
+            'Measure and track inclusion metrics for your team'
+          ]
+        },
+        results: {
+          low: [
+            'Implement OKRs or SMART goals for all team initiatives',
+            'Create a visible team dashboard tracking key metrics',
+            'Conduct weekly obstacle-removal sessions',
+            'Define "done" clearly for all projects'
+          ],
+          medium: [
+            'Align individual goals with team and organizational objectives',
+            'Implement regular retrospectives to improve processes',
+            'Balance short-term results with long-term capability building',
+            'Recognize and reward outcome achievement, not just effort'
+          ],
+          high: [
+            'Set stretch goals that inspire high performance',
+            'Create a culture of continuous improvement',
+            'Share your goal-setting methodology with other teams',
+            'Build systems that sustain results beyond individual heroics'
+          ]
+        },
+        communicator: {
+          low: [
+            'Create clear role descriptions and success metrics for each position',
+            'Practice the "check for understanding" technique after giving instructions',
+            'Send written summaries after important verbal conversations',
+            'Ask open-ended questions instead of yes/no questions'
+          ],
+          medium: [
+            'Share the "why" behind decisions, not just the "what"',
+            'Create multiple channels for team communication (sync and async)',
+            'Practice reflective listening - paraphrase what you heard',
+            'Provide regular team updates on organizational context'
+          ],
+          high: [
+            'Develop storytelling skills to make communication more engaging',
+            'Create a communication rhythm that the team can rely on',
+            'Model transparent communication about challenges and uncertainties',
+            'Coach team members on their communication skills'
+          ]
+        },
+        career: {
+          low: [
+            'Schedule dedicated career conversations quarterly (separate from performance reviews)',
+            'Learn about each team member\'s career aspirations and interests',
+            'Connect team members with mentors in areas they want to develop',
+            'Identify at least one growth opportunity for each person this quarter'
+          ],
+          medium: [
+            'Create individual development plans with specific actions and timelines',
+            'Provide exposure to senior leaders and cross-functional partners',
+            'Support internal mobility, even when it means losing good people',
+            'Give stretch assignments aligned with career goals'
+          ],
+          high: [
+            'Build a talent pipeline and succession plan for your team',
+            'Sponsor high-potential team members for visibility opportunities',
+            'Create learning programs that address team skill gaps',
+            'Celebrate promotions and growth, even to other teams'
+          ]
+        },
+        vision: {
+          low: [
+            'Write a clear team mission statement collaboratively',
+            'Connect every project to organizational strategic priorities',
+            'Share your decision-making framework with the team',
+            'Create a visual roadmap of team priorities'
+          ],
+          medium: [
+            'Regularly communicate how team work impacts customers/stakeholders',
+            'Involve team in strategic planning and prioritization',
+            'Translate organizational changes into team-level implications',
+            'Create rituals that reinforce team purpose and values'
+          ],
+          high: [
+            'Develop and communicate a compelling 3-year vision for the team',
+            'Build strategic thinking capabilities in team members',
+            'Influence organizational strategy based on team insights',
+            'Create a culture where everyone can articulate the team\'s purpose'
+          ]
+        },
+        technical: {
+          low: [
+            'Identify the core technical skills needed to support your team',
+            'Schedule learning time to develop baseline technical competency',
+            'Pair with technical team members to learn from them',
+            'Know when to defer to experts and how to evaluate their recommendations'
+          ],
+          medium: [
+            'Stay current through industry publications and conferences',
+            'Participate in technical discussions without dominating',
+            'Understand technical trade-offs well enough to make informed decisions',
+            'Build relationships with technical mentors in your organization'
+          ],
+          high: [
+            'Contribute to technical decisions while empowering team expertise',
+            'Help translate technical concepts for non-technical stakeholders',
+            'Identify emerging technical trends that could impact your team',
+            'Balance hands-on involvement with delegation as team grows'
+          ]
+        }
+      };
+
+      const groupedQuestions = useMemo(() => {
+        const groups = [];
+        const questionsPerPage = 4;
+        for (let i = 0; i < questions.length; i += questionsPerPage) {
+          groups.push(questions.slice(i, i + questionsPerPage));
+        }
+        return groups;
+      }, []);
+
+      const handleResponse = (questionId, value) => {
+        setResponses(prev => ({ ...prev, [questionId]: value }));
+      };
+
+      const calculateResults = () => {
+        const results = {};
+
+        categories.forEach(cat => {
+          const categoryQuestions = questions.filter(q => q.category === cat.id);
+          const scores = categoryQuestions.map(q => responses[q.id] || 0);
+          const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+          const maxScore = 7;
+          const percentage = (avgScore / maxScore) * 100;
+
+          results[cat.id] = {
+            score: avgScore,
+            percentage,
+            questionCount: categoryQuestions.length,
+            level: percentage >= 75 ? 'high' : percentage >= 50 ? 'medium' : 'low'
+          };
+        });
+
+        return results;
+      };
+
+      const results = showResults ? calculateResults() : null;
+
+      const overallScore = results ?
+        Object.values(results).reduce((sum, r) => sum + r.percentage, 0) / Object.keys(results).length : 0;
+
+      const getStrengths = () => {
+        if (!results) return [];
+        return categories
+          .filter(cat => results[cat.id].level === 'high')
+          .sort((a, b) => results[b.id].percentage - results[a.id].percentage);
+      };
+
+      const getDevelopmentAreas = () => {
+        if (!results) return [];
+        return categories
+          .filter(cat => results[cat.id].level !== 'high')
+          .sort((a, b) => results[a.id].percentage - results[b.id].percentage);
+      };
+
+      const isCurrentSectionComplete = () => {
+        if (currentSection >= groupedQuestions.length) return true;
+        return groupedQuestions[currentSection].every(q => responses[q.id] !== undefined);
+      };
+
+      const allQuestionsAnswered = questions.every(q => responses[q.id] !== undefined);
+
+      const progressPercentage = (Object.keys(responses).length / questions.length) * 100;
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+          color: '#e2e8f0',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          padding: '24px'
+        }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '32px',
+              padding: '32px',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
+              borderRadius: '16px',
+              border: '1px solid rgba(99, 102, 241, 0.2)'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>{'\uD83D\uDC54'}</div>
+              <h1 style={{
+                fontSize: '32px',
+                fontWeight: '700',
+                background: 'linear-gradient(135deg, #818cf8, #a78bfa)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                marginBottom: '12px'
+              }}>
+                Manager Effectiveness Self-Assessment
+              </h1>
+              <p style={{ color: '#94a3b8', fontSize: '16px', maxWidth: '600px', margin: '0 auto' }}>
+                Based on Google's Project Oxygen research and Gallup's Q12 employee engagement framework
+              </p>
+            </div>
+
+            {!showResults ? (
+              <>
+                {/* Progress Bar */}
+                <div style={{
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(99, 102, 241, 0.2)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '14px' }}>
+                      Progress: {Object.keys(responses).length} of {questions.length} questions
+                    </span>
+                    <span style={{ color: '#818cf8', fontSize: '14px', fontWeight: '600' }}>
+                      {Math.round(progressPercentage)}%
+                    </span>
+                  </div>
+                  <div style={{
+                    height: '8px',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${progressPercentage}%`,
+                      background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
+                      borderRadius: '4px',
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+                </div>
+
+                {/* Category Overview */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+                  gap: '8px',
+                  marginBottom: '24px'
+                }}>
+                  {categories.map(cat => {
+                    const catQuestions = questions.filter(q => q.category === cat.id);
+                    const answered = catQuestions.filter(q => responses[q.id] !== undefined).length;
+                    const isComplete = answered === catQuestions.length;
+                    return (
+                      <div key={cat.id} style={{
+                        padding: '12px 8px',
+                        background: isComplete ? `${cat.color}20` : 'rgba(30, 41, 59, 0.5)',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                        border: `1px solid ${isComplete ? cat.color : 'rgba(71, 85, 105, 0.3)'}`,
+                        transition: 'all 0.3s ease'
+                      }}>
+                        <div style={{ fontSize: '20px', marginBottom: '4px' }}>{cat.icon}</div>
+                        <div style={{ fontSize: '11px', color: isComplete ? cat.color : '#94a3b8', fontWeight: '500' }}>
+                          {cat.name}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                          {answered}/{catQuestions.length}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Questions Section */}
+                <div style={{
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  border: '1px solid rgba(99, 102, 241, 0.2)',
+                  marginBottom: '24px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#e2e8f0' }}>
+                      Section {currentSection + 1} of {groupedQuestions.length}
+                    </h2>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {groupedQuestions.map((_, idx) => (
+                        <div key={idx} style={{
+                          width: '24px',
+                          height: '4px',
+                          borderRadius: '2px',
+                          background: idx === currentSection ? '#818cf8' :
+                            groupedQuestions[idx].every(q => responses[q.id] !== undefined) ? '#10b981' : '#334155',
+                          transition: 'all 0.3s ease'
+                        }} />
+                      ))}
+                    </div>
+                  </div>
+
+                  {groupedQuestions[currentSection]?.map((question, qIdx) => {
+                    const category = categories.find(c => c.id === question.category);
+                    return (
+                      <div key={question.id} style={{
+                        marginBottom: qIdx < groupedQuestions[currentSection].length - 1 ? '32px' : '0',
+                        padding: '20px',
+                        background: 'rgba(15, 23, 42, 0.5)',
+                        borderRadius: '12px',
+                        border: responses[question.id] ? `1px solid ${category.color}40` : '1px solid rgba(71, 85, 105, 0.3)'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                          <span style={{
+                            fontSize: '14px',
+                            padding: '4px 10px',
+                            background: `${category.color}20`,
+                            color: category.color,
+                            borderRadius: '6px',
+                            fontWeight: '500'
+                          }}>
+                            {category.icon} {category.name}
+                          </span>
+                          <span style={{ fontSize: '12px', color: '#64748b' }}>
+                            Q{question.id}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '16px', color: '#e2e8f0', marginBottom: '16px', lineHeight: '1.5' }}>
+                          {question.text}
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                          {scaleLabels.map(({ value, label }) => (
+                            <button
+                              key={value}
+                              onClick={() => handleResponse(question.id, value)}
+                              style={{
+                                flex: '1',
+                                minWidth: '80px',
+                                padding: '12px 8px',
+                                background: responses[question.id] === value
+                                  ? category.color
+                                  : 'rgba(51, 65, 85, 0.5)',
+                                border: responses[question.id] === value
+                                  ? `2px solid ${category.color}`
+                                  : '2px solid transparent',
+                                borderRadius: '8px',
+                                color: responses[question.id] === value ? '#fff' : '#94a3b8',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                fontSize: '12px',
+                                fontWeight: responses[question.id] === value ? '600' : '400'
+                              }}
+                            >
+                              <div style={{ fontSize: '18px', marginBottom: '4px' }}>{value}</div>
+                              <div style={{ fontSize: '10px', opacity: 0.8 }}>{label}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Navigation */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <button
+                    onClick={() => setCurrentSection(prev => Math.max(0, prev - 1))}
+                    disabled={currentSection === 0}
+                    style={{
+                      padding: '12px 24px',
+                      background: currentSection === 0 ? 'rgba(51, 65, 85, 0.3)' : 'rgba(51, 65, 85, 0.8)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: currentSection === 0 ? '#64748b' : '#e2e8f0',
+                      cursor: currentSection === 0 ? 'not-allowed' : 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {'\u2190'} Previous
+                  </button>
+
+                  {currentSection < groupedQuestions.length - 1 ? (
+                    <button
+                      onClick={() => setCurrentSection(prev => prev + 1)}
+                      disabled={!isCurrentSectionComplete()}
+                      style={{
+                        padding: '12px 24px',
+                        background: isCurrentSectionComplete()
+                          ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                          : 'rgba(51, 65, 85, 0.3)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: isCurrentSectionComplete() ? '#fff' : '#64748b',
+                        cursor: isCurrentSectionComplete() ? 'pointer' : 'not-allowed',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      Next Section {'\u2192'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowResults(true)}
+                      disabled={!allQuestionsAnswered}
+                      style={{
+                        padding: '14px 32px',
+                        background: allQuestionsAnswered
+                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                          : 'rgba(51, 65, 85, 0.3)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: allQuestionsAnswered ? '#fff' : '#64748b',
+                        cursor: allQuestionsAnswered ? 'pointer' : 'not-allowed',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      View My Results {'\u2192'}
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Results Section */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)',
+                  borderRadius: '16px',
+                  padding: '32px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(99, 102, 241, 0.3)',
+                  textAlign: 'center'
+                }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '16px', color: '#e2e8f0' }}>
+                    Your Manager Effectiveness Score
+                  </h2>
+                  <div style={{
+                    fontSize: '72px',
+                    fontWeight: '800',
+                    background: overallScore >= 75 ? 'linear-gradient(135deg, #10b981, #059669)' :
+                      overallScore >= 50 ? 'linear-gradient(135deg, #f59e0b, #d97706)' :
+                      'linear-gradient(135deg, #ef4444, #dc2626)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    marginBottom: '8px'
+                  }}>
+                    {Math.round(overallScore)}%
+                  </div>
+                  <p style={{ color: '#94a3b8', fontSize: '16px' }}>
+                    {overallScore >= 75 ? 'Excellent! You\'re demonstrating strong manager effectiveness.' :
+                     overallScore >= 50 ? 'Good foundation. Focus on your development areas to grow further.' :
+                     'There\'s significant opportunity to develop your management skills.'}
+                  </p>
+                </div>
+
+                {/* Category Scores */}
+                <div style={{
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(99, 102, 241, 0.2)'
+                }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px', color: '#e2e8f0' }}>
+                    Scores by Category
+                  </h3>
+                  <div style={{ display: 'grid', gap: '16px' }}>
+                    {categories.map(cat => {
+                      const result = results[cat.id];
+                      return (
+                        <div key={cat.id}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '20px' }}>{cat.icon}</span>
+                              <span style={{ color: '#e2e8f0', fontWeight: '500' }}>{cat.name}</span>
+                              <span style={{ fontSize: '11px', color: '#64748b', background: 'rgba(51, 65, 85, 0.5)', padding: '2px 6px', borderRadius: '4px' }}>
+                                {cat.research}
+                              </span>
+                            </div>
+                            <span style={{ color: cat.color, fontWeight: '600' }}>
+                              {Math.round(result.percentage)}%
+                            </span>
+                          </div>
+                          <div style={{
+                            height: '12px',
+                            background: 'rgba(15, 23, 42, 0.8)',
+                            borderRadius: '6px',
+                            overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${result.percentage}%`,
+                              background: `linear-gradient(90deg, ${cat.color}cc, ${cat.color})`,
+                              borderRadius: '6px',
+                              transition: 'width 0.5s ease'
+                            }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Strengths */}
+                {getStrengths().length > 0 && (
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    marginBottom: '24px',
+                    border: '1px solid rgba(16, 185, 129, 0.3)'
+                  }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>{'\u2728'}</span> Your Strengths
+                    </h3>
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      {getStrengths().map(cat => (
+                        <div key={cat.id} style={{
+                          padding: '16px',
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          borderRadius: '10px',
+                          border: '1px solid rgba(16, 185, 129, 0.2)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '24px' }}>{cat.icon}</span>
+                            <span style={{ color: '#e2e8f0', fontWeight: '600', fontSize: '16px' }}>{cat.name}</span>
+                            <span style={{ color: '#10b981', fontWeight: '600', marginLeft: 'auto' }}>
+                              {Math.round(results[cat.id].percentage)}%
+                            </span>
+                          </div>
+                          <p style={{ color: '#94a3b8', fontSize: '14px' }}>{cat.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Development Plan */}
+                <div style={{
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(99, 102, 241, 0.2)'
+                }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>{'\uD83D\uDCCB'}</span> Your Personalized Development Plan
+                  </h3>
+                  <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '20px' }}>
+                    Focus on these areas to enhance your manager effectiveness. Click each area for specific action recommendations.
+                  </p>
+
+                  <div style={{ display: 'grid', gap: '16px' }}>
+                    {getDevelopmentAreas().map(cat => {
+                      const result = results[cat.id];
+                      const actions = developmentActions[cat.id][result.level];
+                      const isExpanded = expandedArea === cat.id;
+
+                      return (
+                        <div key={cat.id} style={{
+                          background: 'rgba(15, 23, 42, 0.5)',
+                          borderRadius: '12px',
+                          border: `1px solid ${cat.color}40`,
+                          overflow: 'hidden'
+                        }}>
+                          <button
+                            onClick={() => setExpandedArea(isExpanded ? null : cat.id)}
+                            style={{
+                              width: '100%',
+                              padding: '16px 20px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ fontSize: '24px' }}>{cat.icon}</span>
+                              <div style={{ textAlign: 'left' }}>
+                                <div style={{ color: '#e2e8f0', fontWeight: '600', fontSize: '16px' }}>{cat.name}</div>
+                                <div style={{ color: '#64748b', fontSize: '12px' }}>{cat.description}</div>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{
+                                padding: '4px 10px',
+                                background: result.level === 'low' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                color: result.level === 'low' ? '#ef4444' : '#f59e0b',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600'
+                              }}>
+                                {Math.round(result.percentage)}%
+                              </span>
+                              <span style={{ color: '#94a3b8', fontSize: '20px', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                                {'\u25BC'}
+                              </span>
+                            </div>
+                          </button>
+
+                          {isExpanded && (
+                            <div style={{ padding: '0 20px 20px 20px' }}>
+                              <div style={{
+                                background: `${cat.color}10`,
+                                borderRadius: '8px',
+                                padding: '16px',
+                                border: `1px solid ${cat.color}30`
+                              }}>
+                                <h4 style={{ color: cat.color, fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
+                                  Recommended Actions
+                                </h4>
+                                <ul style={{ margin: 0, padding: '0 0 0 20px' }}>
+                                  {actions.map((action, idx) => (
+                                    <li key={idx} style={{ color: '#cbd5e1', fontSize: '14px', marginBottom: '8px', lineHeight: '1.5' }}>
+                                      {action}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Priority Focus */}
+                {getDevelopmentAreas().length > 0 && (
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    marginBottom: '24px',
+                    border: '1px solid rgba(245, 158, 11, 0.3)'
+                  }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>{'\uD83C\uDFAF'}</span> Priority Focus Area
+                    </h3>
+                    <div style={{
+                      padding: '20px',
+                      background: 'rgba(15, 23, 42, 0.5)',
+                      borderRadius: '12px',
+                      border: `2px solid ${getDevelopmentAreas()[0].color}`
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '32px' }}>{getDevelopmentAreas()[0].icon}</span>
+                        <div>
+                          <div style={{ color: '#e2e8f0', fontWeight: '700', fontSize: '18px' }}>
+                            {getDevelopmentAreas()[0].name}
+                          </div>
+                          <div style={{ color: '#64748b', fontSize: '13px' }}>
+                            Current Score: {Math.round(results[getDevelopmentAreas()[0].id].percentage)}% {'\u2022'} Based on {getDevelopmentAreas()[0].research}
+                          </div>
+                        </div>
+                      </div>
+                      <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '16px' }}>
+                        Start here for the biggest impact on your team's engagement and performance.
+                      </p>
+                      <div style={{ background: `${getDevelopmentAreas()[0].color}15`, borderRadius: '8px', padding: '16px' }}>
+                        <div style={{ color: getDevelopmentAreas()[0].color, fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+                          Quick Win Action:
+                        </div>
+                        <div style={{ color: '#e2e8f0', fontSize: '14px' }}>
+                          {developmentActions[getDevelopmentAreas()[0].id][results[getDevelopmentAreas()[0].id].level][0]}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Research Attribution */}
+                <div style={{
+                  background: 'rgba(30, 41, 59, 0.4)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(71, 85, 105, 0.3)'
+                }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#94a3b8' }}>
+                    {'\uD83D\uDCDA'} Research Foundation
+                  </h3>
+                  <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+                    <div style={{
+                      padding: '16px',
+                      background: 'rgba(15, 23, 42, 0.5)',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(71, 85, 105, 0.3)'
+                    }}>
+                      <div style={{ color: '#818cf8', fontWeight: '600', marginBottom: '8px' }}>
+                        Google's Project Oxygen
+                      </div>
+                      <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.5' }}>
+                        A multi-year research initiative analyzing data from employee surveys, performance reviews, and interviews to identify the 8 behaviors of Google's best managers.
+                      </p>
+                    </div>
+                    <div style={{
+                      padding: '16px',
+                      background: 'rgba(15, 23, 42, 0.5)',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(71, 85, 105, 0.3)'
+                    }}>
+                      <div style={{ color: '#8b5cf6', fontWeight: '600', marginBottom: '8px' }}>
+                        Gallup's Q12 Framework
+                      </div>
+                      <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.5' }}>
+                        Based on extensive meta-analysis of millions of employee surveys, the Q12 identifies 12 elements that strongly correlate with employee engagement and performance.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Retake Button */}
+                <div style={{ textAlign: 'center' }}>
+                  <button
+                    onClick={() => {
+                      setResponses({});
+                      setCurrentSection(0);
+                      setShowResults(false);
+                      setExpandedArea(null);
+                    }}
+                    style={{
+                      padding: '14px 32px',
+                      background: 'rgba(51, 65, 85, 0.8)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      borderRadius: '8px',
+                      color: '#e2e8f0',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {'\u21BA'} Retake Assessment
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Footer */}
+            <div style={{
+              marginTop: '40px',
+              padding: '20px',
+              textAlign: 'center',
+              borderTop: '1px solid rgba(71, 85, 105, 0.3)'
+            }}>
+              <p style={{ color: '#64748b', fontSize: '12px' }}>
+                This self-assessment is designed for personal development purposes. For comprehensive
+                feedback, consider gathering input from your team members and peers.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ManagerEffectivenessAssessment />);
+  </script>
+</body>
+</html>

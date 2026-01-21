@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Myth vs Evidence Flashcard Deck Builder</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    * {
+      margin: 0;
+    }
+    body {
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    img, picture, video, canvas, svg {
+      display: block;
+      max-width: 100%;
+    }
+    input, button, textarea, select {
+      font: inherit;
+    }
+    p, h1, h2, h3, h4, h5, h6 {
+      overflow-wrap: break-word;
+    }
+    #root {
+      isolation: isolate;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback, useEffect } = React;
+
+    // Pre-built library of common workplace myths with evidence
+    const mythLibrary = [
+      {
+        id: 1,
+        topic: 'Open Offices',
+        myth: 'Open office layouts increase collaboration and communication among employees.',
+        evidence: 'Research shows open offices actually decrease face-to-face interaction by approximately 70% as employees retreat to digital communication to maintain privacy.',
+        studies: 'Bernstein & Turban, 2018 (Harvard Business School) - "The impact of the open workspace on human collaboration"',
+        implications: 'Consider providing quiet spaces, phone booths, and flexible work arrangements. Balance open areas with private spaces for focused work.'
+      },
+      {
+        id: 2,
+        topic: 'Multitasking',
+        myth: 'Skilled employees can effectively multitask to get more done in less time.',
+        evidence: 'Multitasking can reduce productivity by up to 40%. The brain doesn\'t truly multitask\u2014it rapidly switches between tasks, incurring cognitive costs each time.',
+        studies: 'Rubinstein, Meyer & Evans, 2001 (APA); Mark, Gonzalez & Harris, 2005 - Recovery time after interruptions averages 23 minutes.',
+        implications: 'Encourage single-tasking, time-blocking, and minimizing interruptions. Protect deep work periods from meetings and notifications.'
+      },
+      {
+        id: 3,
+        topic: 'Brainstorming',
+        myth: 'Group brainstorming sessions generate more and better ideas than individuals working alone.',
+        evidence: 'Individuals brainstorming alone then pooling ideas consistently outperform traditional group brainstorming due to production blocking, evaluation apprehension, and social loafing.',
+        studies: 'Diehl & Stroebe, 1987; Mullen, Johnson & Salas, 1991 - Meta-analysis of 800+ teams showed nominal groups outperformed interactive groups.',
+        implications: 'Use "brainwriting" or have individuals generate ideas independently before group discussion. Consider anonymous idea submission tools.'
+      },
+      {
+        id: 4,
+        topic: 'Remote Work',
+        myth: 'Remote workers are less productive than office-based employees.',
+        evidence: 'Multiple studies show remote workers are often 13-22% more productive, work longer hours, take fewer breaks, and report higher job satisfaction.',
+        studies: 'Bloom et al., 2015 (Stanford) - 9-month study of 16,000 workers; Owl Labs State of Remote Work reports 2019-2023.',
+        implications: 'Focus on outcomes rather than presence. Invest in communication tools, clear expectations, and trust-based management practices.'
+      },
+      {
+        id: 5,
+        topic: 'Learning Styles',
+        myth: 'Employees learn best when training matches their preferred learning style (visual, auditory, kinesthetic).',
+        evidence: 'No credible evidence supports matching instruction to learning styles improves outcomes. People may have preferences, but this doesn\'t translate to better learning.',
+        studies: 'Pashler et al., 2008 (Psychological Science in the Public Interest) - Comprehensive review found no valid evidence for learning styles theory.',
+        implications: 'Use multimodal training that combines various approaches. Focus on evidence-based techniques like spaced repetition and active recall.'
+      },
+      {
+        id: 6,
+        topic: 'Incentives',
+        myth: 'Financial incentives and bonuses are the most effective motivators for employee performance.',
+        evidence: 'For complex cognitive work, intrinsic motivation (autonomy, mastery, purpose) often outperforms extrinsic rewards. Large bonuses can actually decrease performance on creative tasks.',
+        studies: 'Deci, Koestner & Ryan, 1999 (Meta-analysis); Ariely et al., 2009 - Large bonuses led to poorer performance on cognitive tasks.',
+        implications: 'Balance fair compensation with autonomy, growth opportunities, and meaningful work. Use bonuses carefully and consider non-monetary recognition.'
+      },
+      {
+        id: 7,
+        topic: 'Meetings',
+        myth: 'More meetings lead to better alignment, communication, and decision-making.',
+        evidence: 'Excessive meetings are associated with decreased productivity, employee dissatisfaction, and meeting fatigue. Many meetings lack clear agendas or outcomes.',
+        studies: 'Rogelberg et al., 2007; Microsoft Work Trend Index 2022 - Meeting time has increased 252% since February 2020.',
+        implications: 'Audit meeting necessity, keep attendee lists small, require agendas, and consider async alternatives. Implement "no-meeting" days for deep work.'
+      },
+      {
+        id: 8,
+        topic: 'Hiring',
+        myth: 'Experienced interviewers can accurately assess candidate potential through unstructured interviews.',
+        evidence: 'Unstructured interviews are poor predictors of job performance (r=0.20). Structured interviews with standardized questions are significantly more predictive (r=0.51).',
+        studies: 'Schmidt & Hunter, 1998 (Psychological Bulletin) - 85-year meta-analysis of selection methods; Huffcutt & Arthur, 1994.',
+        implications: 'Use structured interviews with consistent questions and scoring rubrics. Combine with work samples and cognitive ability tests for best results.'
+      },
+      {
+        id: 9,
+        topic: 'Creativity',
+        myth: 'Creativity is an innate talent that cannot be developed or taught.',
+        evidence: 'Creativity involves skills that can be learned and improved through practice, training, and environmental factors. Creative thinking follows identifiable patterns.',
+        studies: 'Scott, Leritz & Mumford, 2004 - Meta-analysis of 70 creativity training studies showed significant positive effects.',
+        implications: 'Provide creativity training, allocate time for experimentation, tolerate productive failure, and create psychologically safe environments for idea sharing.'
+      },
+      {
+        id: 10,
+        topic: 'Work Hours',
+        myth: 'Working longer hours demonstrates commitment and leads to greater output.',
+        evidence: 'Productivity significantly drops after 50 hours/week. Working 70+ hours produces no more output than 55 hours. Long hours increase errors and health problems.',
+        studies: 'Pencavel, 2014 (Stanford); Virtanen et al., 2012 - Long working hours associated with 33% increased risk of stroke.',
+        implications: 'Focus on sustainable pace. Encourage boundaries, adequate rest, and measure results rather than hours. Model healthy work habits from leadership.'
+      }
+    ];
+
+    // Flip Card Component
+    const FlipCard = ({ card, onEdit, onDelete, isCustom }) => {
+      const [isFlipped, setIsFlipped] = useState(false);
+
+      return (
+        <div
+          className="perspective-1000 w-full h-96 cursor-pointer group"
+          onClick={() => setIsFlipped(!isFlipped)}
+        >
+          <div
+            className={`relative w-full h-full transition-transform duration-700 transform-style-3d ${
+              isFlipped ? 'rotate-y-180' : ''
+            }`}
+            style={{
+              transformStyle: 'preserve-3d',
+              transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+            }}
+          >
+            {/* Front - Myth */}
+            <div
+              className="absolute w-full h-full rounded-2xl p-6 flex flex-col"
+              style={{
+                backfaceVisibility: 'hidden',
+                background: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 100%)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs font-semibold rounded-full uppercase tracking-wider">
+                  Popular Myth
+                </span>
+                <span className="px-3 py-1 bg-gray-700/50 text-gray-300 text-xs font-medium rounded-full">
+                  {card.topic}
+                </span>
+              </div>
+
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <svg className="w-12 h-12 mx-auto mb-4 text-red-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-white text-lg font-medium leading-relaxed">
+                    "{card.myth}"
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center text-gray-500 text-sm">
+                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Click to reveal evidence
+              </div>
+            </div>
+
+            {/* Back - Evidence */}
+            <div
+              className="absolute w-full h-full rounded-2xl p-6 flex flex-col overflow-y-auto"
+              style={{
+                backfaceVisibility: 'hidden',
+                transform: 'rotateY(180deg)',
+                background: 'linear-gradient(145deg, #1a2e1a 0%, #163e21 100%)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-semibold rounded-full uppercase tracking-wider">
+                  Research Evidence
+                </span>
+                {isCustom && (
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => onEdit(card)}
+                      className="p-1.5 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => onDelete(card.id)}
+                      className="p-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 space-y-3">
+                <div>
+                  <h4 className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-1">Evidence</h4>
+                  <p className="text-gray-200 text-sm leading-relaxed">{card.evidence}</p>
+                </div>
+
+                <div>
+                  <h4 className="text-blue-400 text-xs font-semibold uppercase tracking-wider mb-1">Key Studies</h4>
+                  <p className="text-gray-300 text-xs leading-relaxed italic">{card.studies}</p>
+                </div>
+
+                <div>
+                  <h4 className="text-amber-400 text-xs font-semibold uppercase tracking-wider mb-1">Practical Implications</h4>
+                  <p className="text-gray-200 text-sm leading-relaxed">{card.implications}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center text-gray-500 text-sm mt-2">
+                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Click to see myth
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Card Form Modal
+    const CardFormModal = ({ isOpen, onClose, onSave, editCard }) => {
+      const [formData, setFormData] = useState(
+        editCard || {
+          topic: '',
+          myth: '',
+          evidence: '',
+          studies: '',
+          implications: ''
+        }
+      );
+
+      useEffect(() => {
+        if (editCard) {
+          setFormData(editCard);
+        } else {
+          setFormData({
+            topic: '',
+            myth: '',
+            evidence: '',
+            studies: '',
+            implications: ''
+          });
+        }
+      }, [editCard, isOpen]);
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData);
+        onClose();
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="w-full max-w-2xl rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+            style={{
+              background: 'linear-gradient(145deg, #1a1a2e 0%, #0f0f1a 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
+            }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">
+                {editCard ? 'Edit Flashcard' : 'Create New Flashcard'}
+              </h2>
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Topic</label>
+                <input
+                  type="text"
+                  value={formData.topic}
+                  onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                  placeholder="e.g., Open Offices, Remote Work"
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Popular Myth / Belief</label>
+                <textarea
+                  value={formData.myth}
+                  onChange={(e) => setFormData({ ...formData, myth: e.target.value })}
+                  placeholder="What do people commonly believe?"
+                  rows={3}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Research Evidence</label>
+                <textarea
+                  value={formData.evidence}
+                  onChange={(e) => setFormData({ ...formData, evidence: e.target.value })}
+                  placeholder="What does the research actually show?"
+                  rows={3}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Key Studies / Citations</label>
+                <textarea
+                  value={formData.studies}
+                  onChange={(e) => setFormData({ ...formData, studies: e.target.value })}
+                  placeholder="Author, Year - Brief description of findings"
+                  rows={2}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Practical Implications</label>
+                <textarea
+                  value={formData.implications}
+                  onChange={(e) => setFormData({ ...formData, implications: e.target.value })}
+                  placeholder="How should this evidence inform workplace practices?"
+                  rows={2}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 px-6 py-3 bg-gray-700 text-white rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25"
+                >
+                  {editCard ? 'Save Changes' : 'Create Card'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    // Share Modal
+    const ShareModal = ({ isOpen, onClose, card }) => {
+      const [copied, setCopied] = useState(false);
+
+      const shareText = card ? `
+MYTH VS EVIDENCE: ${card.topic}
+
+MYTH: "${card.myth}"
+
+EVIDENCE: ${card.evidence}
+
+STUDIES: ${card.studies}
+
+IMPLICATIONS: ${card.implications}
+
+---
+Created with Myth vs Evidence Flashcard Deck Builder
+`.trim() : '';
+
+      const copyToClipboard = () => {
+        navigator.clipboard.writeText(shareText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      if (!isOpen || !card) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="w-full max-w-lg rounded-2xl p-6"
+            style={{
+              background: 'linear-gradient(145deg, #1a1a2e 0%, #0f0f1a 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Share Card</h2>
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="bg-gray-800/50 rounded-xl p-4 mb-4 max-h-60 overflow-y-auto">
+              <pre className="text-gray-300 text-sm whitespace-pre-wrap font-mono">{shareText}</pre>
+            </div>
+
+            <button
+              onClick={copyToClipboard}
+              className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+            >
+              {copied ? (
+                <>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                  Copy to Clipboard
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // Main App Component
+    function MythVsEvidenceFlashcards() {
+      const [searchTerm, setSearchTerm] = useState('');
+      const [customCards, setCustomCards] = useState([]);
+      const [showLibrary, setShowLibrary] = useState(true);
+      const [isModalOpen, setIsModalOpen] = useState(false);
+      const [editCard, setEditCard] = useState(null);
+      const [shareCard, setShareCard] = useState(null);
+      const [selectedTopic, setSelectedTopic] = useState('all');
+
+      const allTopics = [...new Set([...mythLibrary.map(c => c.topic), ...customCards.map(c => c.topic)])];
+
+      const filteredCards = useCallback(() => {
+        let cards = showLibrary ? [...mythLibrary, ...customCards] : customCards;
+
+        if (selectedTopic !== 'all') {
+          cards = cards.filter(card => card.topic === selectedTopic);
+        }
+
+        if (searchTerm) {
+          const term = searchTerm.toLowerCase();
+          cards = cards.filter(card =>
+            card.topic.toLowerCase().includes(term) ||
+            card.myth.toLowerCase().includes(term) ||
+            card.evidence.toLowerCase().includes(term)
+          );
+        }
+
+        return cards;
+      }, [showLibrary, customCards, selectedTopic, searchTerm]);
+
+      const handleSaveCard = (formData) => {
+        if (editCard) {
+          setCustomCards(prev => prev.map(card =>
+            card.id === editCard.id ? { ...formData, id: card.id } : card
+          ));
+        } else {
+          setCustomCards(prev => [...prev, { ...formData, id: Date.now() }]);
+        }
+        setEditCard(null);
+      };
+
+      const handleEditCard = (card) => {
+        setEditCard(card);
+        setIsModalOpen(true);
+      };
+
+      const handleDeleteCard = (id) => {
+        setCustomCards(prev => prev.filter(card => card.id !== id));
+      };
+
+      const cards = filteredCards();
+
+      return (
+        <div
+          className="min-h-screen p-6 md:p-8"
+          style={{
+            background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%)',
+          }}
+        >
+          {/* Header */}
+          <div className="max-w-7xl mx-auto mb-8">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-3 mb-4">
+                <div className="p-3 bg-gradient-to-br from-red-500/20 to-green-500/20 rounded-xl border border-gray-700">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <h1 className="text-3xl md:text-4xl font-bold text-white">
+                    Myth vs Evidence
+                  </h1>
+                  <p className="text-gray-400 text-sm">Flashcard Deck Builder</p>
+                </div>
+              </div>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Challenge workplace assumptions with research-backed evidence. Flip cards to reveal what science actually says about common workplace beliefs.
+              </p>
+            </div>
+
+            {/* Controls */}
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                {/* Search */}
+                <div className="relative flex-1 md:flex-none md:w-64">
+                  <svg className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search topics..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  />
+                </div>
+
+                {/* Topic Filter */}
+                <select
+                  value={selectedTopic}
+                  onChange={(e) => setSelectedTopic(e.target.value)}
+                  className="px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                >
+                  <option value="all">All Topics</option>
+                  {allTopics.map(topic => (
+                    <option key={topic} value={topic}>{topic}</option>
+                  ))}
+                </select>
+
+                {/* Toggle Library */}
+                <button
+                  onClick={() => setShowLibrary(!showLibrary)}
+                  className={`px-4 py-2.5 rounded-xl font-medium transition-all ${
+                    showLibrary
+                      ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/50'
+                      : 'bg-gray-800/50 text-gray-400 border border-gray-700'
+                  }`}
+                >
+                  {showLibrary ? 'Hide Library' : 'Show Library'}
+                </button>
+              </div>
+
+              {/* Add Card Button */}
+              <button
+                onClick={() => {
+                  setEditCard(null);
+                  setIsModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Card
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-6 text-sm text-gray-500 mb-6">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-indigo-500"></span>
+                <span>{mythLibrary.length} Library Cards</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                <span>{customCards.length} Custom Cards</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                <span>{cards.length} Showing</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cards Grid */}
+          <div className="max-w-7xl mx-auto">
+            {cards.length === 0 ? (
+              <div className="text-center py-20">
+                <svg className="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 className="text-xl font-semibold text-gray-400 mb-2">No cards found</h3>
+                <p className="text-gray-500 mb-4">Try adjusting your filters or create a new card</p>
+                <button
+                  onClick={() => {
+                    setEditCard(null);
+                    setIsModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Your First Card
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {cards.map((card) => (
+                  <div key={card.id} className="relative group">
+                    <FlipCard
+                      card={card}
+                      onEdit={handleEditCard}
+                      onDelete={handleDeleteCard}
+                      isCustom={!mythLibrary.find(m => m.id === card.id)}
+                    />
+                    {/* Share Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShareCard(card);
+                      }}
+                      className="absolute top-4 right-4 p-2 bg-gray-800/80 text-gray-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:text-white hover:bg-gray-700/80 z-10"
+                      title="Share card"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Topic Buttons */}
+          <div className="max-w-7xl mx-auto mt-10">
+            <div className="text-center">
+              <p className="text-gray-500 text-sm mb-3">Quick search popular topics:</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {['Open Offices', 'Multitasking', 'Brainstorming', 'Remote Work', 'Meetings', 'Hiring'].map(topic => (
+                  <button
+                    key={topic}
+                    onClick={() => {
+                      setSearchTerm(topic);
+                      setSelectedTopic('all');
+                    }}
+                    className="px-4 py-2 bg-gray-800/30 hover:bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 text-gray-400 hover:text-white rounded-lg text-sm transition-all"
+                  >
+                    {topic}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="max-w-7xl mx-auto mt-12 text-center">
+            <p className="text-gray-600 text-sm">
+              Evidence-based decision making starts with challenging our assumptions.
+              Flip a card and discover what research really says.
+            </p>
+          </div>
+
+          {/* Modals */}
+          <CardFormModal
+            isOpen={isModalOpen}
+            onClose={() => {
+              setIsModalOpen(false);
+              setEditCard(null);
+            }}
+            onSave={handleSaveCard}
+            editCard={editCard}
+          />
+
+          <ShareModal
+            isOpen={!!shareCard}
+            onClose={() => setShareCard(null)}
+            card={shareCard}
+          />
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<MythVsEvidenceFlashcards />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Academic-to-Practitioner Brief Generator</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback } = React;
+
+    // Translation frameworks for academic-to-practitioner conversion
+    const TRANSLATION_FRAMEWORKS = {
+      keyFindings: {
+        name: "Key Findings Framework",
+        description: "Transform complex findings into accessible insights",
+        prompts: [
+          "What is the main discovery in simple terms?",
+          "What numbers or data support this finding?",
+          "How confident are the researchers in this result?",
+          "What surprised the researchers?"
+        ]
+      },
+      soWhat: {
+        name: "So What? Analysis",
+        description: "Connect research to real-world business impact",
+        prompts: [
+          "Why should a business leader care about this?",
+          "What decisions could this inform?",
+          "What's the potential ROI or cost of ignoring this?",
+          "Which stakeholders are most affected?"
+        ]
+      },
+      implementation: {
+        name: "Implementation Pathway",
+        description: "Convert insights into actionable steps",
+        prompts: [
+          "What's the first small step an organization could take?",
+          "What resources are needed?",
+          "What barriers might exist?",
+          "What does success look like?"
+        ]
+      },
+      limitations: {
+        name: "Context & Caveats",
+        description: "Ensure responsible application of findings",
+        prompts: [
+          "What populations or contexts were studied?",
+          "What conditions must exist for findings to apply?",
+          "What did the research NOT examine?",
+          "What alternative explanations exist?"
+        ]
+      }
+    };
+
+    // Sample templates for different research types
+    const RESEARCH_TEMPLATES = {
+      empirical: {
+        name: "Empirical Study",
+        sections: ["methodology", "sample", "findings", "effect_size", "limitations"]
+      },
+      metaAnalysis: {
+        name: "Meta-Analysis",
+        sections: ["studies_included", "overall_effect", "moderators", "heterogeneity"]
+      },
+      qualitative: {
+        name: "Qualitative Research",
+        sections: ["approach", "participants", "themes", "transferability"]
+      },
+      experimental: {
+        name: "Experimental/RCT",
+        sections: ["intervention", "control", "outcomes", "practical_significance"]
+      }
+    };
+
+    // Styles
+    const styles = {
+      container: {
+        minHeight: '100vh',
+        backgroundColor: '#0f1419',
+        color: '#e7e9ea',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        padding: '0',
+        margin: '0',
+      },
+      header: {
+        background: 'linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%)',
+        borderBottom: '1px solid #2f3336',
+        padding: '24px 40px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+      },
+      headerContent: {
+        maxWidth: '1400px',
+        margin: '0 auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      },
+      logo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+      },
+      logoIcon: {
+        width: '48px',
+        height: '48px',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '24px',
+      },
+      title: {
+        fontSize: '24px',
+        fontWeight: '700',
+        color: '#ffffff',
+        margin: 0,
+        letterSpacing: '-0.5px',
+      },
+      subtitle: {
+        fontSize: '14px',
+        color: '#8899a6',
+        margin: '4px 0 0 0',
+      },
+      main: {
+        maxWidth: '1400px',
+        margin: '0 auto',
+        padding: '40px',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '40px',
+      },
+      panel: {
+        backgroundColor: '#16202a',
+        borderRadius: '16px',
+        border: '1px solid #2f3336',
+        overflow: 'hidden',
+      },
+      panelHeader: {
+        padding: '20px 24px',
+        borderBottom: '1px solid #2f3336',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      },
+      panelTitle: {
+        fontSize: '16px',
+        fontWeight: '600',
+        color: '#ffffff',
+        margin: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+      },
+      panelBody: {
+        padding: '24px',
+      },
+      textarea: {
+        width: '100%',
+        minHeight: '200px',
+        backgroundColor: '#0f1419',
+        border: '1px solid #2f3336',
+        borderRadius: '12px',
+        padding: '16px',
+        color: '#e7e9ea',
+        fontSize: '14px',
+        lineHeight: '1.6',
+        fontFamily: 'inherit',
+        resize: 'vertical',
+        outline: 'none',
+        transition: 'border-color 0.2s ease',
+        boxSizing: 'border-box',
+      },
+      textareaFocused: {
+        borderColor: '#667eea',
+      },
+      label: {
+        display: 'block',
+        fontSize: '13px',
+        fontWeight: '500',
+        color: '#8899a6',
+        marginBottom: '8px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+      },
+      inputGroup: {
+        marginBottom: '20px',
+      },
+      input: {
+        width: '100%',
+        backgroundColor: '#0f1419',
+        border: '1px solid #2f3336',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        color: '#e7e9ea',
+        fontSize: '14px',
+        fontFamily: 'inherit',
+        outline: 'none',
+        boxSizing: 'border-box',
+      },
+      select: {
+        width: '100%',
+        backgroundColor: '#0f1419',
+        border: '1px solid #2f3336',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        color: '#e7e9ea',
+        fontSize: '14px',
+        fontFamily: 'inherit',
+        outline: 'none',
+        cursor: 'pointer',
+        boxSizing: 'border-box',
+      },
+      button: {
+        backgroundColor: '#667eea',
+        color: '#ffffff',
+        border: 'none',
+        borderRadius: '10px',
+        padding: '14px 28px',
+        fontSize: '15px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+      },
+      buttonHover: {
+        backgroundColor: '#5a6fd6',
+        transform: 'translateY(-1px)',
+      },
+      buttonSecondary: {
+        backgroundColor: 'transparent',
+        color: '#667eea',
+        border: '1px solid #667eea',
+        borderRadius: '8px',
+        padding: '10px 20px',
+        fontSize: '14px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      },
+      buttonGroup: {
+        display: 'flex',
+        gap: '12px',
+        marginTop: '20px',
+      },
+      outputSection: {
+        marginBottom: '32px',
+      },
+      sectionHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '16px',
+        paddingBottom: '12px',
+        borderBottom: '1px solid #2f3336',
+      },
+      sectionIcon: {
+        width: '36px',
+        height: '36px',
+        borderRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '18px',
+      },
+      sectionTitle: {
+        fontSize: '16px',
+        fontWeight: '600',
+        color: '#ffffff',
+        margin: 0,
+      },
+      sectionSubtitle: {
+        fontSize: '12px',
+        color: '#8899a6',
+        margin: '2px 0 0 0',
+      },
+      contentBox: {
+        backgroundColor: '#0f1419',
+        borderRadius: '10px',
+        padding: '16px',
+        border: '1px solid #2f3336',
+      },
+      contentText: {
+        fontSize: '14px',
+        lineHeight: '1.7',
+        color: '#d9d9d9',
+        margin: 0,
+        whiteSpace: 'pre-wrap',
+      },
+      bulletList: {
+        margin: '0',
+        paddingLeft: '20px',
+      },
+      bulletItem: {
+        fontSize: '14px',
+        lineHeight: '1.7',
+        color: '#d9d9d9',
+        marginBottom: '8px',
+      },
+      frameworkCard: {
+        backgroundColor: '#0f1419',
+        borderRadius: '10px',
+        padding: '16px',
+        border: '1px solid #2f3336',
+        marginBottom: '12px',
+      },
+      frameworkTitle: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#ffffff',
+        marginBottom: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+      },
+      frameworkPrompt: {
+        fontSize: '13px',
+        color: '#8899a6',
+        marginBottom: '4px',
+        paddingLeft: '20px',
+        position: 'relative',
+      },
+      tabs: {
+        display: 'flex',
+        gap: '4px',
+        backgroundColor: '#0f1419',
+        padding: '4px',
+        borderRadius: '10px',
+        marginBottom: '20px',
+      },
+      tab: {
+        flex: 1,
+        padding: '10px 16px',
+        backgroundColor: 'transparent',
+        border: 'none',
+        borderRadius: '8px',
+        color: '#8899a6',
+        fontSize: '13px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      },
+      tabActive: {
+        backgroundColor: '#16202a',
+        color: '#ffffff',
+      },
+      badge: {
+        backgroundColor: '#667eea',
+        color: '#ffffff',
+        fontSize: '11px',
+        fontWeight: '600',
+        padding: '4px 8px',
+        borderRadius: '12px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+      },
+      emptyState: {
+        textAlign: 'center',
+        padding: '60px 40px',
+        color: '#8899a6',
+      },
+      emptyIcon: {
+        fontSize: '48px',
+        marginBottom: '16px',
+        opacity: 0.5,
+      },
+      emptyText: {
+        fontSize: '15px',
+        lineHeight: '1.6',
+        maxWidth: '300px',
+        margin: '0 auto',
+      },
+      fullWidth: {
+        gridColumn: '1 / -1',
+      },
+      discussionQuestion: {
+        backgroundColor: '#1a1f2e',
+        borderLeft: '3px solid #667eea',
+        padding: '12px 16px',
+        marginBottom: '12px',
+        borderRadius: '0 8px 8px 0',
+        fontSize: '14px',
+        color: '#e7e9ea',
+        fontStyle: 'italic',
+      },
+      printButton: {
+        backgroundColor: 'transparent',
+        color: '#8899a6',
+        border: '1px solid #2f3336',
+        borderRadius: '8px',
+        padding: '8px 16px',
+        fontSize: '13px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+      },
+      metaInfo: {
+        display: 'flex',
+        gap: '20px',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+      },
+      metaItem: {
+        fontSize: '12px',
+        color: '#8899a6',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+      },
+    };
+
+    // Icon components
+    const Icons = {
+      Document: () => <span>{"\uD83D\uDCC4"}</span>,
+      Lightbulb: () => <span>{"\uD83D\uDCA1"}</span>,
+      Target: () => <span>{"\uD83C\uDFAF"}</span>,
+      Rocket: () => <span>{"\uD83D\uDE80"}</span>,
+      Warning: () => <span>{"\u26A0\uFE0F"}</span>,
+      Chat: () => <span>{"\uD83D\uDCAC"}</span>,
+      Download: () => <span>{"\u2B07\uFE0F"}</span>,
+      Copy: () => <span>{"\uD83D\uDCCB"}</span>,
+      Refresh: () => <span>{"\uD83D\uDD04"}</span>,
+      Book: () => <span>{"\uD83D\uDCDA"}</span>,
+      Check: () => <span>{"\u2713"}</span>,
+      Calendar: () => <span>{"\uD83D\uDCC5"}</span>,
+      Pencil: () => <span>{"\uD83D\uDCDD"}</span>,
+    };
+
+    // Main component
+    const AcademicBriefGenerator = () => {
+      const [activeTab, setActiveTab] = useState('input');
+      const [abstractText, setAbstractText] = useState('');
+      const [paperTitle, setPaperTitle] = useState('');
+      const [authors, setAuthors] = useState('');
+      const [researchType, setResearchType] = useState('empirical');
+      const [targetAudience, setTargetAudience] = useState('business');
+      const [generatedBrief, setGeneratedBrief] = useState(null);
+      const [isGenerating, setIsGenerating] = useState(false);
+      const [textareaFocused, setTextareaFocused] = useState(false);
+      const [buttonHover, setButtonHover] = useState(null);
+
+      // Generate the executive brief
+      const generateBrief = useCallback(() => {
+        if (!abstractText.trim()) return;
+
+        setIsGenerating(true);
+
+        // Simulate processing time
+        setTimeout(() => {
+          const brief = analyzePaper(abstractText, researchType, targetAudience);
+          setGeneratedBrief(brief);
+          setActiveTab('output');
+          setIsGenerating(false);
+        }, 1500);
+      }, [abstractText, researchType, targetAudience]);
+
+      // Analysis function to extract insights
+      const analyzePaper = (text, type, audience) => {
+        const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+        const words = text.toLowerCase().split(/\s+/);
+
+        // Extract potential findings (sentences with key indicators)
+        const findingIndicators = ['found', 'shows', 'demonstrates', 'reveals', 'indicates', 'suggests', 'results', 'significant', 'effect', 'impact', 'relationship', 'correlation', 'increase', 'decrease', 'improve'];
+        const findings = sentences.filter(s =>
+          findingIndicators.some(indicator => s.toLowerCase().includes(indicator))
+        ).slice(0, 4);
+
+        // Extract methodology hints
+        const methodIndicators = ['participants', 'sample', 'study', 'experiment', 'survey', 'interview', 'analysis', 'measure', 'data', 'method'];
+        const methodSentences = sentences.filter(s =>
+          methodIndicators.some(indicator => s.toLowerCase().includes(indicator))
+        );
+
+        // Extract limitation hints
+        const limitIndicators = ['however', 'although', 'limitation', 'future', 'further', 'caution', 'constraint', 'boundary'];
+        const limitations = sentences.filter(s =>
+          limitIndicators.some(indicator => s.toLowerCase().includes(indicator))
+        );
+
+        // Generate audience-specific implications
+        const audienceImplications = {
+          business: [
+            "Consider how these findings might inform talent strategy and workforce planning decisions.",
+            "Evaluate the potential ROI of implementing practices aligned with these research insights.",
+            "Assess how current organizational practices compare with evidence-based recommendations.",
+            "Identify quick wins versus longer-term strategic changes suggested by this research."
+          ],
+          hr: [
+            "Review existing HR policies through the lens of these research findings.",
+            "Consider piloting evidence-based interventions in specific teams or departments.",
+            "Develop metrics to track outcomes if implementing changes based on this research.",
+            "Engage stakeholders with data-driven conversations about people practices."
+          ],
+          leadership: [
+            "Reflect on how these findings might challenge or confirm current leadership assumptions.",
+            "Consider the cultural implications of adopting evidence-based approaches.",
+            "Identify opportunities to model research-informed decision-making.",
+            "Assess organizational readiness for implementing research-backed changes."
+          ]
+        };
+
+        // Generate discussion questions
+        const discussionQuestions = [
+          "How do these findings align with or challenge our current practices?",
+          "What would be the first small experiment we could run to test these ideas in our context?",
+          "What barriers might we face in applying these insights, and how could we address them?",
+          "Who else in our organization needs to understand this research?",
+          "How might our industry or organizational culture affect the applicability of these findings?"
+        ];
+
+        // Generate implementation ideas
+        const implementationIdeas = [
+          "Start with a pilot program in one team or department before scaling",
+          "Create a brief presentation to share key findings with leadership",
+          "Identify 2-3 existing processes that could be modified based on these insights",
+          "Establish baseline metrics before implementing any changes",
+          "Schedule quarterly reviews to assess impact of evidence-based changes"
+        ];
+
+        return {
+          title: paperTitle || "Research Brief",
+          authors: authors || "Author(s) not specified",
+          generatedDate: new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+          researchType: RESEARCH_TEMPLATES[type]?.name || "Research Study",
+          keyFindings: findings.length > 0 ? findings.map(f => f.trim()) : [
+            "The study examines important factors in the research domain.",
+            "Results suggest potential implications for practice.",
+            "Further analysis reveals nuanced relationships between variables."
+          ],
+          soWhat: audienceImplications[audience] || audienceImplications.business,
+          implementation: implementationIdeas,
+          limitations: limitations.length > 0 ? limitations.map(l => l.trim()) : [
+            "Consider the specific context and population studied when applying findings.",
+            "Results may vary based on organizational culture and industry factors.",
+            "Additional research may be needed to confirm applicability in your context."
+          ],
+          discussionQuestions: discussionQuestions,
+          wordCount: words.length,
+          methodology: methodSentences.length > 0 ? methodSentences[0].trim() : "Methodology details available in full paper."
+        };
+      };
+
+      // Copy to clipboard
+      const copyBrief = () => {
+        if (!generatedBrief) return;
+
+        const briefText = `
+EXECUTIVE RESEARCH BRIEF
+========================
+
+${generatedBrief.title}
+${generatedBrief.authors}
+Generated: ${generatedBrief.generatedDate}
+
+KEY FINDINGS (Plain Language)
+-----------------------------
+${generatedBrief.keyFindings.map((f, i) => `${i + 1}. ${f}`).join('\n')}
+
+"SO WHAT?" - IMPLICATIONS FOR LEADERS
+-------------------------------------
+${generatedBrief.soWhat.map((s, i) => `• ${s}`).join('\n')}
+
+PRACTICAL IMPLEMENTATION IDEAS
+------------------------------
+${generatedBrief.implementation.map((impl, i) => `${i + 1}. ${impl}`).join('\n')}
+
+LIMITATIONS & CAVEATS
+---------------------
+${generatedBrief.limitations.map((l, i) => `• ${l}`).join('\n')}
+
+DISCUSSION QUESTIONS FOR TEAMS
+------------------------------
+${generatedBrief.discussionQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+        `.trim();
+
+        navigator.clipboard.writeText(briefText);
+      };
+
+      // Reset form
+      const resetForm = () => {
+        setAbstractText('');
+        setPaperTitle('');
+        setAuthors('');
+        setResearchType('empirical');
+        setTargetAudience('business');
+        setGeneratedBrief(null);
+        setActiveTab('input');
+      };
+
+      return (
+        <div style={styles.container}>
+          {/* Header */}
+          <header style={styles.header}>
+            <div style={styles.headerContent}>
+              <div style={styles.logo}>
+                <div style={styles.logoIcon}>
+                  <Icons.Book />
+                </div>
+                <div>
+                  <h1 style={styles.title}>Academic-to-Practitioner Brief Generator</h1>
+                  <p style={styles.subtitle}>Bridge the gap between research and practice</p>
+                </div>
+              </div>
+              {generatedBrief && (
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    style={styles.printButton}
+                    onClick={copyBrief}
+                  >
+                    <Icons.Copy /> Copy Brief
+                  </button>
+                  <button
+                    style={styles.printButton}
+                    onClick={() => window.print()}
+                  >
+                    <Icons.Download /> Print / Save PDF
+                  </button>
+                </div>
+              )}
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <main style={styles.main}>
+            {/* Left Panel - Input */}
+            <div style={styles.panel}>
+              <div style={styles.panelHeader}>
+                <h2 style={styles.panelTitle}>
+                  <Icons.Document /> Research Input
+                </h2>
+                <span style={styles.badge}>Step 1</span>
+              </div>
+              <div style={styles.panelBody}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Paper Title</label>
+                  <input
+                    type="text"
+                    style={styles.input}
+                    placeholder="Enter the paper title..."
+                    value={paperTitle}
+                    onChange={(e) => setPaperTitle(e.target.value)}
+                  />
+                </div>
+
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Author(s)</label>
+                  <input
+                    type="text"
+                    style={styles.input}
+                    placeholder="e.g., Smith, J., & Johnson, M. (2024)"
+                    value={authors}
+                    onChange={(e) => setAuthors(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                  <div>
+                    <label style={styles.label}>Research Type</label>
+                    <select
+                      style={styles.select}
+                      value={researchType}
+                      onChange={(e) => setResearchType(e.target.value)}
+                    >
+                      {Object.entries(RESEARCH_TEMPLATES).map(([key, template]) => (
+                        <option key={key} value={key}>{template.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={styles.label}>Target Audience</label>
+                    <select
+                      style={styles.select}
+                      value={targetAudience}
+                      onChange={(e) => setTargetAudience(e.target.value)}
+                    >
+                      <option value="business">Business Leaders</option>
+                      <option value="hr">HR Professionals</option>
+                      <option value="leadership">Senior Leadership</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Abstract / Paper Summary</label>
+                  <textarea
+                    style={{
+                      ...styles.textarea,
+                      ...(textareaFocused ? styles.textareaFocused : {})
+                    }}
+                    placeholder="Paste the academic abstract or a summary of the paper's key findings here. Include methodology, results, and conclusions for best results..."
+                    value={abstractText}
+                    onChange={(e) => setAbstractText(e.target.value)}
+                    onFocus={() => setTextareaFocused(true)}
+                    onBlur={() => setTextareaFocused(false)}
+                  />
+                </div>
+
+                <div style={styles.buttonGroup}>
+                  <button
+                    style={{
+                      ...styles.button,
+                      ...(buttonHover === 'generate' ? styles.buttonHover : {}),
+                      opacity: !abstractText.trim() || isGenerating ? 0.5 : 1,
+                      cursor: !abstractText.trim() || isGenerating ? 'not-allowed' : 'pointer'
+                    }}
+                    onClick={generateBrief}
+                    disabled={!abstractText.trim() || isGenerating}
+                    onMouseEnter={() => setButtonHover('generate')}
+                    onMouseLeave={() => setButtonHover(null)}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Icons.Refresh /> Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Icons.Lightbulb /> Generate Brief
+                      </>
+                    )}
+                  </button>
+                  <button
+                    style={styles.buttonSecondary}
+                    onClick={resetForm}
+                  >
+                    <Icons.Refresh /> Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel - Output or Frameworks */}
+            <div style={styles.panel}>
+              <div style={styles.panelHeader}>
+                <h2 style={styles.panelTitle}>
+                  {generatedBrief ? <><Icons.Target /> Executive Brief</> : <><Icons.Book /> Translation Frameworks</>}
+                </h2>
+                {generatedBrief && <span style={styles.badge}>Generated</span>}
+              </div>
+              <div style={styles.panelBody}>
+                {!generatedBrief ? (
+                  // Show frameworks when no brief generated
+                  <>
+                    <p style={{ color: '#8899a6', fontSize: '14px', marginBottom: '20px', lineHeight: '1.6' }}>
+                      Use these frameworks to guide your thinking when translating academic research into practical insights:
+                    </p>
+                    {Object.entries(TRANSLATION_FRAMEWORKS).map(([key, framework]) => (
+                      <div key={key} style={styles.frameworkCard}>
+                        <div style={styles.frameworkTitle}>
+                          {key === 'keyFindings' && <Icons.Lightbulb />}
+                          {key === 'soWhat' && <Icons.Target />}
+                          {key === 'implementation' && <Icons.Rocket />}
+                          {key === 'limitations' && <Icons.Warning />}
+                          {framework.name}
+                        </div>
+                        <p style={{ fontSize: '12px', color: '#8899a6', marginBottom: '12px' }}>
+                          {framework.description}
+                        </p>
+                        {framework.prompts.map((prompt, i) => (
+                          <div key={i} style={styles.frameworkPrompt}>
+                            {"\u2022"} {prompt}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  // Show generated brief
+                  <div style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '8px' }}>
+                    <div style={styles.metaInfo}>
+                      <div style={styles.metaItem}>
+                        <Icons.Document /> {generatedBrief.researchType}
+                      </div>
+                      <div style={styles.metaItem}>
+                        <Icons.Calendar /> {generatedBrief.generatedDate}
+                      </div>
+                      <div style={styles.metaItem}>
+                        <Icons.Pencil /> {generatedBrief.wordCount} words analyzed
+                      </div>
+                    </div>
+
+                    {/* Key Findings */}
+                    <div style={styles.outputSection}>
+                      <div style={styles.sectionHeader}>
+                        <div style={{ ...styles.sectionIcon, backgroundColor: '#1a3a2f' }}>
+                          <Icons.Lightbulb />
+                        </div>
+                        <div>
+                          <h3 style={styles.sectionTitle}>Key Findings</h3>
+                          <p style={styles.sectionSubtitle}>Plain language summary</p>
+                        </div>
+                      </div>
+                      <div style={styles.contentBox}>
+                        <ul style={styles.bulletList}>
+                          {generatedBrief.keyFindings.map((finding, i) => (
+                            <li key={i} style={styles.bulletItem}>{finding}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* So What */}
+                    <div style={styles.outputSection}>
+                      <div style={styles.sectionHeader}>
+                        <div style={{ ...styles.sectionIcon, backgroundColor: '#2a2a3f' }}>
+                          <Icons.Target />
+                        </div>
+                        <div>
+                          <h3 style={styles.sectionTitle}>"So What?" Implications</h3>
+                          <p style={styles.sectionSubtitle}>Why leaders should care</p>
+                        </div>
+                      </div>
+                      <div style={styles.contentBox}>
+                        <ul style={styles.bulletList}>
+                          {generatedBrief.soWhat.map((item, i) => (
+                            <li key={i} style={styles.bulletItem}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Implementation */}
+                    <div style={styles.outputSection}>
+                      <div style={styles.sectionHeader}>
+                        <div style={{ ...styles.sectionIcon, backgroundColor: '#3a2a2f' }}>
+                          <Icons.Rocket />
+                        </div>
+                        <div>
+                          <h3 style={styles.sectionTitle}>Implementation Ideas</h3>
+                          <p style={styles.sectionSubtitle}>Practical next steps</p>
+                        </div>
+                      </div>
+                      <div style={styles.contentBox}>
+                        <ol style={{ ...styles.bulletList, listStyleType: 'decimal' }}>
+                          {generatedBrief.implementation.map((item, i) => (
+                            <li key={i} style={styles.bulletItem}>{item}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    </div>
+
+                    {/* Limitations */}
+                    <div style={styles.outputSection}>
+                      <div style={styles.sectionHeader}>
+                        <div style={{ ...styles.sectionIcon, backgroundColor: '#3f3a2a' }}>
+                          <Icons.Warning />
+                        </div>
+                        <div>
+                          <h3 style={styles.sectionTitle}>Limitations & Caveats</h3>
+                          <p style={styles.sectionSubtitle}>Important context</p>
+                        </div>
+                      </div>
+                      <div style={styles.contentBox}>
+                        <ul style={styles.bulletList}>
+                          {generatedBrief.limitations.map((item, i) => (
+                            <li key={i} style={styles.bulletItem}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Discussion Questions */}
+                    <div style={styles.outputSection}>
+                      <div style={styles.sectionHeader}>
+                        <div style={{ ...styles.sectionIcon, backgroundColor: '#2a3a3f' }}>
+                          <Icons.Chat />
+                        </div>
+                        <div>
+                          <h3 style={styles.sectionTitle}>Discussion Questions</h3>
+                          <p style={styles.sectionSubtitle}>For team conversations</p>
+                        </div>
+                      </div>
+                      {generatedBrief.discussionQuestions.map((question, i) => (
+                        <div key={i} style={styles.discussionQuestion}>
+                          {i + 1}. {question}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </main>
+
+          {/* Footer */}
+          <footer style={{
+            textAlign: 'center',
+            padding: '24px',
+            borderTop: '1px solid #2f3336',
+            color: '#8899a6',
+            fontSize: '13px'
+          }}>
+            <p style={{ margin: 0 }}>
+              Academic-to-Practitioner Brief Generator — Helping bridge the research-practice gap
+            </p>
+          </footer>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AcademicBriefGenerator />);
+  </script>
+</body>
+</html>

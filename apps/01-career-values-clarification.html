@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Career Values Clarification Tool</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const CareerValuesClarification = () => {
+      const [currentScreen, setCurrentScreen] = useState('intro');
+      const [currentScenario, setCurrentScenario] = useState(0);
+      const [responses, setResponses] = useState({});
+      const [showResults, setShowResults] = useState(false);
+
+      const valueDefinitions = {
+        achievement: {
+          name: 'Achievement',
+          description: 'Personal success through demonstrating competence according to social standards',
+          workImplications: 'You thrive in roles with clear metrics, performance feedback, and opportunities to excel. Look for positions with advancement paths and recognition systems.',
+          careers: ['Sales', 'Consulting', 'Entrepreneurship', 'Executive Leadership', 'Investment Banking'],
+          color: '#6366f1'
+        },
+        power: {
+          name: 'Power & Influence',
+          description: 'Social status, prestige, and control over people and resources',
+          workImplications: 'You\'re energized by leadership roles and decision-making authority. Seek positions with managerial responsibility and organizational impact.',
+          careers: ['Management', 'Politics', 'Law', 'Corporate Strategy', 'Venture Capital'],
+          color: '#8b5cf6'
+        },
+        security: {
+          name: 'Security & Stability',
+          description: 'Safety, harmony, and stability of society, relationships, and self',
+          workImplications: 'You value predictability and long-term planning. Prioritize organizations with stable financials, clear policies, and job security.',
+          careers: ['Government', 'Healthcare Administration', 'Accounting', 'Insurance', 'Utilities'],
+          color: '#06b6d4'
+        },
+        benevolence: {
+          name: 'Benevolence',
+          description: 'Preserving and enhancing the welfare of those with whom one is in frequent personal contact',
+          workImplications: 'You find meaning in helping others directly. Look for roles with client/patient contact and visible positive impact on individuals.',
+          careers: ['Healthcare', 'Education', 'Social Work', 'Counseling', 'Nonprofit Leadership'],
+          color: '#10b981'
+        },
+        universalism: {
+          name: 'Universalism',
+          description: 'Understanding, appreciation, tolerance, and protection for the welfare of all people and nature',
+          workImplications: 'You\'re motivated by broad social impact and ethical considerations. Seek mission-driven organizations working on systemic change.',
+          careers: ['Environmental Science', 'Public Policy', 'Human Rights', 'Research', 'International Development'],
+          color: '#14b8a6'
+        },
+        selfdirection: {
+          name: 'Self-Direction',
+          description: 'Independent thought and action—choosing, creating, exploring',
+          workImplications: 'You need autonomy and creative freedom. Avoid micromanagement; seek roles with flexibility in how you accomplish goals.',
+          careers: ['Research', 'Design', 'Writing', 'Entrepreneurship', 'Consulting'],
+          color: '#f59e0b'
+        },
+        stimulation: {
+          name: 'Stimulation',
+          description: 'Excitement, novelty, and challenge in life',
+          workImplications: 'You thrive on variety and new challenges. Look for roles with diverse projects, travel, or rapidly changing environments.',
+          careers: ['Journalism', 'Event Management', 'Startups', 'Emergency Services', 'Entertainment'],
+          color: '#ef4444'
+        },
+        hedonism: {
+          name: 'Work-Life Harmony',
+          description: 'Pleasure and sensuous gratification for oneself; enjoying life',
+          workImplications: 'You prioritize quality of life alongside career. Seek organizations with strong work-life balance, flexibility, and positive culture.',
+          careers: ['Remote Work Roles', 'Creative Industries', 'Tourism', 'Wellness', 'Flexible Consulting'],
+          color: '#ec4899'
+        },
+        tradition: {
+          name: 'Tradition & Conformity',
+          description: 'Respect, commitment, and acceptance of customs and ideas from culture or religion',
+          workImplications: 'You value established practices and institutional loyalty. Look for organizations with strong cultures and clear traditions.',
+          careers: ['Religious Organizations', 'Family Business', 'Traditional Professions', 'Military', 'Academia'],
+          color: '#78716c'
+        }
+      };
+
+      const scenarios = [
+        { id: 1, situation: "You're offered two positions at similar companies:",
+          optionA: { text: "Role A offers a clear path to VP within 3 years, with quarterly performance bonuses and public recognition for top performers.", values: { achievement: 3, power: 2 } },
+          optionB: { text: "Role B offers flexible hours, unlimited PTO, and a culture that emphasizes sustainable pace over rapid advancement.", values: { hedonism: 3, security: 1 } }
+        },
+        { id: 2, situation: "Your team is deciding on a new project direction:",
+          optionA: { text: "You advocate for the innovative but risky approach that could differentiate the company if it works.", values: { stimulation: 3, selfdirection: 2 } },
+          optionB: { text: "You advocate for the proven methodology that has worked reliably for similar projects.", values: { security: 3, tradition: 2 } }
+        },
+        { id: 3, situation: "You're considering two job offers:",
+          optionA: { text: "A leadership role at a growing company where you'd manage a team of 15 and shape department strategy.", values: { power: 3, achievement: 2 } },
+          optionB: { text: "A senior individual contributor role where you'd have complete autonomy over your projects and methods.", values: { selfdirection: 3, stimulation: 1 } }
+        },
+        { id: 4, situation: "When evaluating a potential employer, you prioritize:",
+          optionA: { text: "Their mission to address climate change, even though compensation is below market and the work is demanding.", values: { universalism: 3, benevolence: 1 } },
+          optionB: { text: "Competitive pay, excellent benefits, and a stable industry position, even if the work isn't particularly meaningful.", values: { security: 3, hedonism: 1 } }
+        },
+        { id: 5, situation: "In your ideal workday, you would:",
+          optionA: { text: "Spend most of your time mentoring junior colleagues and helping them grow in their careers.", values: { benevolence: 3, tradition: 1 } },
+          optionB: { text: "Spend most of your time on challenging problems that push your expertise to new levels.", values: { achievement: 2, stimulation: 3 } }
+        },
+        { id: 6, situation: "You're asked to lead a critical project. You prefer:",
+          optionA: { text: "A project with high visibility to executives that could fast-track your promotion if successful.", values: { achievement: 3, power: 2 } },
+          optionB: { text: "A project where you can experiment with new approaches and define success criteria yourself.", values: { selfdirection: 3, stimulation: 2 } }
+        },
+        { id: 7, situation: "When conflicts arise at work, you typically:",
+          optionA: { text: "Focus on finding a fair solution that considers everyone's needs, even if it takes longer.", values: { universalism: 2, benevolence: 3 } },
+          optionB: { text: "Push for a quick resolution that allows the team to move forward efficiently.", values: { achievement: 2, power: 2 } }
+        },
+        { id: 8, situation: "For your next career move, you'd prioritize:",
+          optionA: { text: "Joining a well-established company with predictable growth and comprehensive benefits.", values: { security: 3, tradition: 2 } },
+          optionB: { text: "Joining a startup with equity potential and the chance to build something from scratch.", values: { stimulation: 3, selfdirection: 2 } }
+        },
+        { id: 9, situation: "When you imagine career success, you see yourself:",
+          optionA: { text: "Running a team or organization, making strategic decisions that shape its direction.", values: { power: 3, achievement: 2 } },
+          optionB: { text: "Being recognized as a deep expert in your field, consulted for your specialized knowledge.", values: { achievement: 3, selfdirection: 2 } }
+        },
+        { id: 10, situation: "Your organization announces restructuring. You hope:",
+          optionA: { text: "Your role is preserved with minimal change to your responsibilities and team.", values: { security: 3, tradition: 2 } },
+          optionB: { text: "You're given a chance to take on a new challenge, even if it means learning new skills.", values: { stimulation: 3, selfdirection: 1 } }
+        },
+        { id: 11, situation: "When choosing between two projects:",
+          optionA: { text: "You choose the one that directly helps customers or improves people's lives.", values: { benevolence: 3, universalism: 2 } },
+          optionB: { text: "You choose the one that offers the best learning opportunity for your career growth.", values: { achievement: 2, selfdirection: 2 } }
+        },
+        { id: 12, situation: "Your ideal work environment features:",
+          optionA: { text: "A collaborative culture where decisions are made collectively and hierarchy is minimal.", values: { universalism: 2, benevolence: 2 } },
+          optionB: { text: "Clear structure, defined roles, and established processes that everyone follows.", values: { tradition: 3, security: 2 } }
+        }
+      ];
+
+      const handleResponse = (scenarioId, choice, values) => {
+        setResponses(prev => ({ ...prev, [scenarioId]: { choice, values } }));
+        if (currentScenario < scenarios.length - 1) {
+          setCurrentScenario(prev => prev + 1);
+        } else {
+          setShowResults(true);
+          setCurrentScreen('results');
+        }
+      };
+
+      const calculateResults = () => {
+        const valueScores = {};
+        Object.keys(valueDefinitions).forEach(key => { valueScores[key] = 0; });
+        Object.values(responses).forEach(response => {
+          Object.entries(response.values).forEach(([value, score]) => {
+            if (valueScores[value] !== undefined) valueScores[value] += score;
+          });
+        });
+        const maxPossible = scenarios.length * 3;
+        const normalizedScores = {};
+        Object.entries(valueScores).forEach(([value, score]) => {
+          normalizedScores[value] = Math.round((score / maxPossible) * 100);
+        });
+        return Object.entries(normalizedScores)
+          .sort((a, b) => b[1] - a[1])
+          .map(([key, score]) => ({ key, score, ...valueDefinitions[key] }));
+      };
+
+      const restartAssessment = () => {
+        setCurrentScreen('intro');
+        setCurrentScenario(0);
+        setResponses({});
+        setShowResults(false);
+      };
+
+      const progress = ((currentScenario + 1) / scenarios.length) * 100;
+
+      return (
+        <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#f8fafc', padding: '2rem' }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(99, 102, 241, 0.2)', padding: '0.5rem 1rem', borderRadius: '2rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>🎯</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#a5b4fc' }}>Based on Schwartz's Theory of Basic Values</span>
+              </div>
+              <h1 style={{ fontSize: '2.5rem', fontWeight: '700', margin: '0 0 0.5rem 0', background: 'linear-gradient(135deg, #f8fafc 0%, #c7d2fe 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Career Values Clarification</h1>
+              <p style={{ color: '#a5b4fc', margin: 0 }}>Discover what truly drives your career satisfaction</p>
+            </div>
+
+            {currentScreen === 'intro' && (
+              <div style={{ background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)', borderRadius: '1.5rem', padding: '3rem', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div style={{ display: 'grid', gap: '2rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: '#f8fafc' }}>Understanding Your Work Values</h2>
+                    <p style={{ color: '#c7d2fe', lineHeight: '1.7', margin: 0 }}>This assessment is grounded in Shalom Schwartz's cross-cultural research on human values and Donald Super's work values inventory. Research shows that alignment between personal values and job characteristics is one of the strongest predictors of career satisfaction and performance.</p>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    {[{ icon: '⏱️', label: '12 Scenarios', desc: 'Takes about 8-10 minutes' }, { icon: '🧠', label: 'Research-Based', desc: 'Validated framework' }, { icon: '📊', label: 'Personalized Report', desc: 'Actionable insights' }].map((item, i) => (
+                      <div key={i} style={{ background: 'rgba(99, 102, 241, 0.1)', borderRadius: '1rem', padding: '1.25rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{item.icon}</div>
+                        <div style={{ fontWeight: '600', color: '#f8fafc' }}>{item.label}</div>
+                        <div style={{ fontSize: '0.875rem', color: '#a5b4fc' }}>{item.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', borderRadius: '1rem', padding: '1.25rem', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <p style={{ margin: 0, color: '#6ee7b7', fontSize: '0.925rem', lineHeight: '1.6' }}><strong>How it works:</strong> You'll be presented with scenarios where you choose between two options. There are no right or wrong answers—each choice reveals what you naturally prioritize.</p>
+                  </div>
+                  <button onClick={() => setCurrentScreen('assessment')} style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', color: 'white', border: 'none', borderRadius: '1rem', padding: '1.25rem 2rem', fontSize: '1.125rem', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)' }}>Begin Assessment →</button>
+                </div>
+              </div>
+            )}
+
+            {currentScreen === 'assessment' && !showResults && (
+              <div>
+                <div style={{ background: 'rgba(255, 255, 255, 0.1)', borderRadius: '1rem', height: '8px', marginBottom: '1rem', overflow: 'hidden' }}>
+                  <div style={{ background: 'linear-gradient(90deg, #6366f1, #8b5cf6)', height: '100%', width: `${progress}%`, transition: 'width 0.3s ease', borderRadius: '1rem' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', color: '#a5b4fc', fontSize: '0.875rem' }}>
+                  <span>Scenario {currentScenario + 1} of {scenarios.length}</span>
+                  <span>{Math.round(progress)}% Complete</span>
+                </div>
+                <div style={{ background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)', borderRadius: '1.5rem', padding: '2.5rem', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '2rem', color: '#f8fafc', textAlign: 'center' }}>{scenarios[currentScenario].situation}</h2>
+                  <div style={{ display: 'grid', gap: '1rem' }}>
+                    {[{ key: 'A', option: scenarios[currentScenario].optionA }, { key: 'B', option: scenarios[currentScenario].optionB }].map(({ key, option }) => (
+                      <button key={key} onClick={() => handleResponse(scenarios[currentScenario].id, key, option.values)} style={{ background: 'rgba(99, 102, 241, 0.1)', border: '2px solid rgba(99, 102, 241, 0.3)', borderRadius: '1rem', padding: '1.5rem', cursor: 'pointer', textAlign: 'left', color: '#f8fafc', transition: 'all 0.2s ease' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                          <div style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', flexShrink: 0 }}>{key}</div>
+                          <p style={{ margin: 0, lineHeight: '1.6', fontSize: '1rem' }}>{option.text}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentScreen === 'results' && (
+              <div>
+                <div style={{ background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)', borderRadius: '1.5rem', padding: '2.5rem', border: '1px solid rgba(255, 255, 255, 0.1)', marginBottom: '1.5rem' }}>
+                  <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.5rem', textAlign: 'center', color: '#f8fafc' }}>Your Career Values Profile</h2>
+                  <p style={{ color: '#a5b4fc', textAlign: 'center', marginBottom: '2rem' }}>Based on your responses, here's what drives your career satisfaction</p>
+                  <div style={{ display: 'grid', gap: '1rem' }}>
+                    {calculateResults().map((value, index) => (
+                      <div key={value.key}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <span style={{ fontWeight: '600', color: index < 3 ? value.color : '#94a3b8' }}>{index < 3 && '★ '}{value.name}</span>
+                          <span style={{ color: '#a5b4fc', fontSize: '0.875rem' }}>{value.score}%</span>
+                        </div>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.5rem', height: '12px', overflow: 'hidden' }}>
+                          <div style={{ background: index < 3 ? `linear-gradient(90deg, ${value.color}, ${value.color}88)` : 'rgba(148, 163, 184, 0.5)', height: '100%', width: `${value.score}%`, borderRadius: '0.5rem' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: '1.5rem' }}>
+                  {calculateResults().slice(0, 3).map((value, index) => (
+                    <div key={value.key} style={{ background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)', borderRadius: '1.5rem', padding: '2rem', border: `2px solid ${value.color}40` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                        <div style={{ background: value.color, width: '48px', height: '48px', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: '700' }}>#{index + 1}</div>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', color: value.color }}>{value.name}</h3>
+                          <p style={{ margin: 0, color: '#a5b4fc', fontSize: '0.875rem' }}>{value.description}</p>
+                        </div>
+                      </div>
+                      <div style={{ background: 'rgba(0, 0, 0, 0.2)', borderRadius: '1rem', padding: '1.25rem', marginBottom: '1rem' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.875rem', fontWeight: '600', color: '#f8fafc' }}>💡 What This Means for You</h4>
+                        <p style={{ margin: 0, color: '#c7d2fe', lineHeight: '1.6' }}>{value.workImplications}</p>
+                      </div>
+                      <div>
+                        <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', fontWeight: '600', color: '#f8fafc' }}>🎯 Career Paths to Explore</h4>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          {value.careers.map((career, i) => (
+                            <span key={i} style={{ background: `${value.color}20`, color: value.color, padding: '0.375rem 0.875rem', borderRadius: '2rem', fontSize: '0.875rem', fontWeight: '500' }}>{career}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: 'rgba(16, 185, 129, 0.1)', borderRadius: '1.5rem', padding: '2rem', marginTop: '1.5rem', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#6ee7b7', fontSize: '1.125rem', fontWeight: '600' }}>📚 Research-Based Insights</h3>
+                  <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#a7f3d0', lineHeight: '1.8' }}>
+                    <li>Value alignment predicts job satisfaction more strongly than salary beyond a threshold</li>
+                    <li>Your top 3 values should be represented in your day-to-day work for sustained engagement</li>
+                    <li>Value conflicts can create career tension—self-awareness helps</li>
+                    <li>Values tend to be stable but can shift with major life events</li>
+                  </ul>
+                </div>
+                <button onClick={restartAssessment} style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#f8fafc', border: '2px solid rgba(255, 255, 255, 0.2)', borderRadius: '1rem', padding: '1rem 2rem', fontSize: '1rem', fontWeight: '600', cursor: 'pointer', width: '100%', marginTop: '1.5rem' }}>↺ Retake Assessment</button>
+              </div>
+            )}
+            <div style={{ textAlign: 'center', marginTop: '2rem', color: '#6366f1', fontSize: '0.75rem' }}>Framework: Schwartz's Theory of Basic Values + Super's Work Values Inventory</div>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<CareerValuesClarification />);
+  </script>
+</body>
+</html>

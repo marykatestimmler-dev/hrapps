@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Description Bias Auditor</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const JobDescriptionBiasAuditor = () => {
+      const [jobDescription, setJobDescription] = useState('');
+      const [analysis, setAnalysis] = useState(null);
+      const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+      // Research-based bias patterns
+      const biasPatterns = {
+        gendered: {
+          masculine: {
+            words: ['aggressive', 'ambitious', 'analytical', 'assertive', 'autonomous', 'boastful',
+              'champion', 'competitive', 'confident', 'decisive', 'determined', 'dominant',
+              'driven', 'fearless', 'fighter', 'force', 'head', 'headstrong', 'hierarchical',
+              'hostile', 'impulsive', 'independent', 'individual', 'lead', 'leader', 'logic',
+              'ninja', 'objective', 'opinion', 'outspoken', 'persist', 'principle', 'reckless',
+              'rock star', 'rockstar', 'self-confident', 'self-reliant', 'self-sufficient',
+              'stubborn', 'superior', 'unreasonable', 'dominate', 'crushing', 'killer'],
+            impact: 'Research shows masculine-coded language reduces women\'s perceived belongingness and interest in the role by up to 30%.',
+            color: '#3b82f6'
+          },
+          feminine: {
+            words: ['affectionate', 'caring', 'cheerful', 'collaborate', 'committed', 'communal',
+              'compassionate', 'connect', 'considerate', 'cooperative', 'dedicated', 'dependable',
+              'emotional', 'empathetic', 'enthusiastic', 'feel', 'flatterable', 'friendly',
+              'gentle', 'helpful', 'honest', 'interpersonal', 'interdependent', 'kind',
+              'kinship', 'loyal', 'modesty', 'nurture', 'pleasant', 'polite', 'quiet',
+              'responsible', 'sensitive', 'submissive', 'support', 'sympathetic', 'tender',
+              'together', 'trust', 'understand', 'warm', 'whine', 'yield'],
+            impact: 'While feminine-coded language is generally more inclusive, overuse can signal roles with less authority or growth potential.',
+            color: '#ec4899'
+          }
+        },
+        ageist: {
+          words: ['digital native', 'young', 'energetic', 'fresh', 'recent graduate',
+            'junior', 'entry-level enthusiast', 'fast-paced', 'high-energy environment',
+            'young team', 'startup culture', 'new grad', 'party', 'beer', 'ping pong',
+            'youthful', 'dynamic young'],
+          alternates: ['digital proficiency', 'motivated', 'innovative', 'early career',
+            'growth-oriented', 'agile environment', 'vibrant culture'],
+          impact: 'These terms may discourage experienced candidates and could expose the organization to age discrimination claims.',
+          color: '#f59e0b'
+        },
+        ableist: {
+          words: ['walk', 'run', 'stand', 'carry', 'lift', 'see', 'hear', 'speak clearly',
+            'able-bodied', 'clean-cut', 'normal', 'healthy', '20/20', 'physically fit',
+            'energetic personality'],
+          alternates: ['move', 'travel to', 'position', 'transport', 'handle', 'observe',
+            'perceive', 'communicate', 'professional appearance', 'standard'],
+          impact: 'Physical requirements should only be included if essential to the role, with reasonable accommodations noted.',
+          color: '#8b5cf6'
+        },
+        exclusionary: {
+          jargon: ['guru', 'wizard', 'ninja', 'rock star', 'unicorn', 'hacker', '10x engineer',
+            'superstar', 'world-class', 'best of the best', 'work hard play hard'],
+          unnecessaryRequirements: ['bachelor\'s degree required', 'must have degree',
+            '5+ years experience', '10+ years', 'ivy league', 'top-tier university',
+            'native speaker', 'mother tongue', 'perfect english'],
+          impact: 'Jargon and inflated requirements disproportionately discourage underrepresented candidates from applying.',
+          color: '#ef4444'
+        },
+        workLifeRed: {
+          words: ['24/7', 'round the clock', 'always on', 'work hard play hard', 'hustle',
+            'grind', 'whatever it takes', 'no work-life balance', 'fast-paced',
+            'high pressure', 'demanding environment', 'long hours', 'overtime expected',
+            'wear many hats', 'startup hours', 'nights and weekends'],
+          impact: 'These phrases disproportionately discourage caregivers and people with disabilities from applying.',
+          color: '#dc2626'
+        }
+      };
+
+      const analyzeText = () => {
+        if (!jobDescription.trim()) return;
+
+        setIsAnalyzing(true);
+
+        setTimeout(() => {
+          const text = jobDescription.toLowerCase();
+          const words = text.split(/\s+/);
+          const findings = {
+            masculine: [],
+            feminine: [],
+            ageist: [],
+            ableist: [],
+            jargon: [],
+            unnecessaryRequirements: [],
+            workLifeRed: []
+          };
+
+          // Check masculine words
+          biasPatterns.gendered.masculine.words.forEach(word => {
+            const regex = new RegExp(`\\b${word}\\b`, 'gi');
+            const matches = jobDescription.match(regex);
+            if (matches) {
+              findings.masculine.push({ word, count: matches.length });
+            }
+          });
+
+          // Check feminine words
+          biasPatterns.gendered.feminine.words.forEach(word => {
+            const regex = new RegExp(`\\b${word}\\b`, 'gi');
+            const matches = jobDescription.match(regex);
+            if (matches) {
+              findings.feminine.push({ word, count: matches.length });
+            }
+          });
+
+          // Check ageist
+          biasPatterns.ageist.words.forEach(word => {
+            if (text.includes(word.toLowerCase())) {
+              findings.ageist.push(word);
+            }
+          });
+
+          // Check ableist
+          biasPatterns.ableist.words.forEach(word => {
+            const regex = new RegExp(`\\b${word}\\b`, 'gi');
+            if (regex.test(jobDescription)) {
+              findings.ableist.push(word);
+            }
+          });
+
+          // Check jargon
+          biasPatterns.exclusionary.jargon.forEach(word => {
+            if (text.includes(word.toLowerCase())) {
+              findings.jargon.push(word);
+            }
+          });
+
+          // Check unnecessary requirements
+          biasPatterns.exclusionary.unnecessaryRequirements.forEach(req => {
+            if (text.includes(req.toLowerCase())) {
+              findings.unnecessaryRequirements.push(req);
+            }
+          });
+
+          // Check work-life red flags
+          biasPatterns.workLifeRed.words.forEach(word => {
+            if (text.includes(word.toLowerCase())) {
+              findings.workLifeRed.push(word);
+            }
+          });
+
+          // Calculate scores
+          const mascCount = findings.masculine.reduce((sum, m) => sum + m.count, 0);
+          const femCount = findings.feminine.reduce((sum, f) => sum + f.count, 0);
+          const genderBalance = mascCount === 0 && femCount === 0 ? 0 :
+            (mascCount - femCount) / (mascCount + femCount);
+
+          const totalIssues =
+            findings.ageist.length +
+            findings.ableist.length +
+            findings.jargon.length +
+            findings.unnecessaryRequirements.length +
+            findings.workLifeRed.length;
+
+          const overallScore = Math.max(0, 100 - (Math.abs(genderBalance) * 30) - (totalIssues * 8) - (mascCount > 5 ? 10 : 0));
+
+          setAnalysis({
+            findings,
+            scores: {
+              overall: Math.round(overallScore),
+              genderBalance,
+              mascCount,
+              femCount
+            },
+            wordCount: words.length
+          });
+          setIsAnalyzing(false);
+        }, 500);
+      };
+
+      const highlightText = () => {
+        if (!analysis) return jobDescription;
+
+        let highlighted = jobDescription;
+        const allPatterns = [
+          ...biasPatterns.gendered.masculine.words,
+          ...biasPatterns.gendered.feminine.words,
+          ...biasPatterns.ageist.words,
+          ...biasPatterns.ableist.words,
+          ...biasPatterns.exclusionary.jargon,
+          ...biasPatterns.exclusionary.unnecessaryRequirements,
+          ...biasPatterns.workLifeRed.words
+        ];
+
+        return highlighted;
+      };
+
+      const getScoreColor = (score) => {
+        if (score >= 80) return '#10b981';
+        if (score >= 60) return '#f59e0b';
+        return '#ef4444';
+      };
+
+      const getGenderLabel = (balance) => {
+        if (balance > 0.3) return 'Strongly Masculine-Coded';
+        if (balance > 0.1) return 'Moderately Masculine-Coded';
+        if (balance < -0.3) return 'Strongly Feminine-Coded';
+        if (balance < -0.1) return 'Moderately Feminine-Coded';
+        return 'Gender Neutral';
+      };
+
+      const sampleJD = `We're looking for a rockstar software engineer to join our fast-paced, high-energy team!
+
+The ideal candidate is a self-motivated ninja who can work independently and dominate in a competitive environment. Must be aggressive in pursuing solutions and confident in their abilities.
+
+Requirements:
+- Bachelor's degree required from a top-tier university
+- 5+ years of experience (recent graduates need not apply)
+- Must be a digital native comfortable with modern technologies
+- Able to work long hours and weekends when needed
+- Must be able to stand for extended periods and lift up to 25 pounds
+- Native English speaker with perfect communication skills
+
+We work hard and play hard! Our young, dynamic team enjoys ping pong, beer Fridays, and a startup culture where everyone wears many hats. If you have what it takes to crush it, apply now!`;
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: '#e0e7ff',
+          padding: '2rem'
+        }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(99, 102, 241, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                marginBottom: '1rem',
+                border: '1px solid rgba(99, 102, 241, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>{"\uD83D\uDD0D"}</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#818cf8' }}>
+                  Linguistic Bias Research
+                </span>
+              </div>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                margin: '0 0 0.5rem 0',
+                background: 'linear-gradient(135deg, #e0e7ff 0%, #818cf8 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Job Description Bias Auditor
+              </h1>
+              <p style={{ color: '#a5b4fc', margin: 0 }}>
+                Scan for gendered language, exclusionary jargon, and unnecessary requirements
+              </p>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: analysis ? '1fr 1fr' : '1fr',
+              gap: '1.5rem'
+            }}>
+              {/* Input Panel */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '1.5rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '1rem'
+                }}>
+                  <h2 style={{ margin: 0, color: '#e0e7ff', fontSize: '1.25rem' }}>
+                    {"\uD83D\uDCDD"} Job Description
+                  </h2>
+                  <button
+                    onClick={() => setJobDescription(sampleJD)}
+                    style={{
+                      background: 'rgba(99, 102, 241, 0.1)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      borderRadius: '0.5rem',
+                      padding: '0.5rem 0.75rem',
+                      color: '#818cf8',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: '500'
+                    }}
+                  >
+                    Load Sample (With Issues)
+                  </button>
+                </div>
+
+                <textarea
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste your job description here to analyze for potential bias..."
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1rem',
+                    color: '#e0e7ff',
+                    minHeight: '400px',
+                    resize: 'vertical',
+                    fontSize: '0.95rem',
+                    lineHeight: '1.6'
+                  }}
+                />
+
+                <button
+                  onClick={analyzeText}
+                  disabled={!jobDescription.trim() || isAnalyzing}
+                  style={{
+                    background: jobDescription.trim()
+                      ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                      : 'rgba(255, 255, 255, 0.1)',
+                    color: jobDescription.trim() ? 'white' : '#64748b',
+                    border: 'none',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    cursor: jobDescription.trim() ? 'pointer' : 'not-allowed',
+                    width: '100%',
+                    marginTop: '1rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze for Bias \u2192'}
+                </button>
+              </div>
+
+              {/* Results Panel */}
+              {analysis && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem'
+                }}>
+                  {/* Overall Score */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '1.5rem',
+                    padding: '1.5rem',
+                    border: `2px solid ${getScoreColor(analysis.scores.overall)}40`,
+                    textAlign: 'center'
+                  }}>
+                    <h3 style={{ margin: '0 0 1rem 0', color: '#e0e7ff', fontSize: '1.125rem' }}>
+                      Inclusivity Score
+                    </h3>
+                    <div style={{
+                      fontSize: '3.5rem',
+                      fontWeight: '700',
+                      color: getScoreColor(analysis.scores.overall)
+                    }}>
+                      {analysis.scores.overall}
+                    </div>
+                    <div style={{
+                      color: getScoreColor(analysis.scores.overall),
+                      fontWeight: '600',
+                      marginTop: '0.5rem'
+                    }}>
+                      {analysis.scores.overall >= 80 ? 'Good - Minor improvements possible' :
+                        analysis.scores.overall >= 60 ? 'Moderate - Several issues to address' :
+                          'Needs Work - Significant bias detected'}
+                    </div>
+                  </div>
+
+                  {/* Gender Coding */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '1rem',
+                    padding: '1.25rem',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <h4 style={{ margin: '0 0 0.75rem 0', color: '#e0e7ff', fontSize: '1rem' }}>
+                      {"\u2696\uFE0F"} Gender Coding Analysis
+                    </h4>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      marginBottom: '0.75rem'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: '0.25rem',
+                          fontSize: '0.75rem'
+                        }}>
+                          <span style={{ color: '#ec4899' }}>Feminine</span>
+                          <span style={{ color: '#3b82f6' }}>Masculine</span>
+                        </div>
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.5rem',
+                          height: '12px',
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            left: '50%',
+                            transform: `translateX(${analysis.scores.genderBalance * 50}%)`,
+                            width: '4px',
+                            height: '100%',
+                            background: analysis.scores.genderBalance > 0.1 ? '#3b82f6' :
+                              analysis.scores.genderBalance < -0.1 ? '#ec4899' : '#10b981',
+                            borderRadius: '2px'
+                          }} />
+                          <div style={{
+                            position: 'absolute',
+                            left: '50%',
+                            width: '2px',
+                            height: '100%',
+                            background: 'rgba(255, 255, 255, 0.3)'
+                          }} />
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{
+                      textAlign: 'center',
+                      color: analysis.scores.genderBalance > 0.1 ? '#3b82f6' :
+                        analysis.scores.genderBalance < -0.1 ? '#ec4899' : '#10b981',
+                      fontWeight: '600',
+                      fontSize: '0.875rem'
+                    }}>
+                      {getGenderLabel(analysis.scores.genderBalance)}
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      gap: '2rem',
+                      marginTop: '0.75rem',
+                      fontSize: '0.8rem',
+                      color: '#94a3b8'
+                    }}>
+                      <span>Feminine words: {analysis.scores.femCount}</span>
+                      <span>Masculine words: {analysis.scores.mascCount}</span>
+                    </div>
+                  </div>
+
+                  {/* Issues Found */}
+                  {analysis.findings.masculine.length > 0 && (
+                    <div style={{
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem',
+                      border: '1px solid rgba(59, 130, 246, 0.2)'
+                    }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#3b82f6', fontSize: '0.9rem' }}>
+                        {"\u2642\uFE0F"} Masculine-Coded Words ({analysis.findings.masculine.length})
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {analysis.findings.masculine.map((m, i) => (
+                          <span key={i} style={{
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            color: '#93c5fd',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.8rem'
+                          }}>
+                            {m.word} {m.count > 1 && `(\u00D7${m.count})`}
+                          </span>
+                        ))}
+                      </div>
+                      <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.8rem', color: '#93c5fd', lineHeight: '1.5' }}>
+                        {biasPatterns.gendered.masculine.impact}
+                      </p>
+                    </div>
+                  )}
+
+                  {analysis.findings.ageist.length > 0 && (
+                    <div style={{
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem',
+                      border: '1px solid rgba(245, 158, 11, 0.2)'
+                    }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#f59e0b', fontSize: '0.9rem' }}>
+                        {"\uD83D\uDC74"} Age-Related Concerns ({analysis.findings.ageist.length})
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {analysis.findings.ageist.map((word, i) => (
+                          <span key={i} style={{
+                            background: 'rgba(245, 158, 11, 0.2)',
+                            color: '#fcd34d',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.8rem'
+                          }}>
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                      <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.8rem', color: '#fcd34d', lineHeight: '1.5' }}>
+                        {biasPatterns.ageist.impact}
+                      </p>
+                    </div>
+                  )}
+
+                  {analysis.findings.ableist.length > 0 && (
+                    <div style={{
+                      background: 'rgba(139, 92, 246, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem',
+                      border: '1px solid rgba(139, 92, 246, 0.2)'
+                    }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', fontSize: '0.9rem' }}>
+                        {"\u267F"} Ability-Related Concerns ({analysis.findings.ableist.length})
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {analysis.findings.ableist.map((word, i) => (
+                          <span key={i} style={{
+                            background: 'rgba(139, 92, 246, 0.2)',
+                            color: '#c4b5fd',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.8rem'
+                          }}>
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                      <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.8rem', color: '#c4b5fd', lineHeight: '1.5' }}>
+                        {biasPatterns.ableist.impact}
+                      </p>
+                    </div>
+                  )}
+
+                  {analysis.findings.jargon.length > 0 && (
+                    <div style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem',
+                      border: '1px solid rgba(239, 68, 68, 0.2)'
+                    }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#ef4444', fontSize: '0.9rem' }}>
+                        {"\uD83D\uDEAB"} Exclusionary Jargon ({analysis.findings.jargon.length})
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {analysis.findings.jargon.map((word, i) => (
+                          <span key={i} style={{
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            color: '#fca5a5',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.8rem'
+                          }}>
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                      <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.8rem', color: '#fca5a5', lineHeight: '1.5' }}>
+                        {biasPatterns.exclusionary.impact}
+                      </p>
+                    </div>
+                  )}
+
+                  {analysis.findings.unnecessaryRequirements.length > 0 && (
+                    <div style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem',
+                      border: '1px solid rgba(239, 68, 68, 0.2)'
+                    }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#ef4444', fontSize: '0.9rem' }}>
+                        {"\uD83D\uDCCB"} Potentially Unnecessary Requirements ({analysis.findings.unnecessaryRequirements.length})
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {analysis.findings.unnecessaryRequirements.map((req, i) => (
+                          <span key={i} style={{
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            color: '#fca5a5',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.8rem'
+                          }}>
+                            {req}
+                          </span>
+                        ))}
+                      </div>
+                      <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.8rem', color: '#fca5a5', lineHeight: '1.5' }}>
+                        Consider if these requirements are truly essential. Research shows women and minorities are less likely to apply if they don't meet 100% of requirements.
+                      </p>
+                    </div>
+                  )}
+
+                  {analysis.findings.workLifeRed.length > 0 && (
+                    <div style={{
+                      background: 'rgba(220, 38, 38, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem',
+                      border: '1px solid rgba(220, 38, 38, 0.2)'
+                    }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#dc2626', fontSize: '0.9rem' }}>
+                        {"\u26A0\uFE0F"} Work-Life Red Flags ({analysis.findings.workLifeRed.length})
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {analysis.findings.workLifeRed.map((word, i) => (
+                          <span key={i} style={{
+                            background: 'rgba(220, 38, 38, 0.2)',
+                            color: '#fca5a5',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.8rem'
+                          }}>
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                      <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.8rem', color: '#fca5a5', lineHeight: '1.5' }}>
+                        {biasPatterns.workLifeRed.impact}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* No Issues Found */}
+                  {Object.values(analysis.findings).every(arr => arr.length === 0) && (
+                    <div style={{
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1.5rem',
+                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{"\u2728"}</div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>
+                        Looking Good!
+                      </h4>
+                      <p style={{ margin: 0, color: '#6ee7b7', fontSize: '0.9rem' }}>
+                        No major bias patterns detected. Your job description appears to use inclusive language.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Research Note */}
+            <div style={{
+              background: 'rgba(99, 102, 241, 0.1)',
+              borderRadius: '1.5rem',
+              padding: '1.5rem',
+              marginTop: '1.5rem',
+              border: '1px solid rgba(99, 102, 241, 0.2)'
+            }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: '#818cf8', fontSize: '1rem' }}>
+                {"\uD83D\uDCDA"} Research Foundation
+              </h3>
+              <ul style={{
+                margin: 0,
+                paddingLeft: '1.25rem',
+                color: '#c7d2fe',
+                lineHeight: '1.8',
+                fontSize: '0.9rem'
+              }}>
+                <li><strong>Gaucher, Friesen & Kay (2011):</strong> Found that masculine-coded job ads reduced women's perceived belongingness by up to 30%.</li>
+                <li><strong>Hewlett Packard internal study:</strong> Women apply to jobs when they meet 100% of requirements; men apply at 60%.</li>
+                <li><strong>Textio research:</strong> Job posts with gender-neutral language fill 14% faster and attract more diverse candidates.</li>
+                <li><strong>LinkedIn data:</strong> Women are 16% less likely to apply to a job after viewing it, partly due to language.</li>
+              </ul>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '2rem',
+              color: '#4338ca',
+              fontSize: '0.75rem'
+            }}>
+              Research: Gaucher, Friesen & Kay (2011) + Textio Linguistic Analysis
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<JobDescriptionBiasAuditor />);
+  </script>
+</body>
+</html>

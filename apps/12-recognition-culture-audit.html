@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recognition Culture Audit</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    * {
+      margin: 0;
+    }
+    body {
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    img, picture, video, canvas, svg {
+      display: block;
+      max-width: 100%;
+    }
+    input, button, textarea, select {
+      font: inherit;
+    }
+    p, h1, h2, h3, h4, h5, h6 {
+      overflow-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const RecognitionCultureAudit = () => {
+      const [currentSection, setCurrentSection] = useState(0);
+      const [answers, setAnswers] = useState({});
+      const [showResults, setShowResults] = useState(false);
+
+      const sections = [
+        {
+          id: 'autonomy',
+          title: 'Autonomy',
+          subtitle: 'Choice & Self-Direction',
+          icon: '\u25C7',
+          color: '#8B5CF6',
+          gradient: 'from-violet-600 to-purple-700',
+          questions: [
+            {
+              id: 'a1',
+              text: 'Employees have a voice in how they prefer to be recognized.',
+              dimension: 'autonomy'
+            },
+            {
+              id: 'a2',
+              text: 'Recognition practices respect individual preferences and styles.',
+              dimension: 'autonomy'
+            },
+            {
+              id: 'a3',
+              text: 'Team members can give recognition to peers without managerial approval.',
+              dimension: 'autonomy'
+            },
+            {
+              id: 'a4',
+              text: 'Employees feel ownership over their contributions and achievements.',
+              dimension: 'autonomy'
+            }
+          ]
+        },
+        {
+          id: 'competence',
+          title: 'Competence',
+          subtitle: 'Skill Development & Mastery',
+          icon: '\u25B3',
+          color: '#06B6D4',
+          gradient: 'from-cyan-600 to-teal-700',
+          questions: [
+            {
+              id: 'c1',
+              text: 'Recognition highlights specific skills and behaviors, not just outcomes.',
+              dimension: 'competence'
+            },
+            {
+              id: 'c2',
+              text: 'Feedback accompanying recognition helps employees grow professionally.',
+              dimension: 'competence'
+            },
+            {
+              id: 'c3',
+              text: 'Learning efforts and skill development are celebrated, not just results.',
+              dimension: 'competence'
+            },
+            {
+              id: 'c4',
+              text: 'Recognition reinforces progress toward mastery in role-relevant areas.',
+              dimension: 'competence'
+            }
+          ]
+        },
+        {
+          id: 'relatedness',
+          title: 'Relatedness',
+          subtitle: 'Connection & Belonging',
+          icon: '\u25CB',
+          color: '#F59E0B',
+          gradient: 'from-amber-500 to-orange-600',
+          questions: [
+            {
+              id: 'r1',
+              text: 'Recognition strengthens team bonds and collaborative relationships.',
+              dimension: 'relatedness'
+            },
+            {
+              id: 'r2',
+              text: 'Contributions to team success are acknowledged alongside individual wins.',
+              dimension: 'relatedness'
+            },
+            {
+              id: 'r3',
+              text: 'Recognition practices foster a sense of belonging and inclusion.',
+              dimension: 'relatedness'
+            },
+            {
+              id: 'r4',
+              text: 'Peer-to-peer recognition is common and culturally encouraged.',
+              dimension: 'relatedness'
+            }
+          ]
+        }
+      ];
+
+      const scaleOptions = [
+        { value: 1, label: 'Strongly Disagree' },
+        { value: 2, label: 'Disagree' },
+        { value: 3, label: 'Neutral' },
+        { value: 4, label: 'Agree' },
+        { value: 5, label: 'Strongly Agree' }
+      ];
+
+      const handleAnswer = (questionId, value) => {
+        setAnswers(prev => ({ ...prev, [questionId]: value }));
+      };
+
+      const calculateScores = () => {
+        const scores = {
+          autonomy: { total: 0, count: 0 },
+          competence: { total: 0, count: 0 },
+          relatedness: { total: 0, count: 0 }
+        };
+
+        sections.forEach(section => {
+          section.questions.forEach(q => {
+            if (answers[q.id]) {
+              scores[q.dimension].total += answers[q.id];
+              scores[q.dimension].count += 1;
+            }
+          });
+        });
+
+        return {
+          autonomy: scores.autonomy.count > 0 ? (scores.autonomy.total / scores.autonomy.count) * 20 : 0,
+          competence: scores.competence.count > 0 ? (scores.competence.total / scores.competence.count) * 20 : 0,
+          relatedness: scores.relatedness.count > 0 ? (scores.relatedness.total / scores.relatedness.count) * 20 : 0
+        };
+      };
+
+      const getOverallScore = (scores) => {
+        return Math.round((scores.autonomy + scores.competence + scores.relatedness) / 3);
+      };
+
+      const getProfile = (scores) => {
+        const overall = getOverallScore(scores);
+        if (overall >= 80) return { level: 'Thriving', color: '#10B981', description: 'Your recognition culture strongly supports intrinsic motivation' };
+        if (overall >= 60) return { level: 'Developing', color: '#F59E0B', description: 'Solid foundation with opportunities for enhancement' };
+        if (overall >= 40) return { level: 'Emerging', color: '#F97316', description: 'Recognition practices need strategic attention' };
+        return { level: 'At Risk', color: '#EF4444', description: 'Significant gaps in recognition culture alignment' };
+      };
+
+      const getRecommendations = (scores) => {
+        const recommendations = [];
+
+        if (scores.autonomy < 60) {
+          recommendations.push({
+            dimension: 'Autonomy',
+            icon: '\u25C7',
+            color: '#8B5CF6',
+            suggestions: [
+              'Implement recognition preference surveys to understand individual needs',
+              'Create multiple recognition channels (public, private, formal, informal)',
+              'Empower peer recognition without hierarchical gatekeeping',
+              'Allow employees to choose reward types when recognition includes tangible benefits'
+            ]
+          });
+        }
+
+        if (scores.competence < 60) {
+          recommendations.push({
+            dimension: 'Competence',
+            icon: '\u25B3',
+            color: '#06B6D4',
+            suggestions: [
+              'Train managers to provide specific, behavior-focused recognition',
+              'Celebrate learning milestones and skill acquisition, not just outcomes',
+              'Connect recognition to professional development opportunities',
+              'Implement recognition that highlights growth and progress over time'
+            ]
+          });
+        }
+
+        if (scores.relatedness < 60) {
+          recommendations.push({
+            dimension: 'Relatedness',
+            icon: '\u25CB',
+            color: '#F59E0B',
+            suggestions: [
+              'Create team-based recognition programs alongside individual awards',
+              'Facilitate peer recognition through accessible platforms',
+              'Recognize collaborative behaviors and helping others succeed',
+              'Ensure recognition practices are inclusive and culturally sensitive'
+            ]
+          });
+        }
+
+        if (recommendations.length === 0) {
+          recommendations.push({
+            dimension: 'Optimization',
+            icon: '\u2605',
+            color: '#10B981',
+            suggestions: [
+              'Continue monitoring and refining recognition practices',
+              'Share your successful approaches as a model for other teams',
+              'Explore advanced personalization of recognition experiences',
+              'Measure long-term impact on engagement and retention'
+            ]
+          });
+        }
+
+        return recommendations;
+      };
+
+      const allQuestionsAnswered = () => {
+        const totalQuestions = sections.reduce((acc, s) => acc + s.questions.length, 0);
+        return Object.keys(answers).length === totalQuestions;
+      };
+
+      const currentSectionQuestions = sections[currentSection]?.questions || [];
+      const sectionAnswered = currentSectionQuestions.every(q => answers[q.id]);
+
+      const scores = calculateScores();
+      const profile = getProfile(scores);
+      const recommendations = getRecommendations(scores);
+
+      if (showResults) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6">
+            <div className="max-w-4xl mx-auto">
+              {/* Header */}
+              <div className="text-center mb-10">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-full text-sm text-slate-400 mb-4">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                  Assessment Complete
+                </div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 via-cyan-400 to-amber-400 bg-clip-text text-transparent mb-3">
+                  Recognition Culture Profile
+                </h1>
+                <p className="text-slate-400">Based on Self-Determination Theory Framework</p>
+              </div>
+
+              {/* Overall Score Card */}
+              <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 rounded-2xl p-8 mb-8 border border-slate-700/50 backdrop-blur">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="text-center md:text-left">
+                    <p className="text-slate-400 text-sm uppercase tracking-wider mb-1">Overall Score</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-6xl font-bold" style={{ color: profile.color }}>
+                        {getOverallScore(scores)}
+                      </span>
+                      <span className="text-2xl text-slate-500">/100</span>
+                    </div>
+                    <div className="mt-2">
+                      <span
+                        className="inline-block px-3 py-1 rounded-full text-sm font-medium"
+                        style={{ backgroundColor: `${profile.color}20`, color: profile.color }}
+                      >
+                        {profile.level}
+                      </span>
+                    </div>
+                    <p className="text-slate-400 mt-3 max-w-md">{profile.description}</p>
+                  </div>
+
+                  {/* Score Visualization */}
+                  <div className="relative w-48 h-48">
+                    <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="#1e293b" strokeWidth="8" />
+                      <circle
+                        cx="50" cy="50" r="40" fill="none"
+                        stroke={profile.color} strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray={`${getOverallScore(scores) * 2.51} 251`}
+                        className="transition-all duration-1000"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <span className="text-3xl font-bold">{getOverallScore(scores)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dimension Scores */}
+              <div className="grid md:grid-cols-3 gap-4 mb-8">
+                {sections.map((section) => {
+                  const score = Math.round(scores[section.id]);
+                  return (
+                    <div
+                      key={section.id}
+                      className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50"
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <span
+                          className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                          style={{ backgroundColor: `${section.color}20`, color: section.color }}
+                        >
+                          {section.icon}
+                        </span>
+                        <div>
+                          <h3 className="font-semibold">{section.title}</h3>
+                          <p className="text-xs text-slate-400">{section.subtitle}</p>
+                        </div>
+                      </div>
+                      <div className="relative h-2 bg-slate-700 rounded-full overflow-hidden mb-2">
+                        <div
+                          className="absolute left-0 top-0 h-full rounded-full transition-all duration-1000"
+                          style={{ width: `${score}%`, backgroundColor: section.color }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Score</span>
+                        <span className="font-semibold" style={{ color: section.color }}>{score}/100</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Recommendations */}
+              <div className="bg-slate-800/50 rounded-2xl p-8 border border-slate-700/50 mb-8">
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                  <span className="w-10 h-10 bg-gradient-to-br from-violet-600 to-cyan-600 rounded-lg flex items-center justify-center">
+                    {'\u2726'}
+                  </span>
+                  Research-Based Recommendations
+                </h2>
+
+                <div className="space-y-6">
+                  {recommendations.map((rec, idx) => (
+                    <div key={idx} className="border-l-2 pl-6" style={{ borderColor: rec.color }}>
+                      <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                        <span style={{ color: rec.color }}>{rec.icon}</span>
+                        {rec.dimension}
+                      </h3>
+                      <ul className="space-y-2">
+                        {rec.suggestions.map((suggestion, sIdx) => (
+                          <li key={sIdx} className="flex items-start gap-3 text-slate-300">
+                            <span className="text-slate-500 mt-1">{'\u2192'}</span>
+                            {suggestion}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Research Attribution */}
+              <div className="bg-slate-800/30 rounded-xl p-6 border border-slate-700/30">
+                <h3 className="font-semibold text-slate-300 mb-3">Theoretical Foundation</h3>
+                <p className="text-slate-400 text-sm leading-relaxed mb-4">
+                  This assessment is based on Self-Determination Theory (SDT), developed by Edward L. Deci and Richard M. Ryan.
+                  SDT posits that intrinsic motivation and psychological well-being are fostered when three basic psychological
+                  needs are satisfied: autonomy, competence, and relatedness.
+                </p>
+                <div className="text-xs text-slate-500 space-y-1">
+                  <p>{'\u2022'} Deci, E. L., & Ryan, R. M. (2000). The "what" and "why" of goal pursuits: Human needs and the self-determination of behavior. Psychological Inquiry, 11(4), 227-268.</p>
+                  <p>{'\u2022'} Ryan, R. M., & Deci, E. L. (2017). Self-Determination Theory: Basic Psychological Needs in Motivation, Development, and Wellness. Guilford Press.</p>
+                  <p>{'\u2022'} Gagn\u00E9, M., & Deci, E. L. (2005). Self-determination theory and work motivation. Journal of Organizational Behavior, 26(4), 331-362.</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-center gap-4 mt-8">
+                <button
+                  onClick={() => {
+                    setShowResults(false);
+                    setAnswers({});
+                    setCurrentSection(0);
+                  }}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition-colors"
+                >
+                  Retake Assessment
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6">
+          <div className="max-w-3xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-full text-sm text-slate-400 mb-4">
+                <span className="w-2 h-2 bg-cyan-500 rounded-full"></span>
+                Self-Determination Theory Framework
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 via-cyan-400 to-amber-400 bg-clip-text text-transparent mb-3">
+                Recognition Culture Audit
+              </h1>
+              <p className="text-slate-400 max-w-xl mx-auto">
+                Evaluate how well your organization's recognition practices support the three core psychological needs
+                that drive intrinsic motivation.
+              </p>
+            </div>
+
+            {/* Progress */}
+            <div className="flex items-center justify-center gap-2 mb-8">
+              {sections.map((section, idx) => (
+                <React.Fragment key={section.id}>
+                  <button
+                    onClick={() => setCurrentSection(idx)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all ${
+                      idx === currentSection
+                        ? 'ring-2 ring-offset-2 ring-offset-slate-900'
+                        : ''
+                    } ${
+                      sections[idx].questions.every(q => answers[q.id])
+                        ? 'bg-gradient-to-br'
+                        : 'bg-slate-700'
+                    }`}
+                    style={
+                      sections[idx].questions.every(q => answers[q.id]) || idx === currentSection
+                        ? {
+                            backgroundColor: section.color,
+                            ringColor: idx === currentSection ? section.color : undefined
+                          }
+                        : {}
+                    }
+                  >
+                    {section.icon}
+                  </button>
+                  {idx < sections.length - 1 && (
+                    <div className={`w-12 h-1 rounded ${
+                      sections[idx].questions.every(q => answers[q.id]) ? 'bg-gradient-to-r' : 'bg-slate-700'
+                    }`}
+                    style={
+                      sections[idx].questions.every(q => answers[q.id])
+                        ? { backgroundImage: `linear-gradient(to right, ${sections[idx].color}, ${sections[idx + 1].color})` }
+                        : {}
+                    }
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Current Section */}
+            <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 backdrop-blur overflow-hidden">
+              {/* Section Header */}
+              <div
+                className="p-6 border-b border-slate-700/50"
+                style={{
+                  background: `linear-gradient(135deg, ${sections[currentSection].color}15, transparent)`
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <span
+                    className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
+                    style={{
+                      backgroundColor: `${sections[currentSection].color}20`,
+                      color: sections[currentSection].color
+                    }}
+                  >
+                    {sections[currentSection].icon}
+                  </span>
+                  <div>
+                    <h2 className="text-2xl font-bold">{sections[currentSection].title}</h2>
+                    <p className="text-slate-400">{sections[currentSection].subtitle}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Questions */}
+              <div className="p-6 space-y-6">
+                {currentSectionQuestions.map((question, qIdx) => (
+                  <div
+                    key={question.id}
+                    className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/30"
+                  >
+                    <p className="text-slate-200 mb-4 flex items-start gap-3">
+                      <span
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 mt-0.5"
+                        style={{
+                          backgroundColor: `${sections[currentSection].color}20`,
+                          color: sections[currentSection].color
+                        }}
+                      >
+                        {qIdx + 1}
+                      </span>
+                      {question.text}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {scaleOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => handleAnswer(question.id, option.value)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            answers[question.id] === option.value
+                              ? 'text-white shadow-lg'
+                              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                          }`}
+                          style={
+                            answers[question.id] === option.value
+                              ? { backgroundColor: sections[currentSection].color }
+                              : {}
+                          }
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Navigation */}
+              <div className="p-6 border-t border-slate-700/50 flex justify-between items-center">
+                <button
+                  onClick={() => setCurrentSection(prev => prev - 1)}
+                  disabled={currentSection === 0}
+                  className="px-5 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-slate-700 hover:bg-slate-600"
+                >
+                  {'\u2190'} Previous
+                </button>
+
+                <span className="text-slate-500 text-sm">
+                  Section {currentSection + 1} of {sections.length}
+                </span>
+
+                {currentSection === sections.length - 1 ? (
+                  <button
+                    onClick={() => setShowResults(true)}
+                    disabled={!allQuestionsAnswered()}
+                    className="px-5 py-2.5 rounded-lg font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 shadow-lg"
+                  >
+                    View Results {'\u2192'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setCurrentSection(prev => prev + 1)}
+                    disabled={!sectionAnswered}
+                    className="px-5 py-2.5 rounded-lg font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: sectionAnswered ? sections[currentSection].color : undefined,
+                      opacity: sectionAnswered ? 1 : 0.3
+                    }}
+                  >
+                    Next Section {'\u2192'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* SDT Info Card */}
+            <div className="mt-8 bg-slate-800/30 rounded-xl p-6 border border-slate-700/30">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-lg bg-slate-700/50 flex items-center justify-center text-slate-400 shrink-0">
+                  {'\u2139'}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-200 mb-2">About Self-Determination Theory</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed">
+                    Developed by psychologists Edward Deci and Richard Ryan, Self-Determination Theory (SDT) identifies
+                    three innate psychological needs{'\u2014'}autonomy, competence, and relatedness{'\u2014'}that, when satisfied,
+                    enhance motivation, performance, and well-being. Recognition practices aligned with SDT principles
+                    foster genuine engagement rather than mere compliance.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<RecognitionCultureAudit />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback Quality Coach</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback } = React;
+
+    // Research-based feedback quality criteria
+    const FEEDBACK_CRITERIA = {
+      specificity: {
+        name: 'Specificity',
+        description: 'Concrete examples vs. vague generalities',
+        weight: 0.25,
+        icon: '\uD83C\uDFAF',
+        goodIndicators: [
+          /\b(specifically|for example|such as|instance|when you|during the|in the meeting|on \w+ \d+)\b/gi,
+          /\b(project|task|presentation|report|email|call|meeting)\b/gi,
+          /\b\d+%|\$\d+|\d+ (times|hours|days|weeks)\b/gi,
+        ],
+        badIndicators: [
+          /\b(always|never|everything|nothing|all the time|constantly)\b/gi,
+          /\b(stuff|things|whatever|somehow|kind of|sort of)\b/gi,
+        ],
+      },
+      behaviorFocus: {
+        name: 'Behavior Focus',
+        description: 'Observable actions vs. personality judgments',
+        weight: 0.25,
+        icon: '\uD83D\uDC41\uFE0F',
+        goodIndicators: [
+          /\b(you (did|said|wrote|presented|completed|delivered|handled|managed|created))\b/gi,
+          /\b(your (work|approach|method|strategy|communication|presentation))\b/gi,
+          /\b(the way you|when you|how you)\b/gi,
+        ],
+        badIndicators: [
+          /\b(you are|you're) (lazy|smart|stupid|bad|good|terrible|amazing|incompetent|brilliant)\b/gi,
+          /\b(your (attitude|personality|character|nature))\b/gi,
+          /\b(you (seem|appear) to be)\b/gi,
+        ],
+      },
+      growthOrientation: {
+        name: 'Growth Orientation',
+        description: 'Development potential vs. fixed mindset language',
+        weight: 0.2,
+        icon: '\uD83C\uDF31',
+        goodIndicators: [
+          /\b(improve|develop|grow|learn|practice|build|strengthen|enhance|progress)\b/gi,
+          /\b(opportunity|potential|capable|can|could|might try|consider)\b/gi,
+          /\b(next time|going forward|in the future|moving forward)\b/gi,
+        ],
+        badIndicators: [
+          /\b(can't|cannot|won't|unable|incapable|hopeless|impossible)\b/gi,
+          /\b(you'll never|you always fail|you don't have what it takes)\b/gi,
+          /\b(born|natural|innate|just aren't)\b/gi,
+        ],
+      },
+      actionability: {
+        name: 'Actionability',
+        description: 'Clear next steps vs. abstract criticism',
+        weight: 0.2,
+        icon: '\u2705',
+        goodIndicators: [
+          /\b(try|consider|suggest|recommend|could|should|might want to)\b/gi,
+          /\b(step|action|goal|plan|strategy|approach|method)\b/gi,
+          /\b(by (doing|using|implementing|focusing|starting))\b/gi,
+        ],
+        badIndicators: [
+          /\b(just (be|do) better|figure it out|try harder)\b/gi,
+          /\b(need to improve|must change|have to fix)\b/gi,
+        ],
+      },
+      balance: {
+        name: 'Balance',
+        description: 'Constructive ratio of positive to improvement areas',
+        weight: 0.1,
+        icon: '\u2696\uFE0F',
+        positiveIndicators: [
+          /\b(great|excellent|good|well done|impressive|strong|effective|successful)\b/gi,
+          /\b(appreciate|thank|glad|pleased|happy|proud)\b/gi,
+          /\b(strength|success|achievement|accomplishment|highlight)\b/gi,
+        ],
+        constructiveIndicators: [
+          /\b(however|but|although|improve|better|consider|suggest|opportunity)\b/gi,
+          /\b(challenge|area|concern|issue|gap|need)\b/gi,
+        ],
+      },
+    };
+
+    // Example feedback for reference
+    const FEEDBACK_EXAMPLES = [
+      {
+        type: 'poor',
+        label: 'Vague & Judgmental',
+        text: "You're always so disorganized. Your work is sloppy and you need to do better. Try harder next time.",
+        issues: ['Personality judgment', 'No specific examples', 'Fixed mindset', 'No actionable steps'],
+      },
+      {
+        type: 'good',
+        label: 'Specific & Growth-Oriented',
+        text: "In the Q3 report you submitted on Tuesday, I noticed three calculations in section 2 that didn't match the source data. For future reports, consider using a verification checklist before submission. Your analysis insights were valuable - building this accuracy habit will make your work even more impactful.",
+        strengths: ['Specific example with details', 'Focuses on behavior', 'Suggests concrete action', 'Balanced with positive'],
+      },
+      {
+        type: 'poor',
+        label: 'Personality-Focused',
+        text: "You're not a team player. You have a bad attitude and people don't like working with you.",
+        issues: ['Labels personality', 'No specific behaviors cited', 'Demoralizing tone', 'No path forward'],
+      },
+      {
+        type: 'good',
+        label: 'Behavior-Focused',
+        text: "During yesterday's standup, when Alex shared their blocker, you continued working on your laptop instead of offering support. In our team, we value active listening and collaboration. Next time, could you try putting devices away during standups and asking if you can help when teammates mention challenges?",
+        strengths: ['Cites specific moment', 'Describes observable action', 'Explains impact', 'Offers clear alternative'],
+      },
+    ];
+
+    // Research citations
+    const RESEARCH_CITATIONS = [
+      {
+        author: 'Kluger & DeNisi',
+        year: 1996,
+        title: 'Effects of Feedback Intervention on Performance',
+        finding: 'Feedback focusing on task-specific behaviors improves performance more than feedback about the self.',
+      },
+      {
+        author: 'Dweck',
+        year: 2006,
+        title: 'Mindset: The New Psychology of Success',
+        finding: 'Growth-oriented feedback promotes learning and resilience compared to fixed-trait evaluations.',
+      },
+      {
+        author: 'Losada & Heaphy',
+        year: 2004,
+        title: 'The Role of Positivity in Business Team Performance',
+        finding: 'High-performing teams maintain approximately 3:1 ratio of positive to negative interactions.',
+      },
+      {
+        author: 'Stone & Heen',
+        year: 2014,
+        title: 'Thanks for the Feedback',
+        finding: 'Actionable feedback with specific behavioral suggestions is more likely to be accepted and implemented.',
+      },
+    ];
+
+    // Analyze feedback text
+    const analyzeFeedback = (text) => {
+      if (!text.trim()) return null;
+
+      const results = {};
+      let totalScore = 0;
+
+      // Analyze each criterion
+      Object.entries(FEEDBACK_CRITERIA).forEach(([key, criterion]) => {
+        let score = 50; // Base score
+        let goodMatches = [];
+        let badMatches = [];
+        let suggestions = [];
+
+        if (key === 'balance') {
+          // Special handling for balance
+          let positiveCount = 0;
+          let constructiveCount = 0;
+
+          criterion.positiveIndicators.forEach((pattern) => {
+            const matches = text.match(pattern) || [];
+            positiveCount += matches.length;
+            if (matches.length > 0) goodMatches.push(...matches.slice(0, 2));
+          });
+
+          criterion.constructiveIndicators.forEach((pattern) => {
+            const matches = text.match(pattern) || [];
+            constructiveCount += matches.length;
+          });
+
+          if (positiveCount === 0 && constructiveCount > 0) {
+            score = 30;
+            suggestions.push('Add positive observations to balance constructive feedback');
+          } else if (positiveCount > 0 && constructiveCount === 0) {
+            score = 60;
+            suggestions.push('Consider adding specific areas for growth');
+          } else if (positiveCount >= constructiveCount && constructiveCount > 0) {
+            score = 90;
+          } else if (positiveCount > 0) {
+            score = 70;
+            suggestions.push('Try to lead with strengths before areas for improvement');
+          } else {
+            score = 40;
+            suggestions.push('Include both recognition and growth opportunities');
+          }
+        } else {
+          // Standard criteria analysis
+          criterion.goodIndicators.forEach((pattern) => {
+            const matches = text.match(pattern) || [];
+            score += matches.length * 10;
+            if (matches.length > 0) goodMatches.push(...matches.slice(0, 3));
+          });
+
+          criterion.badIndicators.forEach((pattern) => {
+            const matches = text.match(pattern) || [];
+            score -= matches.length * 15;
+            if (matches.length > 0) badMatches.push(...matches.slice(0, 3));
+          });
+
+          // Generate suggestions based on issues found
+          if (key === 'specificity' && badMatches.length > 0) {
+            suggestions.push(`Replace "${badMatches[0]}" with a specific example or instance`);
+          }
+          if (key === 'specificity' && goodMatches.length === 0) {
+            suggestions.push('Add concrete examples with dates, names, or measurable outcomes');
+          }
+          if (key === 'behaviorFocus' && badMatches.length > 0) {
+            suggestions.push('Focus on what the person DID rather than who they ARE');
+          }
+          if (key === 'growthOrientation' && badMatches.length > 0) {
+            suggestions.push('Replace limiting language with growth possibilities');
+          }
+          if (key === 'actionability' && goodMatches.length === 0) {
+            suggestions.push('Add a specific suggestion for what to do differently');
+          }
+        }
+
+        // Clamp score
+        score = Math.max(0, Math.min(100, score));
+
+        results[key] = {
+          ...criterion,
+          score,
+          goodMatches: [...new Set(goodMatches)],
+          badMatches: [...new Set(badMatches)],
+          suggestions,
+        };
+
+        totalScore += score * criterion.weight;
+      });
+
+      return {
+        criteria: results,
+        overallScore: Math.round(totalScore),
+        wordCount: text.split(/\s+/).length,
+      };
+    };
+
+    // Score color helper
+    const getScoreColor = (score) => {
+      if (score >= 80) return '#10b981';
+      if (score >= 60) return '#f59e0b';
+      if (score >= 40) return '#f97316';
+      return '#ef4444';
+    };
+
+    // Score label helper
+    const getScoreLabel = (score) => {
+      if (score >= 80) return 'Excellent';
+      if (score >= 60) return 'Good';
+      if (score >= 40) return 'Needs Work';
+      return 'Poor';
+    };
+
+    // Main Component
+    function FeedbackQualityCoach() {
+      const [feedbackText, setFeedbackText] = useState('');
+      const [analysis, setAnalysis] = useState(null);
+      const [activeTab, setActiveTab] = useState('analyze');
+      const [showResearch, setShowResearch] = useState(false);
+
+      const handleAnalyze = useCallback(() => {
+        const result = analyzeFeedback(feedbackText);
+        setAnalysis(result);
+      }, [feedbackText]);
+
+      const handleClear = useCallback(() => {
+        setFeedbackText('');
+        setAnalysis(null);
+      }, []);
+
+      const loadExample = useCallback((text) => {
+        setFeedbackText(text);
+        setAnalysis(null);
+      }, []);
+
+      return (
+        <div style={styles.container}>
+          {/* Header */}
+          <header style={styles.header}>
+            <div style={styles.headerContent}>
+              <div style={styles.logoSection}>
+                <div style={styles.logoIcon}>{'\uD83D\uDCDD'}</div>
+                <div>
+                  <h1 style={styles.title}>Feedback Quality Coach</h1>
+                  <p style={styles.subtitle}>Research-backed analysis for more effective feedback</p>
+                </div>
+              </div>
+              <button
+                style={styles.researchButton}
+                onClick={() => setShowResearch(!showResearch)}
+              >
+                {showResearch ? 'Hide' : 'Show'} Research
+              </button>
+            </div>
+          </header>
+
+          {/* Research Panel */}
+          {showResearch && (
+            <div style={styles.researchPanel}>
+              <h3 style={styles.researchTitle}>Research Foundation</h3>
+              <div style={styles.citationsGrid}>
+                {RESEARCH_CITATIONS.map((citation, idx) => (
+                  <div key={idx} style={styles.citationCard}>
+                    <div style={styles.citationHeader}>
+                      {citation.author} ({citation.year})
+                    </div>
+                    <div style={styles.citationTitle}>{citation.title}</div>
+                    <div style={styles.citationFinding}>{citation.finding}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Main Content */}
+          <main style={styles.main}>
+            {/* Tab Navigation */}
+            <div style={styles.tabNav}>
+              <button
+                style={{
+                  ...styles.tab,
+                  ...(activeTab === 'analyze' ? styles.tabActive : {}),
+                }}
+                onClick={() => setActiveTab('analyze')}
+              >
+                Analyze Feedback
+              </button>
+              <button
+                style={{
+                  ...styles.tab,
+                  ...(activeTab === 'examples' ? styles.tabActive : {}),
+                }}
+                onClick={() => setActiveTab('examples')}
+              >
+                Examples Library
+              </button>
+            </div>
+
+            {activeTab === 'analyze' ? (
+              <div style={styles.analyzeSection}>
+                {/* Input Section */}
+                <div style={styles.inputSection}>
+                  <label style={styles.inputLabel}>
+                    Paste your feedback below for analysis
+                  </label>
+                  <textarea
+                    style={styles.textarea}
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    placeholder="Enter the feedback you want to analyze...&#10;&#10;Example: 'Your presentation yesterday was good but you need to be more confident.'"
+                    rows={8}
+                  />
+                  <div style={styles.inputActions}>
+                    <span style={styles.wordCount}>
+                      {feedbackText.split(/\s+/).filter(Boolean).length} words
+                    </span>
+                    <div style={styles.buttonGroup}>
+                      <button
+                        style={styles.secondaryButton}
+                        onClick={handleClear}
+                        disabled={!feedbackText}
+                      >
+                        Clear
+                      </button>
+                      <button
+                        style={{
+                          ...styles.primaryButton,
+                          ...(feedbackText.trim().length < 10 ? styles.buttonDisabled : {}),
+                        }}
+                        onClick={handleAnalyze}
+                        disabled={feedbackText.trim().length < 10}
+                      >
+                        Analyze Feedback
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Results Section */}
+                {analysis && (
+                  <div style={styles.resultsSection}>
+                    {/* Overall Score */}
+                    <div style={styles.overallScoreCard}>
+                      <div style={styles.scoreCircle}>
+                        <svg viewBox="0 0 100 100" style={styles.scoreSvg}>
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="45"
+                            fill="none"
+                            stroke="#374151"
+                            strokeWidth="8"
+                          />
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="45"
+                            fill="none"
+                            stroke={getScoreColor(analysis.overallScore)}
+                            strokeWidth="8"
+                            strokeLinecap="round"
+                            strokeDasharray={`${analysis.overallScore * 2.83} 283`}
+                            transform="rotate(-90 50 50)"
+                            style={{ transition: 'stroke-dasharray 0.5s ease' }}
+                          />
+                        </svg>
+                        <div style={styles.scoreValue}>
+                          <span style={{ color: getScoreColor(analysis.overallScore) }}>
+                            {analysis.overallScore}
+                          </span>
+                          <span style={styles.scoreLabel}>
+                            {getScoreLabel(analysis.overallScore)}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={styles.scoreDescription}>
+                        <h3 style={styles.scoreTitle}>Overall Quality Score</h3>
+                        <p style={styles.scoreExplainer}>
+                          Based on research-backed criteria for effective feedback delivery
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Criteria Breakdown */}
+                    <div style={styles.criteriaGrid}>
+                      {Object.entries(analysis.criteria).map(([key, criterion]) => (
+                        <div key={key} style={styles.criterionCard}>
+                          <div style={styles.criterionHeader}>
+                            <span style={styles.criterionIcon}>{criterion.icon}</span>
+                            <span style={styles.criterionName}>{criterion.name}</span>
+                            <span
+                              style={{
+                                ...styles.criterionScore,
+                                color: getScoreColor(criterion.score),
+                              }}
+                            >
+                              {criterion.score}%
+                            </span>
+                          </div>
+                          <div style={styles.criterionBar}>
+                            <div
+                              style={{
+                                ...styles.criterionBarFill,
+                                width: `${criterion.score}%`,
+                                backgroundColor: getScoreColor(criterion.score),
+                              }}
+                            />
+                          </div>
+                          <p style={styles.criterionDescription}>{criterion.description}</p>
+
+                          {criterion.goodMatches.length > 0 && (
+                            <div style={styles.matchesSection}>
+                              <span style={styles.matchesLabel}>Strengths found:</span>
+                              <div style={styles.matchTags}>
+                                {criterion.goodMatches.map((match, i) => (
+                                  <span key={i} style={styles.goodMatch}>
+                                    {match}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {criterion.badMatches.length > 0 && (
+                            <div style={styles.matchesSection}>
+                              <span style={styles.matchesLabel}>Issues found:</span>
+                              <div style={styles.matchTags}>
+                                {criterion.badMatches.map((match, i) => (
+                                  <span key={i} style={styles.badMatch}>
+                                    {match}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {criterion.suggestions.length > 0 && (
+                            <div style={styles.suggestionsSection}>
+                              {criterion.suggestions.map((suggestion, i) => (
+                                <div key={i} style={styles.suggestion}>
+                                  <span style={styles.suggestionIcon}>{'\uD83D\uDCA1'}</span>
+                                  {suggestion}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Examples Tab */
+              <div style={styles.examplesSection}>
+                <p style={styles.examplesIntro}>
+                  Compare ineffective feedback patterns with research-backed alternatives.
+                  Click any example to load it into the analyzer.
+                </p>
+                <div style={styles.examplesGrid}>
+                  {FEEDBACK_EXAMPLES.map((example, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        ...styles.exampleCard,
+                        ...(example.type === 'good' ? styles.goodExample : styles.poorExample),
+                      }}
+                      onClick={() => {
+                        loadExample(example.text);
+                        setActiveTab('analyze');
+                      }}
+                    >
+                      <div style={styles.exampleHeader}>
+                        <span
+                          style={{
+                            ...styles.exampleBadge,
+                            backgroundColor: example.type === 'good' ? '#065f46' : '#7f1d1d',
+                          }}
+                        >
+                          {example.type === 'good' ? '\u2713 Good' : '\u2717 Poor'}
+                        </span>
+                        <span style={styles.exampleLabel}>{example.label}</span>
+                      </div>
+                      <p style={styles.exampleText}>"{example.text}"</p>
+                      <div style={styles.exampleAnalysis}>
+                        {example.type === 'good' ? (
+                          <div style={styles.strengthsList}>
+                            <span style={styles.listTitle}>Strengths:</span>
+                            {example.strengths.map((s, i) => (
+                              <span key={i} style={styles.strengthItem}>
+                                {'\u2713'} {s}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={styles.issuesList}>
+                            <span style={styles.listTitle}>Issues:</span>
+                            {example.issues.map((issue, i) => (
+                              <span key={i} style={styles.issueItem}>
+                                {'\u2717'} {issue}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div style={styles.loadHint}>Click to analyze</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* Footer */}
+          <footer style={styles.footer}>
+            <p>
+              Built on research from organizational psychology and performance management.
+              Feedback quality directly impacts learning, motivation, and performance outcomes.
+            </p>
+          </footer>
+        </div>
+      );
+    }
+
+    // Styles
+    const styles = {
+      container: {
+        minHeight: '100vh',
+        backgroundColor: '#0f172a',
+        color: '#e2e8f0',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      },
+      header: {
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        borderBottom: '1px solid #334155',
+        padding: '24px 32px',
+      },
+      headerContent: {
+        maxWidth: '1200px',
+        margin: '0 auto',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      },
+      logoSection: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+      },
+      logoIcon: {
+        fontSize: '40px',
+        backgroundColor: '#1e40af',
+        padding: '12px',
+        borderRadius: '12px',
+      },
+      title: {
+        fontSize: '28px',
+        fontWeight: '700',
+        margin: 0,
+        background: 'linear-gradient(135deg, #60a5fa, #a78bfa)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+      },
+      subtitle: {
+        fontSize: '14px',
+        color: '#94a3b8',
+        margin: '4px 0 0 0',
+      },
+      researchButton: {
+        backgroundColor: '#334155',
+        color: '#e2e8f0',
+        border: 'none',
+        padding: '10px 20px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '500',
+        transition: 'all 0.2s',
+      },
+      researchPanel: {
+        backgroundColor: '#1e293b',
+        borderBottom: '1px solid #334155',
+        padding: '24px 32px',
+      },
+      researchTitle: {
+        fontSize: '18px',
+        fontWeight: '600',
+        marginBottom: '16px',
+        color: '#f1f5f9',
+      },
+      citationsGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '16px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+      },
+      citationCard: {
+        backgroundColor: '#0f172a',
+        padding: '16px',
+        borderRadius: '8px',
+        border: '1px solid #334155',
+      },
+      citationHeader: {
+        fontSize: '12px',
+        color: '#60a5fa',
+        fontWeight: '600',
+        marginBottom: '4px',
+      },
+      citationTitle: {
+        fontSize: '14px',
+        fontWeight: '500',
+        color: '#f1f5f9',
+        marginBottom: '8px',
+      },
+      citationFinding: {
+        fontSize: '13px',
+        color: '#94a3b8',
+        lineHeight: '1.5',
+      },
+      main: {
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '32px',
+      },
+      tabNav: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+      },
+      tab: {
+        backgroundColor: 'transparent',
+        color: '#94a3b8',
+        border: '1px solid #334155',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '500',
+        transition: 'all 0.2s',
+      },
+      tabActive: {
+        backgroundColor: '#3b82f6',
+        color: '#ffffff',
+        borderColor: '#3b82f6',
+      },
+      analyzeSection: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '32px',
+      },
+      inputSection: {
+        backgroundColor: '#1e293b',
+        borderRadius: '12px',
+        padding: '24px',
+        border: '1px solid #334155',
+      },
+      inputLabel: {
+        display: 'block',
+        fontSize: '14px',
+        fontWeight: '500',
+        marginBottom: '12px',
+        color: '#e2e8f0',
+      },
+      textarea: {
+        width: '100%',
+        padding: '16px',
+        borderRadius: '8px',
+        border: '1px solid #475569',
+        backgroundColor: '#0f172a',
+        color: '#e2e8f0',
+        fontSize: '15px',
+        lineHeight: '1.6',
+        resize: 'vertical',
+        minHeight: '160px',
+        fontFamily: 'inherit',
+        boxSizing: 'border-box',
+      },
+      inputActions: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: '16px',
+      },
+      wordCount: {
+        fontSize: '13px',
+        color: '#64748b',
+      },
+      buttonGroup: {
+        display: 'flex',
+        gap: '12px',
+      },
+      primaryButton: {
+        backgroundColor: '#3b82f6',
+        color: '#ffffff',
+        border: 'none',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '600',
+        transition: 'all 0.2s',
+      },
+      secondaryButton: {
+        backgroundColor: '#334155',
+        color: '#e2e8f0',
+        border: 'none',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '500',
+        transition: 'all 0.2s',
+      },
+      buttonDisabled: {
+        opacity: 0.5,
+        cursor: 'not-allowed',
+      },
+      resultsSection: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+      },
+      overallScoreCard: {
+        backgroundColor: '#1e293b',
+        borderRadius: '12px',
+        padding: '32px',
+        border: '1px solid #334155',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '32px',
+      },
+      scoreCircle: {
+        position: 'relative',
+        width: '140px',
+        height: '140px',
+        flexShrink: 0,
+      },
+      scoreSvg: {
+        width: '100%',
+        height: '100%',
+      },
+      scoreValue: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        fontSize: '36px',
+        fontWeight: '700',
+      },
+      scoreLabel: {
+        fontSize: '14px',
+        color: '#94a3b8',
+        fontWeight: '500',
+      },
+      scoreDescription: {
+        flex: 1,
+      },
+      scoreTitle: {
+        fontSize: '20px',
+        fontWeight: '600',
+        margin: '0 0 8px 0',
+        color: '#f1f5f9',
+      },
+      scoreExplainer: {
+        fontSize: '14px',
+        color: '#94a3b8',
+        margin: 0,
+        lineHeight: '1.5',
+      },
+      criteriaGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+        gap: '16px',
+      },
+      criterionCard: {
+        backgroundColor: '#1e293b',
+        borderRadius: '12px',
+        padding: '20px',
+        border: '1px solid #334155',
+      },
+      criterionHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        marginBottom: '12px',
+      },
+      criterionIcon: {
+        fontSize: '20px',
+      },
+      criterionName: {
+        fontSize: '16px',
+        fontWeight: '600',
+        color: '#f1f5f9',
+        flex: 1,
+      },
+      criterionScore: {
+        fontSize: '18px',
+        fontWeight: '700',
+      },
+      criterionBar: {
+        height: '6px',
+        backgroundColor: '#374151',
+        borderRadius: '3px',
+        overflow: 'hidden',
+        marginBottom: '12px',
+      },
+      criterionBarFill: {
+        height: '100%',
+        borderRadius: '3px',
+        transition: 'width 0.5s ease',
+      },
+      criterionDescription: {
+        fontSize: '13px',
+        color: '#94a3b8',
+        margin: '0 0 12px 0',
+      },
+      matchesSection: {
+        marginBottom: '10px',
+      },
+      matchesLabel: {
+        fontSize: '12px',
+        color: '#64748b',
+        display: 'block',
+        marginBottom: '6px',
+      },
+      matchTags: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '6px',
+      },
+      goodMatch: {
+        backgroundColor: '#065f46',
+        color: '#6ee7b7',
+        padding: '4px 10px',
+        borderRadius: '4px',
+        fontSize: '12px',
+      },
+      badMatch: {
+        backgroundColor: '#7f1d1d',
+        color: '#fca5a5',
+        padding: '4px 10px',
+        borderRadius: '4px',
+        fontSize: '12px',
+      },
+      suggestionsSection: {
+        marginTop: '12px',
+        paddingTop: '12px',
+        borderTop: '1px solid #334155',
+      },
+      suggestion: {
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '8px',
+        fontSize: '13px',
+        color: '#fbbf24',
+        marginBottom: '6px',
+        lineHeight: '1.4',
+      },
+      suggestionIcon: {
+        flexShrink: 0,
+      },
+      examplesSection: {
+        padding: '0',
+      },
+      examplesIntro: {
+        fontSize: '15px',
+        color: '#94a3b8',
+        marginBottom: '24px',
+        lineHeight: '1.6',
+      },
+      examplesGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gap: '20px',
+      },
+      exampleCard: {
+        borderRadius: '12px',
+        padding: '20px',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        border: '2px solid transparent',
+      },
+      goodExample: {
+        backgroundColor: '#064e3b',
+        borderColor: '#065f46',
+      },
+      poorExample: {
+        backgroundColor: '#450a0a',
+        borderColor: '#7f1d1d',
+      },
+      exampleHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '12px',
+      },
+      exampleBadge: {
+        padding: '4px 10px',
+        borderRadius: '4px',
+        fontSize: '12px',
+        fontWeight: '600',
+        color: '#ffffff',
+      },
+      exampleLabel: {
+        fontSize: '14px',
+        fontWeight: '500',
+        color: '#e2e8f0',
+      },
+      exampleText: {
+        fontSize: '14px',
+        color: '#cbd5e1',
+        lineHeight: '1.6',
+        margin: '0 0 16px 0',
+        fontStyle: 'italic',
+      },
+      exampleAnalysis: {
+        marginBottom: '12px',
+      },
+      listTitle: {
+        display: 'block',
+        fontSize: '12px',
+        fontWeight: '600',
+        color: '#94a3b8',
+        marginBottom: '8px',
+      },
+      strengthsList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+      },
+      strengthItem: {
+        fontSize: '13px',
+        color: '#6ee7b7',
+      },
+      issuesList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+      },
+      issueItem: {
+        fontSize: '13px',
+        color: '#fca5a5',
+      },
+      loadHint: {
+        fontSize: '12px',
+        color: '#64748b',
+        textAlign: 'center',
+        paddingTop: '12px',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+      },
+      footer: {
+        textAlign: 'center',
+        padding: '24px 32px',
+        borderTop: '1px solid #334155',
+        color: '#64748b',
+        fontSize: '13px',
+        lineHeight: '1.6',
+      },
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<FeedbackQualityCoach />);
+  </script>
+</body>
+</html>

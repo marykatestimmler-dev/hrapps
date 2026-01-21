@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Candidate Experience Pulse Survey Builder</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const CandidateExperienceSurveyBuilder = () => {
+      const [screen, setScreen] = useState('config');
+      const [surveyConfig, setSurveyConfig] = useState({
+        stage: 'post-interview',
+        outcome: 'all',
+        customBranding: '',
+        includeNPS: true
+      });
+      const [selectedDimensions, setSelectedDimensions] = useState([
+        'procedural-justice',
+        'informational-justice',
+        'communication',
+        'professionalism'
+      ]);
+      const [generatedSurvey, setGeneratedSurvey] = useState(null);
+
+      const stages = [
+        { value: 'post-application', label: 'Post-Application', desc: 'Immediately after applying' },
+        { value: 'post-screen', label: 'Post-Screening', desc: 'After phone/video screen' },
+        { value: 'post-interview', label: 'Post-Interview', desc: 'After onsite/final interviews' },
+        { value: 'post-offer', label: 'Post-Offer Decision', desc: 'After offer extended or rejected' },
+        { value: 'post-onboard', label: 'Post-Onboarding', desc: 'After first 30-90 days' }
+      ];
+
+      const outcomes = [
+        { value: 'all', label: 'All Candidates', desc: 'Send to everyone regardless of outcome' },
+        { value: 'advanced', label: 'Advanced Only', desc: 'Only candidates who moved forward' },
+        { value: 'rejected', label: 'Rejected Only', desc: 'Only candidates who didn\'t advance' },
+        { value: 'hired', label: 'Hired Only', desc: 'Only candidates who accepted offers' }
+      ];
+
+      // Based on organizational justice research (Gilliland, 1993; Bauer et al., 2001)
+      const dimensionCategories = {
+        'organizational-justice': {
+          name: 'Organizational Justice',
+          icon: '\u2696\uFE0F',
+          color: '#6366f1',
+          dimensions: [
+            {
+              id: 'procedural-justice',
+              name: 'Procedural Justice',
+              desc: 'Fairness of the selection process itself',
+              importance: 'Primary driver of candidate reactions'
+            },
+            {
+              id: 'distributive-justice',
+              name: 'Distributive Justice',
+              desc: 'Fairness of hiring outcomes',
+              importance: 'Affects acceptance decisions and employer brand'
+            },
+            {
+              id: 'informational-justice',
+              name: 'Informational Justice',
+              desc: 'Quality and timeliness of information provided',
+              importance: 'Reduces anxiety and builds trust'
+            },
+            {
+              id: 'interpersonal-justice',
+              name: 'Interpersonal Justice',
+              desc: 'Dignity and respect in interactions',
+              importance: 'Strongest predictor of recommendation likelihood'
+            }
+          ]
+        },
+        'process-quality': {
+          name: 'Process Quality',
+          icon: '\uD83D\uDCCB',
+          color: '#10b981',
+          dimensions: [
+            {
+              id: 'communication',
+              name: 'Communication',
+              desc: 'Clarity, responsiveness, and proactiveness',
+              importance: 'Top complaint when poor; differentiator when excellent'
+            },
+            {
+              id: 'efficiency',
+              name: 'Process Efficiency',
+              desc: 'Timeline, scheduling, and coordination',
+              importance: 'Affects candidate drop-off rates'
+            },
+            {
+              id: 'professionalism',
+              name: 'Professionalism',
+              desc: 'Preparation, organization, and follow-through',
+              importance: 'Reflects employer brand and culture'
+            },
+            {
+              id: 'transparency',
+              name: 'Transparency',
+              desc: 'Clarity about process, timeline, and expectations',
+              importance: 'Reduces uncertainty and anxiety'
+            }
+          ]
+        },
+        'experience-quality': {
+          name: 'Experience Quality',
+          icon: '\u2728',
+          color: '#f59e0b',
+          dimensions: [
+            {
+              id: 'job-relevance',
+              name: 'Job Relevance',
+              desc: 'Assessment methods relate to actual job',
+              importance: 'Validity signal and engagement driver'
+            },
+            {
+              id: 'opportunity-perform',
+              name: 'Opportunity to Perform',
+              desc: 'Chance to demonstrate qualifications',
+              importance: 'Affects perceived fairness'
+            },
+            {
+              id: 'recruiter-quality',
+              name: 'Recruiter Quality',
+              desc: 'Knowledge, helpfulness, and advocacy',
+              importance: 'Key touchpoint and brand ambassador'
+            },
+            {
+              id: 'interviewer-quality',
+              name: 'Interviewer Quality',
+              desc: 'Preparation, engagement, and professionalism',
+              importance: 'Major influence on candidate decision'
+            }
+          ]
+        }
+      };
+
+      // Validated survey items by dimension
+      const questionBank = {
+        'procedural-justice': [
+          {
+            question: "The hiring process was conducted in a consistent manner.",
+            type: 'likert',
+            construct: 'Consistency'
+          },
+          {
+            question: "I felt the evaluation criteria were applied fairly to all candidates.",
+            type: 'likert',
+            construct: 'Bias suppression'
+          },
+          {
+            question: "I had the opportunity to ask questions and express my views.",
+            type: 'likert',
+            construct: 'Voice'
+          },
+          {
+            question: "The assessments seemed relevant to the job I applied for.",
+            type: 'likert',
+            construct: 'Job relevance'
+          }
+        ],
+        'distributive-justice': [
+          {
+            question: "The outcome of my application was appropriate given my qualifications.",
+            type: 'likert',
+            construct: 'Equity'
+          },
+          {
+            question: "I understood why the hiring decision was made.",
+            type: 'likert',
+            construct: 'Justification'
+          },
+          {
+            question: "Candidates with similar qualifications seemed to receive similar treatment.",
+            type: 'likert',
+            construct: 'Equality'
+          }
+        ],
+        'informational-justice': [
+          {
+            question: "I was kept informed about where I stood in the process.",
+            type: 'likert',
+            construct: 'Status updates'
+          },
+          {
+            question: "The information provided about the role and company was accurate.",
+            type: 'likert',
+            construct: 'Accuracy'
+          },
+          {
+            question: "The timeline and next steps were clearly communicated.",
+            type: 'likert',
+            construct: 'Clarity'
+          },
+          {
+            question: "I received helpful feedback about my application or performance.",
+            type: 'likert',
+            construct: 'Feedback quality'
+          }
+        ],
+        'interpersonal-justice': [
+          {
+            question: "I was treated with dignity and respect throughout the process.",
+            type: 'likert',
+            construct: 'Respect'
+          },
+          {
+            question: "Everyone I interacted with was courteous and professional.",
+            type: 'likert',
+            construct: 'Courtesy'
+          },
+          {
+            question: "I felt my time was valued and respected.",
+            type: 'likert',
+            construct: 'Time respect'
+          }
+        ],
+        'communication': [
+          {
+            question: "Communication was timely\u2014I wasn't left wondering about my status.",
+            type: 'likert',
+            construct: 'Timeliness'
+          },
+          {
+            question: "The recruiter/hiring team was responsive to my questions.",
+            type: 'likert',
+            construct: 'Responsiveness'
+          },
+          {
+            question: "Communication was clear and easy to understand.",
+            type: 'likert',
+            construct: 'Clarity'
+          }
+        ],
+        'efficiency': [
+          {
+            question: "The hiring process moved at an appropriate pace.",
+            type: 'likert',
+            construct: 'Pace'
+          },
+          {
+            question: "Scheduling interviews and other steps was convenient.",
+            type: 'likert',
+            construct: 'Convenience'
+          },
+          {
+            question: "The overall process length was reasonable.",
+            type: 'likert',
+            construct: 'Duration'
+          }
+        ],
+        'professionalism': [
+          {
+            question: "Interviewers were prepared and knew my background.",
+            type: 'likert',
+            construct: 'Preparation'
+          },
+          {
+            question: "The company made a positive impression on me.",
+            type: 'likert',
+            construct: 'Impression'
+          },
+          {
+            question: "Commitments made during the process were kept.",
+            type: 'likert',
+            construct: 'Follow-through'
+          }
+        ],
+        'transparency': [
+          {
+            question: "The hiring process and timeline were clearly explained upfront.",
+            type: 'likert',
+            construct: 'Process clarity'
+          },
+          {
+            question: "I understood what qualities the company was looking for.",
+            type: 'likert',
+            construct: 'Criteria clarity'
+          },
+          {
+            question: "Compensation and benefits information was provided appropriately.",
+            type: 'likert',
+            construct: 'Comp transparency'
+          }
+        ],
+        'job-relevance': [
+          {
+            question: "The interview questions related to the actual job responsibilities.",
+            type: 'likert',
+            construct: 'Content validity'
+          },
+          {
+            question: "The assessments gave me a realistic preview of the work.",
+            type: 'likert',
+            construct: 'RJP'
+          }
+        ],
+        'opportunity-perform': [
+          {
+            question: "I had adequate opportunity to demonstrate my qualifications.",
+            type: 'likert',
+            construct: 'Demonstration'
+          },
+          {
+            question: "The interview format allowed me to show my strengths.",
+            type: 'likert',
+            construct: 'Format fairness'
+          }
+        ],
+        'recruiter-quality': [
+          {
+            question: "The recruiter was knowledgeable about the role and company.",
+            type: 'likert',
+            construct: 'Knowledge'
+          },
+          {
+            question: "The recruiter advocated for me throughout the process.",
+            type: 'likert',
+            construct: 'Advocacy'
+          }
+        ],
+        'interviewer-quality': [
+          {
+            question: "Interviewers were engaged and interested in our conversation.",
+            type: 'likert',
+            construct: 'Engagement'
+          },
+          {
+            question: "Interviewers gave me a good sense of what it's like to work there.",
+            type: 'likert',
+            construct: 'Culture preview'
+          }
+        ]
+      };
+
+      const outcomeQuestions = [
+        {
+          question: "How likely are you to recommend applying here to a friend?",
+          type: 'nps',
+          construct: 'Candidate NPS'
+        },
+        {
+          question: "Based on this experience, how likely are you to purchase from or use this company's products/services?",
+          type: 'likert',
+          construct: 'Consumer impact'
+        },
+        {
+          question: "Would you apply to this company again in the future?",
+          type: 'binary',
+          construct: 'Reapplication intent'
+        }
+      ];
+
+      const openEndedQuestions = [
+        {
+          question: "What was the best part of your experience with our hiring process?",
+          type: 'open',
+          construct: 'Positive highlights'
+        },
+        {
+          question: "What could we improve about our hiring process?",
+          type: 'open',
+          construct: 'Improvement opportunities'
+        },
+        {
+          question: "Is there anything else you'd like to share about your experience?",
+          type: 'open',
+          construct: 'Additional feedback'
+        }
+      ];
+
+      const toggleDimension = (id) => {
+        setSelectedDimensions(prev =>
+          prev.includes(id)
+            ? prev.filter(d => d !== id)
+            : [...prev, id]
+        );
+      };
+
+      const generateSurvey = () => {
+        const questions = [];
+
+        // Add dimension questions
+        selectedDimensions.forEach(dimId => {
+          const dimQuestions = questionBank[dimId] || [];
+          dimQuestions.forEach(q => {
+            questions.push({
+              ...q,
+              dimension: dimId
+            });
+          });
+        });
+
+        // Add outcome questions
+        if (surveyConfig.includeNPS) {
+          outcomeQuestions.forEach(q => {
+            questions.push({
+              ...q,
+              dimension: 'outcomes'
+            });
+          });
+        }
+
+        // Add open-ended
+        openEndedQuestions.forEach(q => {
+          questions.push({
+            ...q,
+            dimension: 'open-ended'
+          });
+        });
+
+        setGeneratedSurvey({
+          config: surveyConfig,
+          dimensions: selectedDimensions,
+          questions,
+          estimatedTime: Math.ceil(questions.length * 0.5)
+        });
+        setScreen('preview');
+      };
+
+      const getDimensionInfo = (dimId) => {
+        for (const cat of Object.values(dimensionCategories)) {
+          const found = cat.dimensions.find(d => d.id === dimId);
+          if (found) return { ...found, category: cat };
+        }
+        return null;
+      };
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: '#e0e7ff',
+          padding: '2rem'
+        }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(139, 92, 246, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                marginBottom: '1rem',
+                border: '1px solid rgba(139, 92, 246, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>{'\uD83D\uDCCA'}</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#a78bfa' }}>
+                  Organizational Justice Research
+                </span>
+              </div>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                margin: '0 0 0.5rem 0',
+                background: 'linear-gradient(135deg, #e0e7ff 0%, #a78bfa 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Candidate Experience Pulse Survey Builder
+              </h1>
+              <p style={{ color: '#a5b4fc', margin: 0 }}>
+                Validated survey items based on organizational justice research
+              </p>
+            </div>
+
+            {/* Config Screen */}
+            {screen === 'config' && (
+              <div>
+                {/* Survey Configuration */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h2 style={{ margin: '0 0 1.5rem 0', color: '#e0e7ff', fontSize: '1.25rem' }}>
+                    {'\u2699\uFE0F'} Survey Configuration
+                  </h2>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                    gap: '1.5rem'
+                  }}>
+                    <div>
+                      <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Survey Timing
+                      </label>
+                      <select
+                        value={surveyConfig.stage}
+                        onChange={(e) => setSurveyConfig({ ...surveyConfig, stage: e.target.value })}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e0e7ff'
+                        }}
+                      >
+                        {stages.map(s => (
+                          <option key={s.value} value={s.value}>{s.label} - {s.desc}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: '#a5b4fc', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Target Audience
+                      </label>
+                      <select
+                        value={surveyConfig.outcome}
+                        onChange={(e) => setSurveyConfig({ ...surveyConfig, outcome: e.target.value })}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e0e7ff'
+                        }}
+                      >
+                        {outcomes.map(o => (
+                          <option key={o.value} value={o.value}>{o.label} - {o.desc}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    marginTop: '1.5rem',
+                    padding: '1rem',
+                    background: 'rgba(139, 92, 246, 0.1)',
+                    borderRadius: '0.75rem'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={surveyConfig.includeNPS}
+                      onChange={(e) => setSurveyConfig({ ...surveyConfig, includeNPS: e.target.checked })}
+                      style={{ width: '20px', height: '20px', accentColor: '#8b5cf6' }}
+                    />
+                    <div>
+                      <label style={{ color: '#e0e7ff', fontWeight: '500' }}>
+                        Include Candidate NPS
+                      </label>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#a5b4fc' }}>
+                        "How likely are you to recommend applying here to a friend?" (0-10 scale)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dimension Selection */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <h2 style={{ margin: 0, color: '#e0e7ff', fontSize: '1.25rem' }}>
+                      {'\uD83D\uDCCB'} Select Measurement Dimensions
+                    </h2>
+                    <span style={{
+                      background: 'rgba(139, 92, 246, 0.2)',
+                      color: '#a78bfa',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '1rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '600'
+                    }}>
+                      {selectedDimensions.length} selected
+                    </span>
+                  </div>
+
+                  {Object.entries(dimensionCategories).map(([catKey, cat]) => (
+                    <div key={catKey} style={{ marginBottom: '1.5rem' }}>
+                      <h3 style={{
+                        margin: '0 0 0.75rem 0',
+                        color: cat.color,
+                        fontSize: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <span>{cat.icon}</span> {cat.name}
+                      </h3>
+
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                        gap: '0.75rem'
+                      }}>
+                        {cat.dimensions.map(dim => (
+                          <button
+                            key={dim.id}
+                            onClick={() => toggleDimension(dim.id)}
+                            style={{
+                              background: selectedDimensions.includes(dim.id)
+                                ? `${cat.color}20`
+                                : 'rgba(255, 255, 255, 0.03)',
+                              border: `2px solid ${selectedDimensions.includes(dim.id) ? cat.color : 'rgba(255, 255, 255, 0.1)'}`,
+                              borderRadius: '0.75rem',
+                              padding: '1rem',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              marginBottom: '0.25rem'
+                            }}>
+                              <span style={{
+                                fontWeight: '600',
+                                color: selectedDimensions.includes(dim.id) ? cat.color : '#e0e7ff',
+                                fontSize: '0.9rem'
+                              }}>
+                                {dim.name}
+                              </span>
+                              {selectedDimensions.includes(dim.id) && (
+                                <span style={{ color: cat.color }}>{'\u2713'}</span>
+                              )}
+                            </div>
+                            <p style={{
+                              margin: '0 0 0.5rem 0',
+                              fontSize: '0.75rem',
+                              color: '#94a3b8'
+                            }}>
+                              {dim.desc}
+                            </p>
+                            <p style={{
+                              margin: 0,
+                              fontSize: '0.7rem',
+                              color: '#64748b',
+                              fontStyle: 'italic'
+                            }}>
+                              {'\uD83D\uDCDA'} {dim.importance}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={generateSurvey}
+                  disabled={selectedDimensions.length < 2}
+                  style={{
+                    background: selectedDimensions.length >= 2
+                      ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)'
+                      : 'rgba(255, 255, 255, 0.1)',
+                    color: selectedDimensions.length >= 2 ? 'white' : '#64748b',
+                    border: 'none',
+                    borderRadius: '1rem',
+                    padding: '1.25rem 2rem',
+                    fontSize: '1.125rem',
+                    fontWeight: '700',
+                    cursor: selectedDimensions.length >= 2 ? 'pointer' : 'not-allowed',
+                    width: '100%',
+                    marginTop: '1.5rem'
+                  }}
+                >
+                  Generate Survey {'\u2192'}
+                </button>
+              </div>
+            )}
+
+            {/* Preview Screen */}
+            {screen === 'preview' && generatedSurvey && (
+              <div>
+                {/* Survey Header */}
+                <div style={{
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(139, 92, 246, 0.2)',
+                  marginBottom: '1.5rem',
+                  textAlign: 'center'
+                }}>
+                  <h2 style={{ margin: '0 0 0.5rem 0', color: '#a78bfa', fontSize: '1.25rem' }}>
+                    {'\uD83D\uDCCB'} Candidate Experience Survey
+                  </h2>
+                  <p style={{ color: '#c4b5fd', margin: '0 0 0.5rem 0' }}>
+                    {stages.find(s => s.value === generatedSurvey.config.stage)?.label}
+                  </p>
+                  <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.875rem' }}>
+                    {generatedSurvey.questions.length} questions {'\u2022'} ~{generatedSurvey.estimatedTime} minutes
+                  </p>
+                </div>
+
+                {/* Survey Preview */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '2rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <div style={{
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    borderRadius: '1rem',
+                    padding: '1.5rem',
+                    marginBottom: '2rem'
+                  }}>
+                    <p style={{ color: '#e0e7ff', lineHeight: '1.7', margin: 0 }}>
+                      Thank you for taking the time to share your feedback about our hiring process.
+                      Your responses are confidential and will help us improve the experience for future candidates.
+                      This survey should take approximately {generatedSurvey.estimatedTime} minutes to complete.
+                    </p>
+                  </div>
+
+                  {/* Group by dimension */}
+                  {selectedDimensions.map(dimId => {
+                    const dimInfo = getDimensionInfo(dimId);
+                    const dimQuestions = generatedSurvey.questions.filter(q => q.dimension === dimId);
+
+                    return (
+                      <div key={dimId} style={{ marginBottom: '2rem' }}>
+                        <h3 style={{
+                          margin: '0 0 1rem 0',
+                          color: dimInfo?.category?.color || '#e0e7ff',
+                          fontSize: '1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}>
+                          <span>{dimInfo?.category?.icon}</span> {dimInfo?.name}
+                        </h3>
+
+                        {dimQuestions.map((q, idx) => (
+                          <div key={idx} style={{
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            borderRadius: '0.75rem',
+                            padding: '1.25rem',
+                            marginBottom: '0.75rem',
+                            border: '1px solid rgba(255, 255, 255, 0.05)'
+                          }}>
+                            <p style={{
+                              color: '#e0e7ff',
+                              margin: '0 0 1rem 0',
+                              fontSize: '0.95rem'
+                            }}>
+                              {q.question}
+                            </p>
+
+                            {q.type === 'likert' && (
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                              }}>
+                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Strongly Disagree</span>
+                                {[1, 2, 3, 4, 5].map(n => (
+                                  <div key={n} style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    border: '2px solid rgba(139, 92, 246, 0.3)',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#a5b4fc',
+                                    fontSize: '0.875rem'
+                                  }}>
+                                    {n}
+                                  </div>
+                                ))}
+                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Strongly Agree</span>
+                              </div>
+                            )}
+
+                            {q.type === 'nps' && (
+                              <div>
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  gap: '0.25rem',
+                                  marginBottom: '0.5rem'
+                                }}>
+                                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                    <div key={n} style={{
+                                      flex: 1,
+                                      height: '36px',
+                                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                                      borderRadius: '0.25rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: n <= 6 ? '#f87171' : n <= 8 ? '#fcd34d' : '#4ade80',
+                                      fontSize: '0.75rem',
+                                      background: 'rgba(0, 0, 0, 0.2)'
+                                    }}>
+                                      {n}
+                                    </div>
+                                  ))}
+                                </div>
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  fontSize: '0.7rem',
+                                  color: '#64748b'
+                                }}>
+                                  <span>Not at all likely</span>
+                                  <span>Extremely likely</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {q.type === 'binary' && (
+                              <div style={{ display: 'flex', gap: '1rem' }}>
+                                {['Yes', 'No', 'Maybe'].map(opt => (
+                                  <div key={opt} style={{
+                                    padding: '0.5rem 1.5rem',
+                                    border: '2px solid rgba(139, 92, 246, 0.3)',
+                                    borderRadius: '2rem',
+                                    color: '#a5b4fc',
+                                    fontSize: '0.875rem'
+                                  }}>
+                                    {opt}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {q.type === 'open' && (
+                              <div style={{
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '0.5rem',
+                                padding: '1rem',
+                                color: '#64748b',
+                                minHeight: '80px'
+                              }}>
+                                [Open text response]
+                              </div>
+                            )}
+
+                            <p style={{
+                              margin: '0.75rem 0 0 0',
+                              fontSize: '0.7rem',
+                              color: '#6366f1'
+                            }}>
+                              Construct: {q.construct}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+
+                  {/* Outcome Questions */}
+                  {surveyConfig.includeNPS && (
+                    <div style={{ marginBottom: '2rem' }}>
+                      <h3 style={{
+                        margin: '0 0 1rem 0',
+                        color: '#10b981',
+                        fontSize: '1rem'
+                      }}>
+                        {'\uD83D\uDCC8'} Overall Experience
+                      </h3>
+
+                      {generatedSurvey.questions
+                        .filter(q => q.dimension === 'outcomes')
+                        .map((q, idx) => (
+                          <div key={idx} style={{
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            borderRadius: '0.75rem',
+                            padding: '1.25rem',
+                            marginBottom: '0.75rem',
+                            border: '1px solid rgba(16, 185, 129, 0.2)'
+                          }}>
+                            <p style={{
+                              color: '#e0e7ff',
+                              margin: '0 0 1rem 0',
+                              fontSize: '0.95rem'
+                            }}>
+                              {q.question}
+                            </p>
+
+                            {q.type === 'nps' && (
+                              <div>
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  gap: '0.25rem'
+                                }}>
+                                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                    <div key={n} style={{
+                                      flex: 1,
+                                      height: '36px',
+                                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                                      borderRadius: '0.25rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: n <= 6 ? '#f87171' : n <= 8 ? '#fcd34d' : '#4ade80',
+                                      fontSize: '0.75rem',
+                                      background: 'rgba(0, 0, 0, 0.2)'
+                                    }}>
+                                      {n}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {q.type === 'likert' && (
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                              }}>
+                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Very Unlikely</span>
+                                {[1, 2, 3, 4, 5].map(n => (
+                                  <div key={n} style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    border: '2px solid rgba(16, 185, 129, 0.3)',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#6ee7b7'
+                                  }}>
+                                    {n}
+                                  </div>
+                                ))}
+                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Very Likely</span>
+                              </div>
+                            )}
+
+                            {q.type === 'binary' && (
+                              <div style={{ display: 'flex', gap: '1rem' }}>
+                                {['Yes', 'No', 'Maybe'].map(opt => (
+                                  <div key={opt} style={{
+                                    padding: '0.5rem 1.5rem',
+                                    border: '2px solid rgba(16, 185, 129, 0.3)',
+                                    borderRadius: '2rem',
+                                    color: '#6ee7b7'
+                                  }}>
+                                    {opt}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+
+                  {/* Open-ended Questions */}
+                  <div>
+                    <h3 style={{
+                      margin: '0 0 1rem 0',
+                      color: '#f59e0b',
+                      fontSize: '1rem'
+                    }}>
+                      {'\uD83D\uDCAC'} Open Feedback
+                    </h3>
+
+                    {generatedSurvey.questions
+                      .filter(q => q.dimension === 'open-ended')
+                      .map((q, idx) => (
+                        <div key={idx} style={{
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          borderRadius: '0.75rem',
+                          padding: '1.25rem',
+                          marginBottom: '0.75rem',
+                          border: '1px solid rgba(245, 158, 11, 0.2)'
+                        }}>
+                          <p style={{
+                            color: '#e0e7ff',
+                            margin: '0 0 1rem 0',
+                            fontSize: '0.95rem'
+                          }}>
+                            {q.question}
+                          </p>
+                          <div style={{
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '0.5rem',
+                            padding: '1rem',
+                            color: '#64748b',
+                            minHeight: '80px'
+                          }}>
+                            [Open text response]
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Research Note */}
+                <div style={{
+                  background: 'rgba(99, 102, 241, 0.1)',
+                  borderRadius: '1rem',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(99, 102, 241, 0.2)'
+                }}>
+                  <h3 style={{ margin: '0 0 0.75rem 0', color: '#818cf8', fontSize: '1rem' }}>
+                    {'\uD83D\uDCDA'} Research Foundation
+                  </h3>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: '1.25rem',
+                    color: '#c7d2fe',
+                    lineHeight: '1.7',
+                    fontSize: '0.875rem'
+                  }}>
+                    <li><strong>Gilliland (1993):</strong> Seminal work on organizational justice in selection contexts</li>
+                    <li><strong>Bauer et al. (2001):</strong> Developed and validated applicant reactions scales</li>
+                    <li><strong>Hausknecht et al. (2004):</strong> Meta-analysis of applicant reactions research</li>
+                    <li><strong>Candidate NPS:</strong> Industry standard metric for benchmarking candidate experience</li>
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setScreen('config');
+                    setGeneratedSurvey(null);
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#e0e7ff',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  {'\u21BA'} Customize Survey
+                </button>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '2rem',
+              color: '#4338ca',
+              fontSize: '0.75rem'
+            }}>
+              Framework: Gilliland's Organizational Justice Model + Bauer's Applicant Reactions Scales
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<CandidateExperienceSurveyBuilder />);
+  </script>
+</body>
+</html>

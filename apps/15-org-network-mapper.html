@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Org Network Mapper</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useMemo } = React;
+
+    // Sample organizational data
+    const sampleOrgData = {
+      employees: [
+        { id: 'e1', name: 'Sarah Chen', role: 'CEO', department: 'Executive', level: 1, formalReportsTo: null },
+        { id: 'e2', name: 'Michael Torres', role: 'CTO', department: 'Engineering', level: 2, formalReportsTo: 'e1' },
+        { id: 'e3', name: 'Jennifer Walsh', role: 'CFO', department: 'Finance', level: 2, formalReportsTo: 'e1' },
+        { id: 'e4', name: 'David Kim', role: 'VP Sales', department: 'Sales', level: 2, formalReportsTo: 'e1' },
+        { id: 'e5', name: 'Emily Rodriguez', role: 'Engineering Manager', department: 'Engineering', level: 3, formalReportsTo: 'e2' },
+        { id: 'e6', name: 'James Wilson', role: 'Senior Developer', department: 'Engineering', level: 4, formalReportsTo: 'e5' },
+        { id: 'e7', name: 'Lisa Park', role: 'Developer', department: 'Engineering', level: 4, formalReportsTo: 'e5' },
+        { id: 'e8', name: 'Robert Brown', role: 'Finance Manager', department: 'Finance', level: 3, formalReportsTo: 'e3' },
+        { id: 'e9', name: 'Anna Martinez', role: 'Accountant', department: 'Finance', level: 4, formalReportsTo: 'e8' },
+        { id: 'e10', name: 'Chris Taylor', role: 'Sales Manager', department: 'Sales', level: 3, formalReportsTo: 'e4' },
+        { id: 'e11', name: 'Nina Patel', role: 'Sales Rep', department: 'Sales', level: 4, formalReportsTo: 'e10' },
+        { id: 'e12', name: 'Alex Johnson', role: 'Product Manager', department: 'Product', level: 3, formalReportsTo: 'e2' },
+        { id: 'e13', name: 'Maria Garcia', role: 'UX Designer', department: 'Product', level: 4, formalReportsTo: 'e12' },
+        { id: 'e14', name: 'Tom Anderson', role: 'Data Analyst', department: 'Engineering', level: 4, formalReportsTo: 'e5' },
+        { id: 'e15', name: 'Sophie Lee', role: 'HR Director', department: 'HR', level: 2, formalReportsTo: 'e1' },
+        { id: 'e16', name: 'Kevin Wright', role: 'Recruiter', department: 'HR', level: 4, formalReportsTo: 'e15' },
+      ],
+      // Informal connections based on communication patterns
+      communications: [
+        { from: 'e6', to: 'e12', frequency: 25, type: 'collaboration' },
+        { from: 'e6', to: 'e13', frequency: 20, type: 'collaboration' },
+        { from: 'e6', to: 'e14', frequency: 30, type: 'collaboration' },
+        { from: 'e6', to: 'e8', frequency: 15, type: 'information' },
+        { from: 'e6', to: 'e11', frequency: 10, type: 'social' },
+        { from: 'e12', to: 'e4', frequency: 18, type: 'collaboration' },
+        { from: 'e12', to: 'e10', frequency: 22, type: 'collaboration' },
+        { from: 'e12', to: 'e13', frequency: 35, type: 'collaboration' },
+        { from: 'e14', to: 'e8', frequency: 28, type: 'information' },
+        { from: 'e14', to: 'e3', frequency: 12, type: 'information' },
+        { from: 'e7', to: 'e6', frequency: 40, type: 'collaboration' },
+        { from: 'e5', to: 'e12', frequency: 30, type: 'collaboration' },
+        { from: 'e5', to: 'e2', frequency: 25, type: 'formal' },
+        { from: 'e2', to: 'e1', frequency: 20, type: 'formal' },
+        { from: 'e3', to: 'e1', frequency: 18, type: 'formal' },
+        { from: 'e4', to: 'e1', frequency: 15, type: 'formal' },
+        { from: 'e15', to: 'e1', frequency: 12, type: 'formal' },
+        { from: 'e10', to: 'e11', frequency: 22, type: 'collaboration' },
+        { from: 'e8', to: 'e3', frequency: 20, type: 'formal' },
+        { from: 'e16', to: 'e5', frequency: 8, type: 'collaboration' },
+        { from: 'e13', to: 'e7', frequency: 15, type: 'collaboration' },
+        { from: 'e11', to: 'e12', frequency: 18, type: 'information' },
+      ],
+      meetings: [
+        { id: 'm1', name: 'Weekly Standup', participants: ['e5', 'e6', 'e7', 'e14'], frequency: 5 },
+        { id: 'm2', name: 'Product Sync', participants: ['e2', 'e5', 'e12', 'e13'], frequency: 2 },
+        { id: 'm3', name: 'Executive Meeting', participants: ['e1', 'e2', 'e3', 'e4', 'e15'], frequency: 1 },
+        { id: 'm4', name: 'Sales Review', participants: ['e4', 'e10', 'e11', 'e12'], frequency: 1 },
+        { id: 'm5', name: 'Finance Review', participants: ['e3', 'e8', 'e9', 'e14'], frequency: 1 },
+        { id: 'm6', name: 'Cross-functional Planning', participants: ['e5', 'e8', 'e10', 'e12'], frequency: 1 },
+      ]
+    };
+
+    const departmentColors = {
+      'Executive': '#8B5CF6',
+      'Engineering': '#3B82F6',
+      'Finance': '#10B981',
+      'Sales': '#F59E0B',
+      'Product': '#EC4899',
+      'HR': '#6366F1'
+    };
+
+    // Calculate network metrics
+    const calculateNetworkMetrics = (employees, communications) => {
+      const metrics = {};
+
+      employees.forEach(emp => {
+        metrics[emp.id] = {
+          ...emp,
+          inDegree: 0,
+          outDegree: 0,
+          totalConnections: 0,
+          betweenness: 0,
+          crossFunctional: 0,
+          totalFrequency: 0,
+          connectedDepartments: new Set()
+        };
+      });
+
+      communications.forEach(comm => {
+        if (metrics[comm.from] && metrics[comm.to]) {
+          metrics[comm.from].outDegree++;
+          metrics[comm.to].inDegree++;
+          metrics[comm.from].totalFrequency += comm.frequency;
+          metrics[comm.to].totalFrequency += comm.frequency;
+
+          const fromDept = metrics[comm.from].department;
+          const toDept = metrics[comm.to].department;
+
+          metrics[comm.from].connectedDepartments.add(toDept);
+          metrics[comm.to].connectedDepartments.add(fromDept);
+
+          if (fromDept !== toDept) {
+            metrics[comm.from].crossFunctional++;
+            metrics[comm.to].crossFunctional++;
+          }
+        }
+      });
+
+      Object.values(metrics).forEach(m => {
+        m.totalConnections = m.inDegree + m.outDegree;
+        m.connectedDepartments = m.connectedDepartments.size;
+      });
+
+      // Calculate betweenness centrality (simplified)
+      const connectionMap = {};
+      communications.forEach(comm => {
+        if (!connectionMap[comm.from]) connectionMap[comm.from] = [];
+        if (!connectionMap[comm.to]) connectionMap[comm.to] = [];
+        connectionMap[comm.from].push(comm.to);
+        connectionMap[comm.to].push(comm.from);
+      });
+
+      Object.keys(metrics).forEach(nodeId => {
+        let betweenness = 0;
+        const neighbors = connectionMap[nodeId] || [];
+        neighbors.forEach(n1 => {
+          neighbors.forEach(n2 => {
+            if (n1 !== n2) {
+              const n1Connections = connectionMap[n1] || [];
+              const n2Connections = connectionMap[n2] || [];
+              if (!n1Connections.includes(n2) && !n2Connections.includes(n1)) {
+                betweenness++;
+              }
+            }
+          });
+        });
+        metrics[nodeId].betweenness = betweenness / 2;
+      });
+
+      return metrics;
+    };
+
+    // Identify network roles
+    const identifyNetworkRoles = (metrics) => {
+      const values = Object.values(metrics);
+      const avgConnections = values.reduce((sum, m) => sum + m.totalConnections, 0) / values.length;
+      const avgBetweenness = values.reduce((sum, m) => sum + m.betweenness, 0) / values.length;
+      const avgCrossFunctional = values.reduce((sum, m) => sum + m.crossFunctional, 0) / values.length;
+
+      const roles = {
+        informationBrokers: [],
+        isolated: [],
+        overConnected: [],
+        crossFunctionalConnectors: []
+      };
+
+      values.forEach(m => {
+        if (m.betweenness > avgBetweenness * 1.5 && m.totalConnections > avgConnections) {
+          roles.informationBrokers.push(m);
+        }
+        if (m.totalConnections < avgConnections * 0.3 || m.totalConnections <= 1) {
+          roles.isolated.push(m);
+        }
+        if (m.totalConnections > avgConnections * 2) {
+          roles.overConnected.push(m);
+        }
+        if (m.crossFunctional > avgCrossFunctional * 1.5 && m.connectedDepartments >= 3) {
+          roles.crossFunctionalConnectors.push(m);
+        }
+      });
+
+      return roles;
+    };
+
+    // Network Node Component
+    const NetworkNode = ({ node, position, isSelected, onClick, scale, showLabels }) => {
+      const size = Math.max(20, Math.min(50, 15 + node.totalConnections * 3));
+      const color = departmentColors[node.department] || '#6B7280';
+
+      return (
+        <g
+          transform={`translate(${position.x}, ${position.y})`}
+          onClick={() => onClick(node)}
+          style={{ cursor: 'pointer' }}
+        >
+          <circle
+            r={size / 2}
+            fill={color}
+            stroke={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.2)'}
+            strokeWidth={isSelected ? 3 : 1}
+            opacity={0.9}
+          />
+          <circle
+            r={size / 2 + 4}
+            fill="none"
+            stroke={color}
+            strokeWidth={2}
+            opacity={0.3}
+          />
+          {showLabels && (
+            <text
+              y={size / 2 + 14}
+              textAnchor="middle"
+              fill="#E5E7EB"
+              fontSize="10"
+              fontWeight="500"
+            >
+              {node.name.split(' ')[0]}
+            </text>
+          )}
+        </g>
+      );
+    };
+
+    // Network Edge Component
+    const NetworkEdge = ({ from, to, communication, isHighlighted }) => {
+      const opacity = isHighlighted ? 0.8 : 0.2;
+      const strokeWidth = Math.max(1, Math.min(4, communication.frequency / 10));
+
+      const colors = {
+        collaboration: '#3B82F6',
+        information: '#10B981',
+        social: '#F59E0B',
+        formal: '#6B7280'
+      };
+
+      return (
+        <line
+          x1={from.x}
+          y1={from.y}
+          x2={to.x}
+          y2={to.y}
+          stroke={colors[communication.type] || '#6B7280'}
+          strokeWidth={strokeWidth}
+          opacity={opacity}
+          strokeLinecap="round"
+        />
+      );
+    };
+
+    // Insight Card Component
+    const InsightCard = ({ title, items, icon, color, onItemClick }) => (
+      <div style={{
+        background: 'rgba(30, 30, 40, 0.8)',
+        borderRadius: '12px',
+        padding: '16px',
+        border: `1px solid ${color}33`,
+        marginBottom: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <span style={{ fontSize: '18px' }}>{icon}</span>
+          <h3 style={{ color: color, fontSize: '14px', fontWeight: '600', margin: 0 }}>{title}</h3>
+          <span style={{
+            background: `${color}22`,
+            color: color,
+            padding: '2px 8px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: '600'
+          }}>
+            {items.length}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {items.length === 0 ? (
+            <span style={{ color: '#6B7280', fontSize: '13px', fontStyle: 'italic' }}>None identified</span>
+          ) : (
+            items.slice(0, 4).map(item => (
+              <div
+                key={item.id}
+                onClick={() => onItemClick(item)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px',
+                  background: 'rgba(255,255,255,0.03)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+              >
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: departmentColors[item.department]
+                }} />
+                <span style={{ color: '#E5E7EB', fontSize: '13px', flex: 1 }}>{item.name}</span>
+                <span style={{ color: '#6B7280', fontSize: '11px' }}>{item.role}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+
+    // Stats Card Component
+    const StatsCard = ({ label, value, subValue, color }) => (
+      <div style={{
+        background: 'rgba(30, 30, 40, 0.6)',
+        borderRadius: '12px',
+        padding: '16px',
+        border: '1px solid rgba(255,255,255,0.05)',
+        textAlign: 'center'
+      }}>
+        <div style={{ color: color || '#8B5CF6', fontSize: '28px', fontWeight: '700' }}>{value}</div>
+        <div style={{ color: '#9CA3AF', fontSize: '12px', marginTop: '4px' }}>{label}</div>
+        {subValue && <div style={{ color: '#6B7280', fontSize: '11px', marginTop: '2px' }}>{subValue}</div>}
+      </div>
+    );
+
+    // Main App Component
+    function OrgNetworkMapper() {
+      const [data, setData] = useState(sampleOrgData);
+      const [selectedNode, setSelectedNode] = useState(null);
+      const [viewMode, setViewMode] = useState('informal'); // 'informal' or 'formal'
+      const [showLabels, setShowLabels] = useState(true);
+      const [filterDepartment, setFilterDepartment] = useState('all');
+      const [hoveredRole, setHoveredRole] = useState(null);
+
+      const metrics = useMemo(() =>
+        calculateNetworkMetrics(data.employees, data.communications),
+        [data]
+      );
+
+      const roles = useMemo(() => identifyNetworkRoles(metrics), [metrics]);
+
+      // Calculate node positions using force-directed-like layout
+      const nodePositions = useMemo(() => {
+        const positions = {};
+        const width = 600;
+        const height = 500;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        if (viewMode === 'formal') {
+          // Hierarchical layout
+          const levelCounts = {};
+          data.employees.forEach(emp => {
+            levelCounts[emp.level] = (levelCounts[emp.level] || 0) + 1;
+          });
+
+          const levelIndices = {};
+          data.employees.forEach(emp => {
+            levelIndices[emp.level] = levelIndices[emp.level] || 0;
+            const count = levelCounts[emp.level];
+            const x = (levelIndices[emp.level] + 1) * (width / (count + 1));
+            const y = 60 + (emp.level - 1) * 110;
+            positions[emp.id] = { x, y };
+            levelIndices[emp.level]++;
+          });
+        } else {
+          // Force-directed-like layout based on connections
+          const departments = [...new Set(data.employees.map(e => e.department))];
+          const deptAngles = {};
+          departments.forEach((dept, i) => {
+            deptAngles[dept] = (i / departments.length) * Math.PI * 2 - Math.PI / 2;
+          });
+
+          data.employees.forEach((emp, i) => {
+            const m = metrics[emp.id];
+            const baseAngle = deptAngles[emp.department];
+            const spread = Math.PI / (departments.length + 1);
+            const deptEmployees = data.employees.filter(e => e.department === emp.department);
+            const indexInDept = deptEmployees.findIndex(e => e.id === emp.id);
+            const angleOffset = (indexInDept - deptEmployees.length / 2) * 0.3;
+            const angle = baseAngle + angleOffset;
+
+            // Distance from center based on connections (more connections = closer to center)
+            const maxConnections = Math.max(...Object.values(metrics).map(m => m.totalConnections));
+            const connectionRatio = m.totalConnections / (maxConnections || 1);
+            const baseRadius = 180;
+            const radius = baseRadius - connectionRatio * 80 + 40;
+
+            positions[emp.id] = {
+              x: centerX + Math.cos(angle) * radius,
+              y: centerY + Math.sin(angle) * radius
+            };
+          });
+        }
+
+        return positions;
+      }, [data, viewMode, metrics]);
+
+      // Filter edges based on view mode
+      const edges = useMemo(() => {
+        if (viewMode === 'formal') {
+          return data.employees
+            .filter(emp => emp.formalReportsTo)
+            .map(emp => ({
+              from: emp.formalReportsTo,
+              to: emp.id,
+              communication: { type: 'formal', frequency: 15 }
+            }));
+        }
+        return data.communications.map(comm => ({
+          from: comm.from,
+          to: comm.to,
+          communication: comm
+        }));
+      }, [data, viewMode]);
+
+      const filteredEmployees = useMemo(() => {
+        if (filterDepartment === 'all') return data.employees;
+        return data.employees.filter(e => e.department === filterDepartment);
+      }, [data, filterDepartment]);
+
+      const handleNodeClick = useCallback((node) => {
+        setSelectedNode(prev => prev?.id === node.id ? null : node);
+      }, []);
+
+      const getHighlightedNodes = useCallback(() => {
+        if (!hoveredRole) return new Set();
+        return new Set(roles[hoveredRole]?.map(r => r.id) || []);
+      }, [hoveredRole, roles]);
+
+      const highlightedNodes = getHighlightedNodes();
+
+      const totalConnections = Object.values(metrics).reduce((sum, m) => sum + m.totalConnections, 0) / 2;
+      const avgConnectionsPerPerson = (totalConnections * 2 / data.employees.length).toFixed(1);
+      const networkDensity = ((totalConnections / (data.employees.length * (data.employees.length - 1) / 2)) * 100).toFixed(1);
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0F0F1A 0%, #1A1A2E 50%, #16213E 100%)',
+          color: '#E5E7EB',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        }}>
+          {/* Header */}
+          <header style={{
+            padding: '20px 32px',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            background: 'rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h1 style={{
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  margin: 0,
+                  background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}>
+                  Org Network Mapper
+                </h1>
+                <p style={{ color: '#6B7280', fontSize: '13px', margin: '4px 0 0 0' }}>
+                  Organizational Network Analysis & Insights
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  display: 'flex',
+                  background: 'rgba(255,255,255,0.05)',
+                  borderRadius: '8px',
+                  padding: '4px'
+                }}>
+                  <button
+                    onClick={() => setViewMode('informal')}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: viewMode === 'informal' ? '#8B5CF6' : 'transparent',
+                      color: viewMode === 'informal' ? '#FFFFFF' : '#9CA3AF',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Informal Network
+                  </button>
+                  <button
+                    onClick={() => setViewMode('formal')}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: viewMode === 'formal' ? '#8B5CF6' : 'transparent',
+                      color: viewMode === 'formal' ? '#FFFFFF' : '#9CA3AF',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Formal Hierarchy
+                  </button>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={showLabels}
+                    onChange={(e) => setShowLabels(e.target.checked)}
+                    style={{ accentColor: '#8B5CF6' }}
+                  />
+                  <span style={{ color: '#9CA3AF', fontSize: '13px' }}>Show Labels</span>
+                </label>
+              </div>
+            </div>
+          </header>
+
+          <main style={{ display: 'flex', padding: '24px', gap: '24px' }}>
+            {/* Left Sidebar - Insights */}
+            <aside style={{ width: '280px', flexShrink: 0 }}>
+              <div style={{ marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '14px', fontWeight: '600', color: '#9CA3AF', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Network Insights
+                </h2>
+
+                <InsightCard
+                  title="Information Brokers"
+                  items={roles.informationBrokers}
+                  icon={"\uD83D\uDD17"}
+                  color="#8B5CF6"
+                  onItemClick={handleNodeClick}
+                />
+
+                <InsightCard
+                  title="Isolated Individuals"
+                  items={roles.isolated}
+                  icon={"\uD83C\uDFDD\uFE0F"}
+                  color="#EF4444"
+                  onItemClick={handleNodeClick}
+                />
+
+                <InsightCard
+                  title="Over-Connected Nodes"
+                  items={roles.overConnected}
+                  icon={"\u26A1"}
+                  color="#F59E0B"
+                  onItemClick={handleNodeClick}
+                />
+
+                <InsightCard
+                  title="Cross-Functional Connectors"
+                  items={roles.crossFunctionalConnectors}
+                  icon={"\uD83C\uDF09"}
+                  color="#10B981"
+                  onItemClick={handleNodeClick}
+                />
+              </div>
+
+              {/* Department Filter */}
+              <div style={{
+                background: 'rgba(30, 30, 40, 0.6)',
+                borderRadius: '12px',
+                padding: '16px',
+                border: '1px solid rgba(255,255,255,0.05)'
+              }}>
+                <h3 style={{ fontSize: '12px', fontWeight: '600', color: '#9CA3AF', marginBottom: '12px', textTransform: 'uppercase' }}>
+                  Filter by Department
+                </h3>
+                <select
+                  value={filterDepartment}
+                  onChange={(e) => setFilterDepartment(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'rgba(0,0,0,0.3)',
+                    color: '#E5E7EB',
+                    fontSize: '13px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="all">All Departments</option>
+                  {Object.keys(departmentColors).map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+            </aside>
+
+            {/* Network Visualization */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Stats Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                <StatsCard label="Total Employees" value={data.employees.length} color="#8B5CF6" />
+                <StatsCard label="Total Connections" value={Math.round(totalConnections)} color="#3B82F6" />
+                <StatsCard label="Avg. Connections" value={avgConnectionsPerPerson} subValue="per person" color="#10B981" />
+                <StatsCard label="Network Density" value={`${networkDensity}%`} color="#F59E0B" />
+              </div>
+
+              {/* Network Graph */}
+              <div style={{
+                background: 'rgba(20, 20, 30, 0.8)',
+                borderRadius: '16px',
+                border: '1px solid rgba(255,255,255,0.05)',
+                padding: '20px',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <svg width="100%" height="500" viewBox="0 0 600 500">
+                  <defs>
+                    <radialGradient id="nodeGlow">
+                      <stop offset="0%" stopColor="rgba(139, 92, 246, 0.3)" />
+                      <stop offset="100%" stopColor="rgba(139, 92, 246, 0)" />
+                    </radialGradient>
+                  </defs>
+
+                  {/* Background grid */}
+                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="1"/>
+                  </pattern>
+                  <rect width="100%" height="100%" fill="url(#grid)" />
+
+                  {/* Edges */}
+                  <g>
+                    {edges.map((edge, i) => {
+                      const fromPos = nodePositions[edge.from];
+                      const toPos = nodePositions[edge.to];
+                      if (!fromPos || !toPos) return null;
+
+                      const fromEmployee = filteredEmployees.find(e => e.id === edge.from);
+                      const toEmployee = filteredEmployees.find(e => e.id === edge.to);
+                      if (filterDepartment !== 'all' && !fromEmployee && !toEmployee) return null;
+
+                      const isHighlighted = !selectedNode ||
+                        selectedNode.id === edge.from ||
+                        selectedNode.id === edge.to;
+
+                      return (
+                        <NetworkEdge
+                          key={i}
+                          from={fromPos}
+                          to={toPos}
+                          communication={edge.communication}
+                          isHighlighted={isHighlighted}
+                        />
+                      );
+                    })}
+                  </g>
+
+                  {/* Nodes */}
+                  <g>
+                    {data.employees.map(emp => {
+                      const pos = nodePositions[emp.id];
+                      if (!pos) return null;
+
+                      if (filterDepartment !== 'all' && emp.department !== filterDepartment) {
+                        return (
+                          <g key={emp.id} transform={`translate(${pos.x}, ${pos.y})`}>
+                            <circle r="6" fill="#374151" opacity="0.3" />
+                          </g>
+                        );
+                      }
+
+                      const nodeMetrics = metrics[emp.id];
+                      const isHighlighted = highlightedNodes.size === 0 || highlightedNodes.has(emp.id);
+
+                      return (
+                        <g key={emp.id} style={{ opacity: isHighlighted ? 1 : 0.3 }}>
+                          <NetworkNode
+                            node={nodeMetrics}
+                            position={pos}
+                            isSelected={selectedNode?.id === emp.id}
+                            onClick={handleNodeClick}
+                            showLabels={showLabels}
+                          />
+                        </g>
+                      );
+                    })}
+                  </g>
+                </svg>
+
+                {/* Legend */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  left: '20px',
+                  display: 'flex',
+                  gap: '16px',
+                  flexWrap: 'wrap'
+                }}>
+                  {Object.entries(departmentColors).map(([dept, color]) => (
+                    <div key={dept} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        background: color
+                      }} />
+                      <span style={{ color: '#9CA3AF', fontSize: '11px' }}>{dept}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Connection Type Legend */}
+                {viewMode === 'informal' && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '20px',
+                    right: '20px',
+                    display: 'flex',
+                    gap: '16px'
+                  }}>
+                    {[
+                      { type: 'Collaboration', color: '#3B82F6' },
+                      { type: 'Information', color: '#10B981' },
+                      { type: 'Social', color: '#F59E0B' }
+                    ].map(item => (
+                      <div key={item.type} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{
+                          width: '20px',
+                          height: '2px',
+                          background: item.color
+                        }} />
+                        <span style={{ color: '#9CA3AF', fontSize: '11px' }}>{item.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Sidebar - Selected Node Details */}
+            <aside style={{ width: '280px', flexShrink: 0 }}>
+              {selectedNode ? (
+                <div style={{
+                  background: 'rgba(30, 30, 40, 0.8)',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    padding: '20px',
+                    background: `linear-gradient(135deg, ${departmentColors[selectedNode.department]}22 0%, transparent 100%)`,
+                    borderBottom: '1px solid rgba(255,255,255,0.05)'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: departmentColors[selectedNode.department],
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px',
+                      fontWeight: '700',
+                      marginBottom: '12px'
+                    }}>
+                      {selectedNode.name.charAt(0)}
+                    </div>
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 4px 0' }}>
+                      {selectedNode.name}
+                    </h3>
+                    <p style={{ color: '#9CA3AF', fontSize: '13px', margin: 0 }}>
+                      {selectedNode.role}
+                    </p>
+                    <span style={{
+                      display: 'inline-block',
+                      marginTop: '8px',
+                      padding: '4px 10px',
+                      background: `${departmentColors[selectedNode.department]}22`,
+                      color: departmentColors[selectedNode.department],
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      {selectedNode.department}
+                    </span>
+                  </div>
+
+                  <div style={{ padding: '20px' }}>
+                    <h4 style={{ fontSize: '12px', fontWeight: '600', color: '#9CA3AF', marginBottom: '12px', textTransform: 'uppercase' }}>
+                      Network Metrics
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#8B5CF6' }}>
+                          {metrics[selectedNode.id].totalConnections}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#6B7280' }}>Total Connections</div>
+                      </div>
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#3B82F6' }}>
+                          {metrics[selectedNode.id].inDegree}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#6B7280' }}>Incoming</div>
+                      </div>
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#10B981' }}>
+                          {metrics[selectedNode.id].outDegree}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#6B7280' }}>Outgoing</div>
+                      </div>
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#F59E0B' }}>
+                          {metrics[selectedNode.id].crossFunctional}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#6B7280' }}>Cross-Functional</div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '16px' }}>
+                      <h4 style={{ fontSize: '12px', fontWeight: '600', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase' }}>
+                        Network Role
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {roles.informationBrokers.some(r => r.id === selectedNode.id) && (
+                          <span style={{ padding: '4px 10px', background: '#8B5CF622', color: '#8B5CF6', borderRadius: '12px', fontSize: '11px' }}>
+                            Information Broker
+                          </span>
+                        )}
+                        {roles.isolated.some(r => r.id === selectedNode.id) && (
+                          <span style={{ padding: '4px 10px', background: '#EF444422', color: '#EF4444', borderRadius: '12px', fontSize: '11px' }}>
+                            Isolated
+                          </span>
+                        )}
+                        {roles.overConnected.some(r => r.id === selectedNode.id) && (
+                          <span style={{ padding: '4px 10px', background: '#F59E0B22', color: '#F59E0B', borderRadius: '12px', fontSize: '11px' }}>
+                            Over-Connected
+                          </span>
+                        )}
+                        {roles.crossFunctionalConnectors.some(r => r.id === selectedNode.id) && (
+                          <span style={{ padding: '4px 10px', background: '#10B98122', color: '#10B981', borderRadius: '12px', fontSize: '11px' }}>
+                            Cross-Functional Connector
+                          </span>
+                        )}
+                        {!roles.informationBrokers.some(r => r.id === selectedNode.id) &&
+                         !roles.isolated.some(r => r.id === selectedNode.id) &&
+                         !roles.overConnected.some(r => r.id === selectedNode.id) &&
+                         !roles.crossFunctionalConnectors.some(r => r.id === selectedNode.id) && (
+                          <span style={{ padding: '4px 10px', background: '#6B728022', color: '#6B7280', borderRadius: '12px', fontSize: '11px' }}>
+                            Standard Contributor
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '16px' }}>
+                      <h4 style={{ fontSize: '12px', fontWeight: '600', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase' }}>
+                        Connected Departments
+                      </h4>
+                      <div style={{ fontSize: '14px', color: '#E5E7EB' }}>
+                        {metrics[selectedNode.id].connectedDepartments} departments
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '16px' }}>
+                      <h4 style={{ fontSize: '12px', fontWeight: '600', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase' }}>
+                        Betweenness Centrality
+                      </h4>
+                      <div style={{
+                        height: '8px',
+                        background: 'rgba(255,255,255,0.1)',
+                        borderRadius: '4px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${Math.min(100, (metrics[selectedNode.id].betweenness / 20) * 100)}%`,
+                          background: 'linear-gradient(90deg, #8B5CF6, #3B82F6)',
+                          borderRadius: '4px'
+                        }} />
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
+                        Score: {metrics[selectedNode.id].betweenness.toFixed(1)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  background: 'rgba(30, 30, 40, 0.6)',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  padding: '32px 20px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>{"\uD83D\uDC46"}</div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>Select a Node</h3>
+                  <p style={{ color: '#6B7280', fontSize: '13px', lineHeight: '1.5' }}>
+                    Click on any node in the network graph to view detailed metrics and insights about that person.
+                  </p>
+                </div>
+              )}
+
+              {/* Analysis Summary */}
+              <div style={{
+                marginTop: '16px',
+                background: 'rgba(30, 30, 40, 0.6)',
+                borderRadius: '16px',
+                border: '1px solid rgba(255,255,255,0.05)',
+                padding: '20px'
+              }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
+                  Network Analysis Summary
+                </h3>
+                <div style={{ fontSize: '13px', color: '#9CA3AF', lineHeight: '1.6' }}>
+                  {roles.informationBrokers.length > 0 && (
+                    <p style={{ marginBottom: '8px' }}>
+                      <strong style={{ color: '#8B5CF6' }}>{roles.informationBrokers.length} information broker{roles.informationBrokers.length > 1 ? 's' : ''}</strong> identified - these individuals serve as key connectors between different parts of the organization.
+                    </p>
+                  )}
+                  {roles.isolated.length > 0 && (
+                    <p style={{ marginBottom: '8px' }}>
+                      <strong style={{ color: '#EF4444' }}>{roles.isolated.length} isolated individual{roles.isolated.length > 1 ? 's' : ''}</strong> detected - consider strategies to better integrate them into communication flows.
+                    </p>
+                  )}
+                  {roles.crossFunctionalConnectors.length > 0 && (
+                    <p style={{ marginBottom: '8px' }}>
+                      <strong style={{ color: '#10B981' }}>{roles.crossFunctionalConnectors.length} cross-functional connector{roles.crossFunctionalConnectors.length > 1 ? 's' : ''}</strong> bridge multiple departments effectively.
+                    </p>
+                  )}
+                  <p style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    Network density of <strong style={{ color: '#F59E0B' }}>{networkDensity}%</strong> indicates {parseFloat(networkDensity) < 30 ? 'sparse connectivity - consider fostering more cross-team collaboration' : parseFloat(networkDensity) < 60 ? 'moderate connectivity - healthy balance of connections' : 'dense connectivity - watch for communication overload'}.
+                  </p>
+                </div>
+              </div>
+            </aside>
+          </main>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<OrgNetworkMapper />);
+  </script>
+</body>
+</html>

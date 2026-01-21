@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HR Apps - 20 Research-Based Workplace Tools</title>
+  <meta name="description" content="A collection of 20 interactive, research-based HR and workplace tools. Free, private, and runs entirely in your browser.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+      min-height: 100vh;
+      color: #f8fafc;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    header { text-align: center; padding: 3rem 0; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(99, 102, 241, 0.2); padding: 0.5rem 1rem;
+      border-radius: 2rem; font-size: 0.875rem; color: #a5b4fc; margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 3rem; font-weight: 700;
+      background: linear-gradient(135deg, #f8fafc 0%, #c7d2fe 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 1rem;
+    }
+    .subtitle { color: #a5b4fc; font-size: 1.25rem; max-width: 600px; margin: 0 auto 2rem; }
+    .features { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .feature { display: flex; align-items: center; gap: 0.5rem; color: #6ee7b7; font-size: 0.925rem; }
+    .category { margin-bottom: 3rem; }
+    .category-header {
+      display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .category-icon { font-size: 1.5rem; }
+    .category-title { font-size: 1.5rem; font-weight: 600; }
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem; }
+    .tool-card {
+      background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem;
+      padding: 1.5rem; text-decoration: none; color: inherit;
+      transition: all 0.2s ease; display: block;
+    }
+    .tool-card:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px);
+    }
+    .tool-number {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 0.5rem; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.75rem;
+    }
+    .tool-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; color: #f8fafc; }
+    .tool-description { font-size: 0.875rem; color: #a5b4fc; line-height: 1.5; margin-bottom: 0.75rem; }
+    .tool-research {
+      font-size: 0.75rem; color: #6366f1; background: rgba(99, 102, 241, 0.1);
+      padding: 0.25rem 0.625rem; border-radius: 1rem; display: inline-block;
+    }
+    footer { text-align: center; padding: 3rem 0; color: #6366f1; font-size: 0.875rem; }
+    footer a { color: #a5b4fc; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    @media (max-width: 768px) {
+      h1 { font-size: 2rem; }
+      .tools-grid { grid-template-columns: 1fr; }
+      .container { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">&#x1F3AF; 20 Research-Based Tools</div>
+      <h1>HR Apps Collection</h1>
+      <p class="subtitle">Interactive workplace tools grounded in organizational psychology, behavioral economics, and I/O research. Free, private, and runs entirely in your browser.</p>
+      <div class="features">
+        <div class="feature">&#x2713; No login required</div>
+        <div class="feature">&#x2713; 100% private</div>
+        <div class="feature">&#x2713; Works offline</div>
+        <div class="feature">&#x2713; Mobile friendly</div>
+      </div>
+    </header>
+
+    <section class="category">
+      <div class="category-header">
+        <span class="category-icon">&#x1F9ED;</span>
+        <h2 class="category-title">Assessment & Self-Discovery</h2>
+      </div>
+      <div class="tools-grid">
+        <a href="apps/01-career-values-clarification.html" class="tool-card">
+          <div class="tool-number">01</div>
+          <h3 class="tool-title">Career Values Clarification</h3>
+          <p class="tool-description">12-scenario assessment revealing your core work values and aligned career paths.</p>
+          <span class="tool-research">Schwartz's Theory of Basic Values</span>
+        </a>
+        <a href="apps/02-work-style-archetype-quiz.html" class="tool-card">
+          <div class="tool-number">02</div>
+          <h3 class="tool-title">Work Style Archetype Quiz</h3>
+          <p class="tool-description">Personality assessment mapping to 6 work archetypes with strengths and blind spots.</p>
+          <span class="tool-research">Big Five (OCEAN) Model</span>
+        </a>
+        <a href="apps/03-psychological-safety-scan.html" class="tool-card">
+          <div class="tool-number">03</div>
+          <h3 class="tool-title">Psychological Safety Quick-Scan</h3>
+          <p class="tool-description">8-question team assessment across speaking up, risk-taking, and inclusion dimensions.</p>
+          <span class="tool-research">Amy Edmondson's Research</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="category">
+      <div class="category-header">
+        <span class="category-icon">&#x2696;</span>
+        <h2 class="category-title">Decision Support & Behavioral Economics</h2>
+      </div>
+      <div class="tools-grid">
+        <a href="apps/04-job-offer-comparison.html" class="tool-card">
+          <div class="tool-number">04</div>
+          <h3 class="tool-title">Job Offer Comparison Calculator</h3>
+          <p class="tool-description">Multi-dimensional offer comparison with weighted scoring and behavioral nudges.</p>
+          <span class="tool-research">Behavioral Economics</span>
+        </a>
+        <a href="apps/05-negotiation-prep-simulator.html" class="tool-card">
+          <div class="tool-number">05</div>
+          <h3 class="tool-title">Negotiation Prep Simulator</h3>
+          <p class="tool-description">BATNA worksheet with scripted language and anchoring strategies.</p>
+          <span class="tool-research">Fisher & Ury's Principled Negotiation</span>
+        </a>
+        <a href="apps/06-career-pivot-analyzer.html" class="tool-card">
+          <div class="tool-number">06</div>
+          <h3 class="tool-title">Career Pivot Risk/Reward Analyzer</h3>
+          <p class="tool-description">Decision matrix with regret minimization and prospect theory visualization.</p>
+          <span class="tool-research">Prospect Theory</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="category">
+      <div class="category-header">
+        <span class="category-icon">&#x1F465;</span>
+        <h2 class="category-title">Hiring & Talent Acquisition</h2>
+      </div>
+      <div class="tools-grid">
+        <a href="apps/07-job-description-bias-auditor.html" class="tool-card">
+          <div class="tool-number">07</div>
+          <h3 class="tool-title">Job Description Bias Auditor</h3>
+          <p class="tool-description">Scans JDs for gendered and exclusionary language with replacement suggestions.</p>
+          <span class="tool-research">Linguistic Bias Research</span>
+        </a>
+        <a href="apps/08-structured-interview-generator.html" class="tool-card">
+          <div class="tool-number">08</div>
+          <h3 class="tool-title">Structured Interview Question Generator</h3>
+          <p class="tool-description">Generates behavioral questions with scoring rubrics by competency.</p>
+          <span class="tool-research">I/O Psychology</span>
+        </a>
+        <a href="apps/09-candidate-experience-survey.html" class="tool-card">
+          <div class="tool-number">09</div>
+          <h3 class="tool-title">Candidate Experience Pulse Survey</h3>
+          <p class="tool-description">Drag-and-drop survey builder for hiring stage feedback collection.</p>
+          <span class="tool-research">Organizational Justice Theory</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="category">
+      <div class="category-header">
+        <span class="category-icon">&#x1F4CA;</span>
+        <h2 class="category-title">Culture & Engagement Diagnostics</h2>
+      </div>
+      <div class="tools-grid">
+        <a href="apps/10-burnout-risk-calculator.html" class="tool-card">
+          <div class="tool-number">10</div>
+          <h3 class="tool-title">Burnout Risk Calculator</h3>
+          <p class="tool-description">12-question assessment across exhaustion, cynicism, and efficacy dimensions.</p>
+          <span class="tool-research">Maslach Burnout Inventory</span>
+        </a>
+        <a href="apps/11-meeting-effectiveness-scorecard.html" class="tool-card">
+          <div class="tool-number">11</div>
+          <h3 class="tool-title">Meeting Effectiveness Scorecard</h3>
+          <p class="tool-description">Rate meetings on 6 dimensions and track patterns over time.</p>
+          <span class="tool-research">Meeting Science Research</span>
+        </a>
+        <a href="apps/12-recognition-culture-audit.html" class="tool-card">
+          <div class="tool-number">12</div>
+          <h3 class="tool-title">Recognition Culture Audit</h3>
+          <p class="tool-description">Assess recognition practices with gap analysis and improvement actions.</p>
+          <span class="tool-research">Self-Determination Theory</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="category">
+      <div class="category-header">
+        <span class="category-icon">&#x1F5FA;</span>
+        <h2 class="category-title">Data Visualization & Labor Market Intelligence</h2>
+      </div>
+      <div class="tools-grid">
+        <a href="apps/13-skills-adjacency-explorer.html" class="tool-card">
+          <div class="tool-number">13</div>
+          <h3 class="tool-title">Skills Adjacency Explorer</h3>
+          <p class="tool-description">Visual skill clustering with learning paths between skill domains.</p>
+          <span class="tool-research">Skills Taxonomy Research</span>
+        </a>
+        <a href="apps/14-salary-equity-dashboard.html" class="tool-card">
+          <div class="tool-number">14</div>
+          <h3 class="tool-title">Salary Equity Dashboard</h3>
+          <p class="tool-description">Pay gap visualization with statistical controls and compa-ratios.</p>
+          <span class="tool-research">Compensation Analytics</span>
+        </a>
+        <a href="apps/15-org-network-mapper.html" class="tool-card">
+          <div class="tool-number">15</div>
+          <h3 class="tool-title">Org Network Mapper</h3>
+          <p class="tool-description">Visualize informal influence networks and identify key connectors.</p>
+          <span class="tool-research">Organizational Network Analysis</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="category">
+      <div class="category-header">
+        <span class="category-icon">&#x1F4DA;</span>
+        <h2 class="category-title">Learning & Development</h2>
+      </div>
+      <div class="tools-grid">
+        <a href="apps/16-feedback-quality-coach.html" class="tool-card">
+          <div class="tool-number">16</div>
+          <h3 class="tool-title">Feedback Quality Coach</h3>
+          <p class="tool-description">Analyze feedback text for specificity, actionability, and growth orientation.</p>
+          <span class="tool-research">Feedback Effectiveness Research</span>
+        </a>
+        <a href="apps/17-microlearning-generator.html" class="tool-card">
+          <div class="tool-number">17</div>
+          <h3 class="tool-title">Microlearning Module Generator</h3>
+          <p class="tool-description">Create spaced repetition learning modules with quizzes.</p>
+          <span class="tool-research">Cognitive Load Theory</span>
+        </a>
+        <a href="apps/18-manager-effectiveness-assessment.html" class="tool-card">
+          <div class="tool-number">18</div>
+          <h3 class="tool-title">Manager Effectiveness Self-Assessment</h3>
+          <p class="tool-description">15-question assessment with radar chart results and development priorities.</p>
+          <span class="tool-research">Project Oxygen & Gallup Q12</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="category">
+      <div class="category-header">
+        <span class="category-icon">&#x1F52C;</span>
+        <h2 class="category-title">Research Translation & Thought Leadership</h2>
+      </div>
+      <div class="tools-grid">
+        <a href="apps/19-academic-brief-generator.html" class="tool-card">
+          <div class="tool-number">19</div>
+          <h3 class="tool-title">Academic-to-Practitioner Brief Generator</h3>
+          <p class="tool-description">Convert research findings to practitioner-friendly summaries.</p>
+          <span class="tool-research">Knowledge Translation Frameworks</span>
+        </a>
+        <a href="apps/20-myth-vs-evidence-flashcards.html" class="tool-card">
+          <div class="tool-number">20</div>
+          <h3 class="tool-title">Myth vs Evidence Flashcard Builder</h3>
+          <p class="tool-description">Create myth-busting flashcards with citations and spaced repetition review.</p>
+          <span class="tool-research">Evidence-Based Practice</span>
+        </a>
+      </div>
+    </section>
+
+    <footer>
+      <p>Built with React. No data leaves your browser.</p>
+      <p style="margin-top: 0.5rem;">
+        <a href="https://github.com/marykatestimmler-dev/hrapps" target="_blank">View on GitHub</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

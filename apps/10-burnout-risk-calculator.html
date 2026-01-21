@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Burnout Risk Calculator</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const BurnoutRiskCalculator = () => {
+      const [screen, setScreen] = useState('intro');
+      const [currentDimension, setCurrentDimension] = useState(0);
+      const [responses, setResponses] = useState({});
+      const [results, setResults] = useState(null);
+
+      // Based on Maslach Burnout Inventory (MBI) - three component model
+      const dimensions = [
+        {
+          id: 'exhaustion',
+          name: 'Emotional Exhaustion',
+          description: 'Feeling emotionally drained and depleted by work',
+          color: '#ef4444',
+          icon: '\uD83D\uDE13',
+          questions: [
+            { id: 'ex1', text: 'I feel emotionally drained from my work.', key: 'drainedFromWork' },
+            { id: 'ex2', text: 'I feel used up at the end of the workday.', key: 'usedUp' },
+            { id: 'ex3', text: 'I feel tired when I get up in the morning and have to face another day on the job.', key: 'tiredMorning' },
+            { id: 'ex4', text: 'Working all day is really a strain for me.', key: 'strain' },
+            { id: 'ex5', text: 'I feel burned out from my work.', key: 'burnedOut' },
+            { id: 'ex6', text: 'I feel like I\'m at the end of my rope.', key: 'endOfRope' }
+          ]
+        },
+        {
+          id: 'cynicism',
+          name: 'Depersonalization / Cynicism',
+          description: 'Detachment from work and the people you serve',
+          color: '#f59e0b',
+          icon: '\uD83D\uDE10',
+          questions: [
+            { id: 'cy1', text: 'I have become more callous toward people since I took this job.', key: 'callous' },
+            { id: 'cy2', text: 'I worry that this job is hardening me emotionally.', key: 'hardening' },
+            { id: 'cy3', text: 'I don\'t really care what happens to some of the people I work with.', key: 'dontCare' },
+            { id: 'cy4', text: 'I feel colleagues and clients blame me for some of their problems.', key: 'blamed' },
+            { id: 'cy5', text: 'I\'ve become less enthusiastic about my work.', key: 'lessEnthusiasm' }
+          ]
+        },
+        {
+          id: 'efficacy',
+          name: 'Reduced Personal Accomplishment',
+          description: 'Feelings of incompetence and lack of achievement',
+          color: '#8b5cf6',
+          icon: '\uD83D\uDCC9',
+          questions: [
+            { id: 'ef1', text: 'I deal effectively with the problems of the people I work with.', key: 'dealEffectively', reverse: true },
+            { id: 'ef2', text: 'I feel I\'m positively influencing other people\'s lives through my work.', key: 'positiveInfluence', reverse: true },
+            { id: 'ef3', text: 'I feel very energetic.', key: 'energetic', reverse: true },
+            { id: 'ef4', text: 'I can easily create a relaxed atmosphere at work.', key: 'relaxedAtmosphere', reverse: true },
+            { id: 'ef5', text: 'I have accomplished many worthwhile things in this job.', key: 'worthwhileThings', reverse: true },
+            { id: 'ef6', text: 'I feel confident that I am effective at getting things done.', key: 'confident', reverse: true }
+          ]
+        }
+      ];
+
+      const frequencyScale = [
+        { value: 0, label: 'Never', color: '#10b981' },
+        { value: 1, label: 'A few times a year', color: '#22c55e' },
+        { value: 2, label: 'Once a month or less', color: '#84cc16' },
+        { value: 3, label: 'A few times a month', color: '#eab308' },
+        { value: 4, label: 'Once a week', color: '#f97316' },
+        { value: 5, label: 'A few times a week', color: '#ef4444' },
+        { value: 6, label: 'Every day', color: '#dc2626' }
+      ];
+
+      const interventions = {
+        exhaustion: {
+          low: [
+            'Maintain your current energy management practices',
+            'Continue to set healthy boundaries around work hours',
+            'Keep up regular breaks and recovery activities'
+          ],
+          moderate: [
+            'Audit your workload - identify tasks that can be delegated or eliminated',
+            'Establish firm boundaries around after-hours work communication',
+            'Schedule regular "recovery blocks" in your calendar',
+            'Practice the "two-minute rule" for small tasks to reduce overwhelm',
+            'Consider a brief daily mindfulness practice (5-10 minutes)'
+          ],
+          high: [
+            'Have an urgent conversation with your manager about workload reduction',
+            'Take any available PTO immediately - even a long weekend helps',
+            'Identify the top 3 energy drains and create a plan to address each',
+            'Consider whether role change or organizational change is needed',
+            'Consult with a healthcare provider or therapist about your symptoms',
+            'Practice strict work-life separation: no email after hours'
+          ]
+        },
+        cynicism: {
+          low: [
+            'Continue nurturing positive work relationships',
+            'Keep finding meaning in the impact of your work',
+            'Maintain connection to your core professional values'
+          ],
+          moderate: [
+            'Reconnect with why you chose this career - revisit your origin story',
+            'Seek out projects or collaborations that feel meaningful',
+            'Limit exposure to chronic complainers in your environment',
+            'Practice gratitude journaling focused on work wins',
+            'Have coffee with colleagues you genuinely enjoy'
+          ],
+          high: [
+            'Seriously evaluate person-job fit - is this the right role for you?',
+            'Seek mentorship from someone who maintains enthusiasm in similar work',
+            'Consider a job crafting exercise to reshape your role',
+            'Take a sabbatical or extended leave if possible',
+            'Explore whether organizational culture is the root cause',
+            'Professional coaching or therapy may help process feelings'
+          ]
+        },
+        efficacy: {
+          low: [
+            'Continue tracking your wins and accomplishments',
+            'Keep seeking feedback to reinforce your impact',
+            'Mentor others to reinforce your expertise'
+          ],
+          moderate: [
+            'Start a daily "wins" journal - three accomplishments per day',
+            'Request specific positive feedback from your manager and peers',
+            'Take on a project where you can clearly see the impact',
+            'Set smaller, achievable goals to rebuild sense of progress',
+            'Identify and address any skill gaps through learning'
+          ],
+          high: [
+            'Work with your manager to redefine success metrics that feel achievable',
+            'Break large goals into micro-milestones with clear completion criteria',
+            'Consider whether perfectionism is undermining your sense of accomplishment',
+            'Seek a coach or therapist to address imposter syndrome if present',
+            'Document your impact - create a "brag document" with concrete achievements',
+            'Consider whether role expectations are realistic and achievable'
+          ]
+        }
+      };
+
+      const handleResponse = (questionId, value) => {
+        setResponses(prev => ({
+          ...prev,
+          [questionId]: value
+        }));
+      };
+
+      const allCurrentQuestionsAnswered = () => {
+        const currentQuestions = dimensions[currentDimension].questions;
+        return currentQuestions.every(q => responses[q.id] !== undefined);
+      };
+
+      const nextDimension = () => {
+        if (currentDimension < dimensions.length - 1) {
+          setCurrentDimension(prev => prev + 1);
+        } else {
+          calculateResults();
+        }
+      };
+
+      const calculateResults = () => {
+        const dimensionScores = {};
+
+        dimensions.forEach(dim => {
+          let total = 0;
+          dim.questions.forEach(q => {
+            const response = responses[q.id] || 0;
+            if (q.reverse) {
+              total += (6 - response); // Reverse score for efficacy items
+            } else {
+              total += response;
+            }
+          });
+          const average = total / dim.questions.length;
+          const maxScore = 6;
+          const percentage = (average / maxScore) * 100;
+
+          let riskLevel;
+          if (percentage < 30) riskLevel = 'low';
+          else if (percentage < 60) riskLevel = 'moderate';
+          else riskLevel = 'high';
+
+          dimensionScores[dim.id] = {
+            raw: total,
+            average: average.toFixed(2),
+            percentage: Math.round(percentage),
+            riskLevel
+          };
+        });
+
+        // Calculate overall risk
+        const avgPercentage = Object.values(dimensionScores).reduce((sum, d) => sum + d.percentage, 0) / 3;
+        let overallRisk;
+        if (avgPercentage < 30) overallRisk = 'low';
+        else if (avgPercentage < 60) overallRisk = 'moderate';
+        else overallRisk = 'high';
+
+        // Check for warning pattern (high exhaustion + high cynicism)
+        const warningPattern = dimensionScores.exhaustion.riskLevel === 'high' &&
+          dimensionScores.cynicism.riskLevel === 'high';
+
+        setResults({
+          dimensions: dimensionScores,
+          overallPercentage: Math.round(avgPercentage),
+          overallRisk,
+          warningPattern
+        });
+        setScreen('results');
+      };
+
+      const restart = () => {
+        setScreen('intro');
+        setCurrentDimension(0);
+        setResponses({});
+        setResults(null);
+      };
+
+      const getRiskColor = (level) => {
+        switch (level) {
+          case 'low': return '#10b981';
+          case 'moderate': return '#f59e0b';
+          case 'high': return '#ef4444';
+          default: return '#94a3b8';
+        }
+      };
+
+      const getRiskLabel = (level) => {
+        switch (level) {
+          case 'low': return 'Low Risk';
+          case 'moderate': return 'Moderate Risk';
+          case 'high': return 'High Risk';
+          default: return 'Unknown';
+        }
+      };
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: '#e2e8f0',
+          padding: '2rem'
+        }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(239, 68, 68, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                marginBottom: '1rem',
+                border: '1px solid rgba(239, 68, 68, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>{'\uD83D\uDD25'}</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#f87171' }}>
+                  Maslach Burnout Inventory Framework
+                </span>
+              </div>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                margin: '0 0 0.5rem 0',
+                background: 'linear-gradient(135deg, #e2e8f0 0%, #f87171 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Burnout Risk Calculator
+              </h1>
+              <p style={{ color: '#94a3b8', margin: 0 }}>
+                Based on Maslach's three-component model of burnout
+              </p>
+            </div>
+
+            {/* Intro Screen */}
+            {screen === 'intro' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '2.5rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <div style={{ display: 'grid', gap: '2rem' }}>
+                  {/* Three Components */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    {dimensions.map(dim => (
+                      <div key={dim.id} style={{
+                        background: `${dim.color}10`,
+                        borderRadius: '1rem',
+                        padding: '1.25rem',
+                        border: `1px solid ${dim.color}30`
+                      }}>
+                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{dim.icon}</div>
+                        <div style={{ fontWeight: '600', color: dim.color, marginBottom: '0.25rem' }}>
+                          {dim.name}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{dim.description}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.25rem',
+                    border: '1px solid rgba(239, 68, 68, 0.2)'
+                  }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#f87171', fontSize: '1rem' }}>
+                      {'\u26A0\uFE0F'} Important Note
+                    </h3>
+                    <p style={{ margin: 0, color: '#fca5a5', fontSize: '0.9rem', lineHeight: '1.6' }}>
+                      This is a self-assessment tool based on research, not a clinical diagnosis.
+                      If you're experiencing severe symptoms, please consult a healthcare professional.
+                      Your responses are private and not stored.
+                    </p>
+                  </div>
+
+                  <p style={{
+                    color: '#94a3b8',
+                    lineHeight: '1.7',
+                    margin: 0
+                  }}>
+                    Christina Maslach's research at UC Berkeley identified three key components of burnout:
+                    emotional exhaustion, depersonalization (cynicism), and reduced personal accomplishment.
+                    This assessment measures each dimension to provide targeted intervention recommendations.
+                  </p>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '1rem'
+                  }}>
+                    {[
+                      { icon: '\uD83D\uDCCB', label: '17 Items', desc: '~5 minutes' },
+                      { icon: '\uD83C\uDFAF', label: '3 Dimensions', desc: 'Targeted insights' },
+                      { icon: '\uD83D\uDCA1', label: 'Interventions', desc: 'Research-based' }
+                    ].map((item, i) => (
+                      <div key={i} style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '1rem',
+                        padding: '1rem',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{item.icon}</div>
+                        <div style={{ fontWeight: '600', color: '#e2e8f0', fontSize: '0.9rem' }}>{item.label}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setScreen('assessment')}
+                    style={{
+                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1.25rem 2rem',
+                      fontSize: '1.125rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3)'
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                    onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+                  >
+                    Begin Assessment {'\u2192'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Assessment Screen */}
+            {screen === 'assessment' && (
+              <div>
+                {/* Progress */}
+                <div style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  {dimensions.map((dim, idx) => (
+                    <div key={dim.id} style={{
+                      flex: 1,
+                      background: idx <= currentDimension ? dim.color : 'rgba(255, 255, 255, 0.1)',
+                      height: '8px',
+                      borderRadius: '4px',
+                      transition: 'background 0.3s ease'
+                    }} />
+                  ))}
+                </div>
+
+                {/* Current Dimension */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '2rem',
+                  border: `1px solid ${dimensions[currentDimension].color}30`
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <div style={{
+                      background: `${dimensions[currentDimension].color}20`,
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '2rem'
+                    }}>
+                      {dimensions[currentDimension].icon}
+                    </div>
+                    <div>
+                      <h2 style={{ margin: 0, color: dimensions[currentDimension].color, fontSize: '1.25rem' }}>
+                        {dimensions[currentDimension].name}
+                      </h2>
+                      <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.875rem' }}>
+                        {dimensions[currentDimension].description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p style={{
+                    color: '#64748b',
+                    fontSize: '0.875rem',
+                    marginBottom: '1.5rem'
+                  }}>
+                    How often do you experience each of the following? Select the frequency that best describes your experience.
+                  </p>
+
+                  <div style={{ display: 'grid', gap: '1.25rem' }}>
+                    {dimensions[currentDimension].questions.map(q => (
+                      <div key={q.id} style={{
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        borderRadius: '1rem',
+                        padding: '1.25rem'
+                      }}>
+                        <p style={{
+                          color: '#e2e8f0',
+                          margin: '0 0 1rem 0',
+                          fontSize: '0.95rem',
+                          lineHeight: '1.5'
+                        }}>
+                          {q.text}
+                        </p>
+
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                          gap: '0.5rem'
+                        }}>
+                          {frequencyScale.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => handleResponse(q.id, option.value)}
+                              style={{
+                                background: responses[q.id] === option.value
+                                  ? `${option.color}20`
+                                  : 'rgba(255, 255, 255, 0.03)',
+                                border: `2px solid ${responses[q.id] === option.value ? option.color : 'rgba(255, 255, 255, 0.1)'}`,
+                                borderRadius: '0.5rem',
+                                padding: '0.75rem 0.5rem',
+                                cursor: 'pointer',
+                                color: responses[q.id] === option.value ? option.color : '#94a3b8',
+                                fontSize: '0.75rem',
+                                fontWeight: '500',
+                                transition: 'all 0.2s ease',
+                                textAlign: 'center'
+                              }}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={nextDimension}
+                    disabled={!allCurrentQuestionsAnswered()}
+                    style={{
+                      background: allCurrentQuestionsAnswered()
+                        ? `linear-gradient(135deg, ${dimensions[currentDimension].color} 0%, ${dimensions[currentDimension].color}dd 100%)`
+                        : 'rgba(255, 255, 255, 0.1)',
+                      color: allCurrentQuestionsAnswered() ? 'white' : '#64748b',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1rem 2rem',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      cursor: allCurrentQuestionsAnswered() ? 'pointer' : 'not-allowed',
+                      width: '100%',
+                      marginTop: '1.5rem'
+                    }}
+                  >
+                    {currentDimension < dimensions.length - 1 ? 'Next Section \u2192' : 'See Results \u2192'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Results Screen */}
+            {screen === 'results' && results && (
+              <div>
+                {/* Overall Risk */}
+                <div style={{
+                  background: `linear-gradient(135deg, ${getRiskColor(results.overallRisk)}10 0%, rgba(0,0,0,0.3) 100%)`,
+                  borderRadius: '1.5rem',
+                  padding: '2rem',
+                  border: `2px solid ${getRiskColor(results.overallRisk)}40`,
+                  marginBottom: '1.5rem',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    fontSize: '4rem',
+                    marginBottom: '0.5rem'
+                  }}>
+                    {results.overallRisk === 'low' ? '\u2705' : results.overallRisk === 'moderate' ? '\u26A0\uFE0F' : '\uD83D\uDEA8'}
+                  </div>
+                  <h2 style={{
+                    margin: '0 0 0.5rem 0',
+                    color: getRiskColor(results.overallRisk),
+                    fontSize: '1.75rem'
+                  }}>
+                    {getRiskLabel(results.overallRisk)} Burnout Profile
+                  </h2>
+                  <p style={{ color: '#94a3b8', margin: 0 }}>
+                    Overall Score: {results.overallPercentage}% risk level
+                  </p>
+
+                  {results.warningPattern && (
+                    <div style={{
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      borderRadius: '0.75rem',
+                      padding: '1rem',
+                      marginTop: '1rem',
+                      border: '1px solid rgba(239, 68, 68, 0.3)'
+                    }}>
+                      <p style={{
+                        margin: 0,
+                        color: '#fca5a5',
+                        fontSize: '0.9rem',
+                        fontWeight: '500'
+                      }}>
+                        {'\u26A0\uFE0F'} Warning Pattern Detected: High exhaustion combined with high cynicism
+                        indicates active burnout. Please prioritize self-care and consider professional support.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Dimension Breakdown */}
+                <div style={{
+                  display: 'grid',
+                  gap: '1.5rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  {dimensions.map(dim => {
+                    const score = results.dimensions[dim.id];
+                    return (
+                      <div key={dim.id} style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '1.5rem',
+                        padding: '1.5rem',
+                        border: `1px solid ${dim.color}30`
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '1rem'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '1.5rem' }}>{dim.icon}</span>
+                            <div>
+                              <h3 style={{ margin: 0, color: dim.color, fontSize: '1.125rem' }}>
+                                {dim.name}
+                              </h3>
+                              <p style={{ margin: 0, color: '#64748b', fontSize: '0.8rem' }}>
+                                {dim.description}
+                              </p>
+                            </div>
+                          </div>
+                          <div style={{
+                            background: `${getRiskColor(score.riskLevel)}20`,
+                            color: getRiskColor(score.riskLevel),
+                            padding: '0.375rem 0.875rem',
+                            borderRadius: '1rem',
+                            fontSize: '0.875rem',
+                            fontWeight: '600'
+                          }}>
+                            {getRiskLabel(score.riskLevel)}
+                          </div>
+                        </div>
+
+                        {/* Score Bar */}
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.5rem',
+                          height: '12px',
+                          marginBottom: '1rem',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            background: `linear-gradient(90deg, ${getRiskColor(score.riskLevel)}, ${getRiskColor(score.riskLevel)}88)`,
+                            height: '100%',
+                            width: `${score.percentage}%`,
+                            borderRadius: '0.5rem',
+                            transition: 'width 0.5s ease'
+                          }} />
+                        </div>
+
+                        {/* Interventions */}
+                        <div style={{
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          borderRadius: '0.75rem',
+                          padding: '1rem'
+                        }}>
+                          <h4 style={{
+                            margin: '0 0 0.75rem 0',
+                            color: '#e2e8f0',
+                            fontSize: '0.875rem'
+                          }}>
+                            {'\uD83D\uDCA1'} Recommended Interventions
+                          </h4>
+                          <ul style={{
+                            margin: 0,
+                            paddingLeft: '1.25rem',
+                            color: '#94a3b8',
+                            lineHeight: '1.8',
+                            fontSize: '0.875rem'
+                          }}>
+                            {interventions[dim.id][score.riskLevel].slice(0, 4).map((intervention, i) => (
+                              <li key={i}>{intervention}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Research Note */}
+                <div style={{
+                  background: 'rgba(99, 102, 241, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(99, 102, 241, 0.2)'
+                }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#818cf8', fontSize: '1rem' }}>
+                    {'\uD83D\uDCDA'} Understanding Your Results
+                  </h3>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: '1.25rem',
+                    color: '#c7d2fe',
+                    lineHeight: '1.8',
+                    fontSize: '0.9rem'
+                  }}>
+                    <li><strong>Burnout is a process:</strong> It develops over time, giving you opportunities to intervene early.</li>
+                    <li><strong>Dimensions are interconnected:</strong> Exhaustion often leads to cynicism, which then reduces efficacy.</li>
+                    <li><strong>Recovery is possible:</strong> Research shows burnout is reversible with appropriate interventions.</li>
+                    <li><strong>Context matters:</strong> Organizational factors often contribute more than individual factors.</li>
+                  </ul>
+                </div>
+
+                {/* Resources */}
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  borderRadius: '1rem',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(16, 185, 129, 0.2)'
+                }}>
+                  <h4 style={{ margin: '0 0 0.75rem 0', color: '#10b981', fontSize: '0.95rem' }}>
+                    {'\uD83C\uDD98'} If You're Struggling
+                  </h4>
+                  <p style={{ margin: 0, color: '#6ee7b7', fontSize: '0.875rem', lineHeight: '1.6' }}>
+                    If you're experiencing severe burnout symptoms, please reach out to your healthcare provider,
+                    Employee Assistance Program (EAP), or a mental health professional. Burnout is a recognized
+                    occupational phenomenon and help is available.
+                  </p>
+                </div>
+
+                <button
+                  onClick={restart}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#e2e8f0',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  {'\u21BA'} Retake Assessment
+                </button>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '2rem',
+              color: '#334155',
+              fontSize: '0.75rem'
+            }}>
+              Framework: Maslach Burnout Inventory (Maslach & Jackson, 1981)
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<BurnoutRiskCalculator />);
+  </script>
+</body>
+</html>

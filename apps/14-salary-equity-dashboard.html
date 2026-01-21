@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salary Equity Dashboard</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // Mock sample data based on compensation research patterns
+    const defaultEmployeeData = [
+      // Engineering Department
+      { id: 1, name: 'Employee 1', gender: 'Male', ethnicity: 'White', department: 'Engineering', level: 'Senior', tenure: 5, role: 'Software Engineer', salary: 145000, marketRate: 140000 },
+      { id: 2, name: 'Employee 2', gender: 'Female', ethnicity: 'White', department: 'Engineering', level: 'Senior', tenure: 6, role: 'Software Engineer', salary: 138000, marketRate: 140000 },
+      { id: 3, name: 'Employee 3', gender: 'Male', ethnicity: 'Asian', department: 'Engineering', level: 'Mid', tenure: 3, role: 'Software Engineer', salary: 115000, marketRate: 110000 },
+      { id: 4, name: 'Employee 4', gender: 'Female', ethnicity: 'Asian', department: 'Engineering', level: 'Mid', tenure: 3, role: 'Software Engineer', salary: 108000, marketRate: 110000 },
+      { id: 5, name: 'Employee 5', gender: 'Male', ethnicity: 'Black', department: 'Engineering', level: 'Junior', tenure: 1, role: 'Software Engineer', salary: 85000, marketRate: 80000 },
+      { id: 6, name: 'Employee 6', gender: 'Female', ethnicity: 'Hispanic', department: 'Engineering', level: 'Senior', tenure: 7, role: 'Software Engineer', salary: 142000, marketRate: 140000 },
+      { id: 7, name: 'Employee 7', gender: 'Male', ethnicity: 'White', department: 'Engineering', level: 'Lead', tenure: 8, role: 'Tech Lead', salary: 175000, marketRate: 170000 },
+      { id: 8, name: 'Employee 8', gender: 'Female', ethnicity: 'Black', department: 'Engineering', level: 'Mid', tenure: 2, role: 'Software Engineer', salary: 105000, marketRate: 110000 },
+
+      // Marketing Department
+      { id: 9, name: 'Employee 9', gender: 'Female', ethnicity: 'White', department: 'Marketing', level: 'Senior', tenure: 4, role: 'Marketing Manager', salary: 95000, marketRate: 95000 },
+      { id: 10, name: 'Employee 10', gender: 'Male', ethnicity: 'White', department: 'Marketing', level: 'Senior', tenure: 5, role: 'Marketing Manager', salary: 102000, marketRate: 95000 },
+      { id: 11, name: 'Employee 11', gender: 'Female', ethnicity: 'Asian', department: 'Marketing', level: 'Mid', tenure: 2, role: 'Marketing Specialist', salary: 68000, marketRate: 70000 },
+      { id: 12, name: 'Employee 12', gender: 'Male', ethnicity: 'Hispanic', department: 'Marketing', level: 'Mid', tenure: 3, role: 'Marketing Specialist', salary: 72000, marketRate: 70000 },
+
+      // Sales Department
+      { id: 13, name: 'Employee 13', gender: 'Male', ethnicity: 'White', department: 'Sales', level: 'Senior', tenure: 6, role: 'Sales Director', salary: 130000, marketRate: 125000 },
+      { id: 14, name: 'Employee 14', gender: 'Female', ethnicity: 'White', department: 'Sales', level: 'Senior', tenure: 5, role: 'Sales Director', salary: 118000, marketRate: 125000 },
+      { id: 15, name: 'Employee 15', gender: 'Male', ethnicity: 'Black', department: 'Sales', level: 'Mid', tenure: 3, role: 'Account Executive', salary: 85000, marketRate: 80000 },
+      { id: 16, name: 'Employee 16', gender: 'Female', ethnicity: 'Hispanic', department: 'Sales', level: 'Mid', tenure: 4, role: 'Account Executive', salary: 78000, marketRate: 80000 },
+      { id: 17, name: 'Employee 17', gender: 'Male', ethnicity: 'Asian', department: 'Sales', level: 'Junior', tenure: 1, role: 'Sales Rep', salary: 55000, marketRate: 52000 },
+      { id: 18, name: 'Employee 18', gender: 'Female', ethnicity: 'Black', department: 'Sales', level: 'Junior', tenure: 1, role: 'Sales Rep', salary: 52000, marketRate: 52000 },
+
+      // HR Department
+      { id: 19, name: 'Employee 19', gender: 'Female', ethnicity: 'White', department: 'HR', level: 'Senior', tenure: 7, role: 'HR Director', salary: 115000, marketRate: 110000 },
+      { id: 20, name: 'Employee 20', gender: 'Male', ethnicity: 'White', department: 'HR', level: 'Mid', tenure: 3, role: 'HR Specialist', salary: 72000, marketRate: 68000 },
+      { id: 21, name: 'Employee 21', gender: 'Female', ethnicity: 'Asian', department: 'HR', level: 'Mid', tenure: 2, role: 'HR Specialist', salary: 65000, marketRate: 68000 },
+      { id: 22, name: 'Employee 22', gender: 'Female', ethnicity: 'Hispanic', department: 'HR', level: 'Junior', tenure: 1, role: 'HR Coordinator', salary: 48000, marketRate: 48000 },
+
+      // Finance Department
+      { id: 23, name: 'Employee 23', gender: 'Male', ethnicity: 'White', department: 'Finance', level: 'Lead', tenure: 10, role: 'CFO', salary: 195000, marketRate: 190000 },
+      { id: 24, name: 'Employee 24', gender: 'Female', ethnicity: 'Asian', department: 'Finance', level: 'Senior', tenure: 5, role: 'Finance Manager', salary: 105000, marketRate: 110000 },
+      { id: 25, name: 'Employee 25', gender: 'Male', ethnicity: 'Black', department: 'Finance', level: 'Senior', tenure: 6, role: 'Finance Manager', salary: 112000, marketRate: 110000 },
+      { id: 26, name: 'Employee 26', gender: 'Female', ethnicity: 'White', department: 'Finance', level: 'Mid', tenure: 3, role: 'Financial Analyst', salary: 78000, marketRate: 80000 },
+      { id: 27, name: 'Employee 27', gender: 'Male', ethnicity: 'Hispanic', department: 'Finance', level: 'Mid', tenure: 2, role: 'Financial Analyst', salary: 82000, marketRate: 80000 },
+      { id: 28, name: 'Employee 28', gender: 'Female', ethnicity: 'Black', department: 'Finance', level: 'Junior', tenure: 1, role: 'Accounting Clerk', salary: 52000, marketRate: 50000 },
+    ];
+
+    const levelValues = { 'Junior': 1, 'Mid': 2, 'Senior': 3, 'Lead': 4 };
+
+    // Styles
+    const styles = {
+      container: {
+        minHeight: '100vh',
+        backgroundColor: '#0f1419',
+        color: '#e7e9ea',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        padding: '24px',
+      },
+      header: {
+        textAlign: 'center',
+        marginBottom: '32px',
+        borderBottom: '1px solid #2f3336',
+        paddingBottom: '24px',
+      },
+      title: {
+        fontSize: '32px',
+        fontWeight: '700',
+        color: '#ffffff',
+        marginBottom: '8px',
+      },
+      subtitle: {
+        fontSize: '16px',
+        color: '#71767b',
+      },
+      grid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '24px',
+        marginBottom: '24px',
+      },
+      card: {
+        backgroundColor: '#16181c',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid #2f3336',
+      },
+      cardTitle: {
+        fontSize: '18px',
+        fontWeight: '600',
+        color: '#ffffff',
+        marginBottom: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+      },
+      statValue: {
+        fontSize: '36px',
+        fontWeight: '700',
+        marginBottom: '4px',
+      },
+      statLabel: {
+        fontSize: '14px',
+        color: '#71767b',
+      },
+      table: {
+        width: '100%',
+        borderCollapse: 'collapse',
+        fontSize: '14px',
+      },
+      th: {
+        textAlign: 'left',
+        padding: '12px 8px',
+        borderBottom: '1px solid #2f3336',
+        color: '#71767b',
+        fontWeight: '500',
+      },
+      td: {
+        padding: '12px 8px',
+        borderBottom: '1px solid #2f3336',
+      },
+      badge: {
+        display: 'inline-block',
+        padding: '4px 12px',
+        borderRadius: '20px',
+        fontSize: '12px',
+        fontWeight: '600',
+      },
+      button: {
+        backgroundColor: '#1d9bf0',
+        color: '#ffffff',
+        border: 'none',
+        borderRadius: '8px',
+        padding: '12px 24px',
+        fontSize: '14px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        transition: 'background-color 0.2s',
+      },
+      input: {
+        backgroundColor: '#202327',
+        border: '1px solid #2f3336',
+        borderRadius: '8px',
+        padding: '10px 12px',
+        color: '#e7e9ea',
+        fontSize: '14px',
+        width: '100%',
+        boxSizing: 'border-box',
+      },
+      select: {
+        backgroundColor: '#202327',
+        border: '1px solid #2f3336',
+        borderRadius: '8px',
+        padding: '10px 12px',
+        color: '#e7e9ea',
+        fontSize: '14px',
+        width: '100%',
+        boxSizing: 'border-box',
+      },
+      tabs: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        borderBottom: '1px solid #2f3336',
+        paddingBottom: '8px',
+      },
+      tab: {
+        padding: '12px 20px',
+        borderRadius: '8px',
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '500',
+        transition: 'all 0.2s',
+      },
+    };
+
+    // Bar Chart Component using CSS
+    const BarChart = ({ data, maxValue, colorFn, height = 200 }) => {
+      return (
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height, padding: '20px 0' }}>
+          {data.map((item, idx) => {
+            const barHeight = Math.max((Math.abs(item.value) / maxValue) * (height - 40), 4);
+            const isNegative = item.value < 0;
+            return (
+              <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{
+                  fontSize: '12px',
+                  marginBottom: '4px',
+                  color: colorFn ? colorFn(item.value) : '#1d9bf0',
+                  fontWeight: '600',
+                }}>
+                  {item.value > 0 ? '+' : ''}{item.value.toFixed(1)}%
+                </div>
+                <div style={{
+                  width: '100%',
+                  maxWidth: '60px',
+                  height: barHeight,
+                  backgroundColor: colorFn ? colorFn(item.value) : '#1d9bf0',
+                  borderRadius: '4px 4px 0 0',
+                  transition: 'height 0.3s ease',
+                }} />
+                <div style={{
+                  fontSize: '11px',
+                  color: '#71767b',
+                  marginTop: '8px',
+                  textAlign: 'center',
+                  maxWidth: '70px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {item.label}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    };
+
+    // Distribution Chart Component
+    const DistributionChart = ({ data, groups, colors }) => {
+      const maxCount = Math.max(...data.flatMap(d => groups.map(g => d[g] || 0)));
+
+      return (
+        <div style={{ padding: '20px 0' }}>
+          {data.map((range, idx) => (
+            <div key={idx} style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', color: '#71767b', marginBottom: '8px' }}>{range.range}</div>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {groups.map((group, gIdx) => (
+                  <div key={gIdx} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      height: '24px',
+                      width: `${Math.max((range[group] || 0) / maxCount * 100, 2)}%`,
+                      backgroundColor: colors[gIdx],
+                      borderRadius: '4px',
+                      minWidth: range[group] ? '20px' : '4px',
+                    }} />
+                    <span style={{ fontSize: '12px', color: colors[gIdx] }}>{range[group] || 0}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: '24px', marginTop: '16px' }}>
+            {groups.map((group, idx) => (
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: colors[idx] }} />
+                <span style={{ fontSize: '12px', color: '#71767b' }}>{group}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // Compa-Ratio Gauge Component
+    const CompaRatioGauge = ({ value, label }) => {
+      const percentage = Math.min(Math.max((value / 1.3) * 100, 0), 100);
+      const getColor = (v) => {
+        if (v < 0.9) return '#f4212e';
+        if (v < 0.95) return '#ffd400';
+        if (v <= 1.05) return '#00ba7c';
+        if (v <= 1.1) return '#ffd400';
+        return '#f4212e';
+      };
+
+      return (
+        <div style={{ textAlign: 'center', padding: '16px' }}>
+          <svg viewBox="0 0 120 80" style={{ width: '100%', maxWidth: '150px' }}>
+            {/* Background arc */}
+            <path
+              d="M 10 70 A 50 50 0 0 1 110 70"
+              fill="none"
+              stroke="#2f3336"
+              strokeWidth="10"
+              strokeLinecap="round"
+            />
+            {/* Value arc */}
+            <path
+              d="M 10 70 A 50 50 0 0 1 110 70"
+              fill="none"
+              stroke={getColor(value)}
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={`${percentage * 1.57} 157`}
+            />
+            {/* Center text */}
+            <text x="60" y="55" textAnchor="middle" fill="#ffffff" fontSize="18" fontWeight="700">
+              {value.toFixed(2)}
+            </text>
+            <text x="60" y="72" textAnchor="middle" fill="#71767b" fontSize="10">
+              {label}
+            </text>
+          </svg>
+        </div>
+      );
+    };
+
+    // Main Dashboard Component
+    const SalaryEquityDashboard = () => {
+      const [employees, setEmployees] = useState(defaultEmployeeData);
+      const [activeTab, setActiveTab] = useState('overview');
+      const [selectedDepartment, setSelectedDepartment] = useState('All');
+      const [showAddForm, setShowAddForm] = useState(false);
+      const [newEmployee, setNewEmployee] = useState({
+        gender: 'Male',
+        ethnicity: 'White',
+        department: 'Engineering',
+        level: 'Mid',
+        tenure: 2,
+        role: '',
+        salary: '',
+        marketRate: '',
+      });
+
+      // Filter employees by department
+      const filteredEmployees = useMemo(() => {
+        if (selectedDepartment === 'All') return employees;
+        return employees.filter(e => e.department === selectedDepartment);
+      }, [employees, selectedDepartment]);
+
+      // Calculate statistics
+      const stats = useMemo(() => {
+        const calc = (data) => {
+          const males = data.filter(e => e.gender === 'Male');
+          const females = data.filter(e => e.gender === 'Female');
+
+          const avgMale = males.length ? males.reduce((sum, e) => sum + e.salary, 0) / males.length : 0;
+          const avgFemale = females.length ? females.reduce((sum, e) => sum + e.salary, 0) / females.length : 0;
+
+          const rawGap = avgMale > 0 ? ((avgMale - avgFemale) / avgMale) * 100 : 0;
+
+          // Adjusted gap calculation (controlling for level, tenure, role)
+          // Group by level and role, then calculate weighted gap
+          const groups = {};
+          data.forEach(e => {
+            const key = `${e.level}-${e.role}`;
+            if (!groups[key]) groups[key] = { males: [], females: [] };
+            if (e.gender === 'Male') groups[key].males.push(e);
+            else groups[key].females.push(e);
+          });
+
+          let totalWeight = 0;
+          let weightedGapSum = 0;
+
+          Object.values(groups).forEach(group => {
+            if (group.males.length && group.females.length) {
+              const gAvgMale = group.males.reduce((s, e) => s + e.salary, 0) / group.males.length;
+              const gAvgFemale = group.females.reduce((s, e) => s + e.salary, 0) / group.females.length;
+              const weight = group.males.length + group.females.length;
+              weightedGapSum += ((gAvgMale - gAvgFemale) / gAvgMale) * 100 * weight;
+              totalWeight += weight;
+            }
+          });
+
+          const adjustedGap = totalWeight > 0 ? weightedGapSum / totalWeight : rawGap * 0.4;
+
+          // Compa-ratios
+          const avgCompaRatio = data.reduce((sum, e) => sum + (e.salary / e.marketRate), 0) / data.length;
+          const maleCompaRatio = males.length ? males.reduce((sum, e) => sum + (e.salary / e.marketRate), 0) / males.length : 0;
+          const femaleCompaRatio = females.length ? females.reduce((sum, e) => sum + (e.salary / e.marketRate), 0) / females.length : 0;
+
+          return {
+            rawGap,
+            adjustedGap,
+            avgCompaRatio,
+            maleCompaRatio,
+            femaleCompaRatio,
+            totalEmployees: data.length,
+            avgSalary: data.reduce((sum, e) => sum + e.salary, 0) / data.length,
+          };
+        };
+
+        return calc(filteredEmployees);
+      }, [filteredEmployees]);
+
+      // Ethnicity gap calculations
+      const ethnicityGaps = useMemo(() => {
+        const ethnicities = [...new Set(filteredEmployees.map(e => e.ethnicity))];
+        const white = filteredEmployees.filter(e => e.ethnicity === 'White');
+        const avgWhite = white.length ? white.reduce((sum, e) => sum + e.salary, 0) / white.length : 0;
+
+        return ethnicities.map(eth => {
+          const group = filteredEmployees.filter(e => e.ethnicity === eth);
+          const avgSalary = group.reduce((sum, e) => sum + e.salary, 0) / group.length;
+          const gap = avgWhite > 0 ? ((avgWhite - avgSalary) / avgWhite) * 100 : 0;
+          return { ethnicity: eth, gap, count: group.length, avgSalary };
+        }).sort((a, b) => b.gap - a.gap);
+      }, [filteredEmployees]);
+
+      // Department gaps
+      const departmentGaps = useMemo(() => {
+        const departments = [...new Set(employees.map(e => e.department))];
+        return departments.map(dept => {
+          const deptEmployees = employees.filter(e => e.department === dept);
+          const males = deptEmployees.filter(e => e.gender === 'Male');
+          const females = deptEmployees.filter(e => e.gender === 'Female');
+          const avgMale = males.length ? males.reduce((sum, e) => sum + e.salary, 0) / males.length : 0;
+          const avgFemale = females.length ? females.reduce((sum, e) => sum + e.salary, 0) / females.length : 0;
+          const gap = avgMale > 0 ? ((avgMale - avgFemale) / avgMale) * 100 : 0;
+          return { department: dept, gap, maleCount: males.length, femaleCount: females.length };
+        }).sort((a, b) => b.gap - a.gap);
+      }, [employees]);
+
+      // Salary distribution by gender
+      const salaryDistribution = useMemo(() => {
+        const ranges = [
+          { min: 0, max: 60000, range: '$0-60K' },
+          { min: 60000, max: 80000, range: '$60-80K' },
+          { min: 80000, max: 100000, range: '$80-100K' },
+          { min: 100000, max: 120000, range: '$100-120K' },
+          { min: 120000, max: 150000, range: '$120-150K' },
+          { min: 150000, max: Infinity, range: '$150K+' },
+        ];
+
+        return ranges.map(r => ({
+          range: r.range,
+          Male: filteredEmployees.filter(e => e.gender === 'Male' && e.salary >= r.min && e.salary < r.max).length,
+          Female: filteredEmployees.filter(e => e.gender === 'Female' && e.salary >= r.min && e.salary < r.max).length,
+        }));
+      }, [filteredEmployees]);
+
+      // Compa-ratio distribution
+      const compaDistribution = useMemo(() => {
+        const ranges = [
+          { min: 0, max: 0.9, range: '<0.90 (Under)' },
+          { min: 0.9, max: 0.95, range: '0.90-0.95' },
+          { min: 0.95, max: 1.0, range: '0.95-1.00' },
+          { min: 1.0, max: 1.05, range: '1.00-1.05' },
+          { min: 1.05, max: 1.1, range: '1.05-1.10' },
+          { min: 1.1, max: Infinity, range: '>1.10 (Over)' },
+        ];
+
+        return ranges.map(r => ({
+          range: r.range,
+          Male: filteredEmployees.filter(e => {
+            const cr = e.salary / e.marketRate;
+            return e.gender === 'Male' && cr >= r.min && cr < r.max;
+          }).length,
+          Female: filteredEmployees.filter(e => {
+            const cr = e.salary / e.marketRate;
+            return e.gender === 'Female' && cr >= r.min && cr < r.max;
+          }).length,
+        }));
+      }, [filteredEmployees]);
+
+      // Get recommendations based on findings
+      const recommendations = useMemo(() => {
+        const recs = [];
+
+        if (stats.rawGap > 10) {
+          recs.push({
+            severity: 'high',
+            title: 'Significant Raw Pay Gap Detected',
+            description: `The ${stats.rawGap.toFixed(1)}% raw gender pay gap exceeds the 10% threshold. While some gap may be explained by legitimate factors, this warrants immediate investigation.`,
+            action: 'Conduct a detailed pay equity audit with regression analysis controlling for job-related factors.',
+          });
+        } else if (stats.rawGap > 5) {
+          recs.push({
+            severity: 'medium',
+            title: 'Moderate Raw Pay Gap',
+            description: `A ${stats.rawGap.toFixed(1)}% raw gap exists. This is within moderate range but should be monitored.`,
+            action: 'Review hiring and promotion practices for potential bias in job leveling.',
+          });
+        }
+
+        if (stats.adjustedGap > 5) {
+          recs.push({
+            severity: 'high',
+            title: 'Unexplained Pay Disparity',
+            description: `After controlling for level, tenure, and role, a ${stats.adjustedGap.toFixed(1)}% gap remains. This suggests potential pay discrimination.`,
+            action: 'Implement immediate salary adjustments for underpaid employees. Review compensation setting processes.',
+          });
+        } else if (stats.adjustedGap > 2) {
+          recs.push({
+            severity: 'medium',
+            title: 'Minor Adjusted Gap Present',
+            description: `A ${stats.adjustedGap.toFixed(1)}% adjusted gap exists after controls. This is approaching concerning levels.`,
+            action: 'Monitor closely and consider preemptive adjustments during next compensation cycle.',
+          });
+        }
+
+        if (stats.femaleCompaRatio < 0.95 && stats.maleCompaRatio >= 1.0) {
+          recs.push({
+            severity: 'high',
+            title: 'Compa-Ratio Disparity by Gender',
+            description: `Female employees average ${(stats.femaleCompaRatio * 100).toFixed(0)}% of market rate while males average ${(stats.maleCompaRatio * 100).toFixed(0)}%.`,
+            action: 'Prioritize market adjustments for female employees who are below 95% compa-ratio.',
+          });
+        }
+
+        const underrepresented = ethnicityGaps.filter(e => e.gap > 8 && e.ethnicity !== 'White');
+        if (underrepresented.length > 0) {
+          recs.push({
+            severity: 'medium',
+            title: 'Ethnic Pay Gaps Identified',
+            description: `Pay gaps exceeding 8% found for: ${underrepresented.map(e => `${e.ethnicity} (${e.gap.toFixed(1)}%)`).join(', ')}.`,
+            action: 'Conduct intersectional analysis and review hiring/promotion pipelines for these groups.',
+          });
+        }
+
+        const highGapDepts = departmentGaps.filter(d => d.gap > 15);
+        if (highGapDepts.length > 0) {
+          recs.push({
+            severity: 'medium',
+            title: 'Department-Level Disparities',
+            description: `High gender pay gaps in: ${highGapDepts.map(d => `${d.department} (${d.gap.toFixed(1)}%)`).join(', ')}.`,
+            action: 'Work with department heads to review role assignments and compensation decisions.',
+          });
+        }
+
+        if (recs.length === 0) {
+          recs.push({
+            severity: 'low',
+            title: 'Pay Equity Within Acceptable Range',
+            description: 'Current metrics indicate reasonable pay equity across measured dimensions.',
+            action: 'Continue monitoring quarterly. Document processes to maintain equity.',
+          });
+        }
+
+        return recs;
+      }, [stats, ethnicityGaps, departmentGaps]);
+
+      const handleAddEmployee = () => {
+        if (!newEmployee.role || !newEmployee.salary || !newEmployee.marketRate) return;
+
+        const employee = {
+          id: employees.length + 1,
+          name: `Employee ${employees.length + 1}`,
+          ...newEmployee,
+          salary: parseFloat(newEmployee.salary),
+          marketRate: parseFloat(newEmployee.marketRate),
+          tenure: parseInt(newEmployee.tenure),
+        };
+
+        setEmployees([...employees, employee]);
+        setNewEmployee({
+          gender: 'Male',
+          ethnicity: 'White',
+          department: 'Engineering',
+          level: 'Mid',
+          tenure: 2,
+          role: '',
+          salary: '',
+          marketRate: '',
+        });
+        setShowAddForm(false);
+      };
+
+      const getGapColor = (gap) => {
+        if (gap <= 2) return '#00ba7c';
+        if (gap <= 5) return '#ffd400';
+        if (gap <= 10) return '#ff7a00';
+        return '#f4212e';
+      };
+
+      const getSeverityColor = (severity) => {
+        switch (severity) {
+          case 'high': return '#f4212e';
+          case 'medium': return '#ffd400';
+          case 'low': return '#00ba7c';
+          default: return '#71767b';
+        }
+      };
+
+      const departments = ['All', ...new Set(employees.map(e => e.department))];
+
+      return (
+        <div style={styles.container}>
+          {/* Header */}
+          <header style={styles.header}>
+            <h1 style={styles.title}>Salary Equity Dashboard</h1>
+            <p style={styles.subtitle}>Comprehensive compensation fairness analysis with statistical controls</p>
+          </header>
+
+          {/* Filters */}
+          <div style={{ ...styles.card, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ fontSize: '12px', color: '#71767b', display: 'block', marginBottom: '4px' }}>Department</label>
+              <select
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                style={{ ...styles.select, width: '200px' }}
+              >
+                {departments.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div style={{ marginLeft: 'auto' }}>
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                style={styles.button}
+              >
+                {showAddForm ? 'Cancel' : '+ Add Employee'}
+              </button>
+            </div>
+          </div>
+
+          {/* Add Employee Form */}
+          {showAddForm && (
+            <div style={{ ...styles.card, marginBottom: '24px' }}>
+              <h3 style={styles.cardTitle}>Add New Employee</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#71767b', display: 'block', marginBottom: '4px' }}>Gender</label>
+                  <select
+                    value={newEmployee.gender}
+                    onChange={(e) => setNewEmployee({...newEmployee, gender: e.target.value})}
+                    style={styles.select}
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#71767b', display: 'block', marginBottom: '4px' }}>Ethnicity</label>
+                  <select
+                    value={newEmployee.ethnicity}
+                    onChange={(e) => setNewEmployee({...newEmployee, ethnicity: e.target.value})}
+                    style={styles.select}
+                  >
+                    <option value="White">White</option>
+                    <option value="Black">Black</option>
+                    <option value="Asian">Asian</option>
+                    <option value="Hispanic">Hispanic</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#71767b', display: 'block', marginBottom: '4px' }}>Department</label>
+                  <select
+                    value={newEmployee.department}
+                    onChange={(e) => setNewEmployee({...newEmployee, department: e.target.value})}
+                    style={styles.select}
+                  >
+                    <option value="Engineering">Engineering</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Sales">Sales</option>
+                    <option value="HR">HR</option>
+                    <option value="Finance">Finance</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#71767b', display: 'block', marginBottom: '4px' }}>Level</label>
+                  <select
+                    value={newEmployee.level}
+                    onChange={(e) => setNewEmployee({...newEmployee, level: e.target.value})}
+                    style={styles.select}
+                  >
+                    <option value="Junior">Junior</option>
+                    <option value="Mid">Mid</option>
+                    <option value="Senior">Senior</option>
+                    <option value="Lead">Lead</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#71767b', display: 'block', marginBottom: '4px' }}>Tenure (years)</label>
+                  <input
+                    type="number"
+                    value={newEmployee.tenure}
+                    onChange={(e) => setNewEmployee({...newEmployee, tenure: e.target.value})}
+                    style={styles.input}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#71767b', display: 'block', marginBottom: '4px' }}>Role</label>
+                  <input
+                    type="text"
+                    value={newEmployee.role}
+                    onChange={(e) => setNewEmployee({...newEmployee, role: e.target.value})}
+                    placeholder="e.g., Software Engineer"
+                    style={styles.input}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#71767b', display: 'block', marginBottom: '4px' }}>Salary ($)</label>
+                  <input
+                    type="number"
+                    value={newEmployee.salary}
+                    onChange={(e) => setNewEmployee({...newEmployee, salary: e.target.value})}
+                    placeholder="e.g., 100000"
+                    style={styles.input}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#71767b', display: 'block', marginBottom: '4px' }}>Market Rate ($)</label>
+                  <input
+                    type="number"
+                    value={newEmployee.marketRate}
+                    onChange={(e) => setNewEmployee({...newEmployee, marketRate: e.target.value})}
+                    placeholder="e.g., 95000"
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleAddEmployee}
+                style={{ ...styles.button, marginTop: '16px' }}
+              >
+                Add Employee
+              </button>
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div style={styles.tabs}>
+            {['overview', 'gaps', 'distribution', 'recommendations'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  ...styles.tab,
+                  backgroundColor: activeTab === tab ? '#1d9bf0' : 'transparent',
+                  color: activeTab === tab ? '#ffffff' : '#71767b',
+                }}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <>
+              {/* Key Metrics */}
+              <div style={styles.grid}>
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>
+                    <span style={{ color: '#1d9bf0' }}>{'\u25CF'}</span> Raw Gender Pay Gap
+                  </h3>
+                  <div style={{ ...styles.statValue, color: getGapColor(stats.rawGap) }}>
+                    {stats.rawGap.toFixed(1)}%
+                  </div>
+                  <div style={styles.statLabel}>
+                    Unadjusted difference between male and female average salaries
+                  </div>
+                </div>
+
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>
+                    <span style={{ color: '#00ba7c' }}>{'\u25CF'}</span> Adjusted Pay Gap
+                  </h3>
+                  <div style={{ ...styles.statValue, color: getGapColor(stats.adjustedGap) }}>
+                    {stats.adjustedGap.toFixed(1)}%
+                  </div>
+                  <div style={styles.statLabel}>
+                    Gap after controlling for level, tenure, and role
+                  </div>
+                </div>
+
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>
+                    <span style={{ color: '#ffd400' }}>{'\u25CF'}</span> Average Compa-Ratio
+                  </h3>
+                  <div style={{ ...styles.statValue, color: stats.avgCompaRatio >= 0.95 && stats.avgCompaRatio <= 1.05 ? '#00ba7c' : '#ffd400' }}>
+                    {stats.avgCompaRatio.toFixed(2)}
+                  </div>
+                  <div style={styles.statLabel}>
+                    Ratio of actual salary to market rate (1.0 = at market)
+                  </div>
+                </div>
+
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>
+                    <span style={{ color: '#71767b' }}>{'\u25CF'}</span> Workforce Overview
+                  </h3>
+                  <div style={styles.statValue}>{stats.totalEmployees}</div>
+                  <div style={styles.statLabel}>
+                    Total employees | Avg salary: ${Math.round(stats.avgSalary).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Compa-Ratio by Gender */}
+              <div style={{ ...styles.card, marginBottom: '24px' }}>
+                <h3 style={styles.cardTitle}>Compa-Ratio Analysis by Gender</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap' }}>
+                  <CompaRatioGauge value={stats.maleCompaRatio} label="Male" />
+                  <CompaRatioGauge value={stats.femaleCompaRatio} label="Female" />
+                  <CompaRatioGauge value={stats.avgCompaRatio} label="Overall" />
+                </div>
+                <div style={{ marginTop: '16px', padding: '16px', backgroundColor: '#202327', borderRadius: '8px' }}>
+                  <p style={{ fontSize: '14px', color: '#71767b', margin: 0 }}>
+                    <strong style={{ color: '#e7e9ea' }}>Interpretation Guide:</strong> A compa-ratio of 1.0 means the employee is paid exactly at market rate.
+                    Values below 0.95 indicate underpayment relative to market, while values above 1.10 may indicate overpayment.
+                    Significant differences between demographic groups warrant investigation.
+                  </p>
+                </div>
+              </div>
+
+              {/* Department Summary */}
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Gender Pay Gap by Department</h3>
+                <BarChart
+                  data={departmentGaps.map(d => ({ label: d.department, value: d.gap }))}
+                  maxValue={Math.max(...departmentGaps.map(d => Math.abs(d.gap)), 20)}
+                  colorFn={getGapColor}
+                  height={180}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Gaps Tab */}
+          {activeTab === 'gaps' && (
+            <>
+              {/* Ethnicity Gaps */}
+              <div style={{ ...styles.card, marginBottom: '24px' }}>
+                <h3 style={styles.cardTitle}>Pay Gap by Ethnicity (vs. White baseline)</h3>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Ethnicity</th>
+                      <th style={styles.th}>Count</th>
+                      <th style={styles.th}>Avg Salary</th>
+                      <th style={styles.th}>Gap vs White</th>
+                      <th style={styles.th}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ethnicityGaps.map(e => (
+                      <tr key={e.ethnicity}>
+                        <td style={styles.td}>{e.ethnicity}</td>
+                        <td style={styles.td}>{e.count}</td>
+                        <td style={styles.td}>${Math.round(e.avgSalary).toLocaleString()}</td>
+                        <td style={{ ...styles.td, color: getGapColor(Math.abs(e.gap)) }}>
+                          {e.gap > 0 ? '-' : '+'}{Math.abs(e.gap).toFixed(1)}%
+                        </td>
+                        <td style={styles.td}>
+                          <span style={{
+                            ...styles.badge,
+                            backgroundColor: `${getGapColor(Math.abs(e.gap))}22`,
+                            color: getGapColor(Math.abs(e.gap)),
+                          }}>
+                            {Math.abs(e.gap) <= 2 ? 'Equitable' : Math.abs(e.gap) <= 5 ? 'Monitor' : 'Review'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Gender Gap by Level */}
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Gender Gap by Job Level</h3>
+                {(() => {
+                  const levels = ['Junior', 'Mid', 'Senior', 'Lead'];
+                  const levelGaps = levels.map(level => {
+                    const levelEmps = filteredEmployees.filter(e => e.level === level);
+                    const males = levelEmps.filter(e => e.gender === 'Male');
+                    const females = levelEmps.filter(e => e.gender === 'Female');
+                    const avgMale = males.length ? males.reduce((s, e) => s + e.salary, 0) / males.length : 0;
+                    const avgFemale = females.length ? females.reduce((s, e) => s + e.salary, 0) / females.length : 0;
+                    const gap = avgMale > 0 ? ((avgMale - avgFemale) / avgMale) * 100 : 0;
+                    return { level, gap, maleCount: males.length, femaleCount: females.length, avgMale, avgFemale };
+                  }).filter(l => l.maleCount > 0 || l.femaleCount > 0);
+
+                  return (
+                    <table style={styles.table}>
+                      <thead>
+                        <tr>
+                          <th style={styles.th}>Level</th>
+                          <th style={styles.th}>Male (n)</th>
+                          <th style={styles.th}>Male Avg</th>
+                          <th style={styles.th}>Female (n)</th>
+                          <th style={styles.th}>Female Avg</th>
+                          <th style={styles.th}>Gap</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {levelGaps.map(l => (
+                          <tr key={l.level}>
+                            <td style={styles.td}>{l.level}</td>
+                            <td style={styles.td}>{l.maleCount}</td>
+                            <td style={styles.td}>${l.avgMale > 0 ? Math.round(l.avgMale).toLocaleString() : '-'}</td>
+                            <td style={styles.td}>{l.femaleCount}</td>
+                            <td style={styles.td}>${l.avgFemale > 0 ? Math.round(l.avgFemale).toLocaleString() : '-'}</td>
+                            <td style={{ ...styles.td, color: getGapColor(Math.abs(l.gap)), fontWeight: '600' }}>
+                              {l.gap.toFixed(1)}%
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })()}
+              </div>
+            </>
+          )}
+
+          {/* Distribution Tab */}
+          {activeTab === 'distribution' && (
+            <>
+              <div style={styles.grid}>
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>Salary Distribution by Gender</h3>
+                  <DistributionChart
+                    data={salaryDistribution}
+                    groups={['Male', 'Female']}
+                    colors={['#1d9bf0', '#f4212e']}
+                  />
+                </div>
+
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>Compa-Ratio Distribution by Gender</h3>
+                  <DistributionChart
+                    data={compaDistribution}
+                    groups={['Male', 'Female']}
+                    colors={['#1d9bf0', '#f4212e']}
+                  />
+                </div>
+              </div>
+
+              {/* Individual Employee Data */}
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Employee Compensation Details</h3>
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={{ ...styles.th, position: 'sticky', top: 0, backgroundColor: '#16181c' }}>ID</th>
+                        <th style={{ ...styles.th, position: 'sticky', top: 0, backgroundColor: '#16181c' }}>Gender</th>
+                        <th style={{ ...styles.th, position: 'sticky', top: 0, backgroundColor: '#16181c' }}>Ethnicity</th>
+                        <th style={{ ...styles.th, position: 'sticky', top: 0, backgroundColor: '#16181c' }}>Dept</th>
+                        <th style={{ ...styles.th, position: 'sticky', top: 0, backgroundColor: '#16181c' }}>Level</th>
+                        <th style={{ ...styles.th, position: 'sticky', top: 0, backgroundColor: '#16181c' }}>Tenure</th>
+                        <th style={{ ...styles.th, position: 'sticky', top: 0, backgroundColor: '#16181c' }}>Salary</th>
+                        <th style={{ ...styles.th, position: 'sticky', top: 0, backgroundColor: '#16181c' }}>Market</th>
+                        <th style={{ ...styles.th, position: 'sticky', top: 0, backgroundColor: '#16181c' }}>Compa</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEmployees.map(e => {
+                        const compa = e.salary / e.marketRate;
+                        return (
+                          <tr key={e.id}>
+                            <td style={styles.td}>{e.id}</td>
+                            <td style={styles.td}>{e.gender}</td>
+                            <td style={styles.td}>{e.ethnicity}</td>
+                            <td style={styles.td}>{e.department}</td>
+                            <td style={styles.td}>{e.level}</td>
+                            <td style={styles.td}>{e.tenure}y</td>
+                            <td style={styles.td}>${e.salary.toLocaleString()}</td>
+                            <td style={styles.td}>${e.marketRate.toLocaleString()}</td>
+                            <td style={{
+                              ...styles.td,
+                              color: compa < 0.95 ? '#f4212e' : compa > 1.1 ? '#ffd400' : '#00ba7c',
+                              fontWeight: '600',
+                            }}>
+                              {compa.toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Recommendations Tab */}
+          {activeTab === 'recommendations' && (
+            <>
+              <div style={{ ...styles.card, marginBottom: '24px' }}>
+                <h3 style={styles.cardTitle}>Research-Based Interpretation Guide</h3>
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  <div style={{ padding: '16px', backgroundColor: '#202327', borderRadius: '8px' }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#1d9bf0' }}>Understanding Raw vs. Adjusted Pay Gaps</h4>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#e7e9ea', lineHeight: '1.6' }}>
+                      The <strong>raw pay gap</strong> shows the total difference in average pay between groups without any controls.
+                      It reflects both legitimate factors (experience, role, performance) and potential discrimination.
+                      The <strong>adjusted pay gap</strong> controls for job-related factors like level, tenure, and role type.
+                      A significant adjusted gap suggests potential pay inequity that cannot be explained by legitimate factors.
+                    </p>
+                  </div>
+
+                  <div style={{ padding: '16px', backgroundColor: '#202327', borderRadius: '8px' }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#00ba7c' }}>Compa-Ratio Analysis</h4>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#e7e9ea', lineHeight: '1.6' }}>
+                      Compa-ratio compares actual salary to market rate. A ratio of 1.0 means at-market pay.
+                      <strong> Best practice targets:</strong> 0.95-1.05 for most employees.
+                      Systematic differences in compa-ratios between demographic groups may indicate bias in pay-setting processes.
+                      Organizations should aim for similar compa-ratio distributions across all groups.
+                    </p>
+                  </div>
+
+                  <div style={{ padding: '16px', backgroundColor: '#202327', borderRadius: '8px' }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#ffd400' }}>Statistical Significance Considerations</h4>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#e7e9ea', lineHeight: '1.6' }}>
+                      Small sample sizes can produce misleading gap calculations. Generally, groups with fewer than 5 employees
+                      should be interpreted with caution. Intersectional analysis (e.g., Black women in engineering) may reveal
+                      disparities hidden in aggregate data but requires adequate sample sizes for reliability.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Recommendations */}
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Action Recommendations</h3>
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  {recommendations.map((rec, idx) => (
+                    <div key={idx} style={{
+                      padding: '20px',
+                      backgroundColor: '#202327',
+                      borderRadius: '8px',
+                      borderLeft: `4px solid ${getSeverityColor(rec.severity)}`,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <span style={{
+                          ...styles.badge,
+                          backgroundColor: `${getSeverityColor(rec.severity)}22`,
+                          color: getSeverityColor(rec.severity),
+                          textTransform: 'uppercase',
+                          fontSize: '10px',
+                        }}>
+                          {rec.severity} priority
+                        </span>
+                        <h4 style={{ margin: 0, color: '#ffffff' }}>{rec.title}</h4>
+                      </div>
+                      <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#e7e9ea' }}>
+                        {rec.description}
+                      </p>
+                      <div style={{
+                        padding: '12px',
+                        backgroundColor: '#16181c',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                      }}>
+                        <span style={{ color: '#1d9bf0', fontWeight: '600' }}>Action:</span>
+                        <span style={{ fontSize: '14px', color: '#71767b' }}>{rec.action}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Best Practices */}
+              <div style={{ ...styles.card, marginTop: '24px' }}>
+                <h3 style={styles.cardTitle}>Compensation Equity Best Practices</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+                  {[
+                    { title: 'Regular Audits', desc: 'Conduct pay equity analyses at least annually, with deeper dives quarterly for high-risk areas.' },
+                    { title: 'Transparent Bands', desc: 'Establish and communicate clear salary bands for each role and level to reduce subjective pay decisions.' },
+                    { title: 'Standardized Offers', desc: 'Use data-driven formulas for new hire offers rather than negotiation-based approaches.' },
+                    { title: 'Promotion Parity', desc: 'Track promotion rates by demographic group and ensure equitable access to advancement.' },
+                    { title: 'Manager Training', desc: 'Train managers on unconscious bias in performance reviews and compensation recommendations.' },
+                    { title: 'Documentation', desc: 'Document all pay decisions with legitimate business reasons to ensure accountability.' },
+                  ].map((item, idx) => (
+                    <div key={idx} style={{ padding: '16px', backgroundColor: '#202327', borderRadius: '8px' }}>
+                      <h4 style={{ margin: '0 0 8px 0', color: '#1d9bf0', fontSize: '14px' }}>{item.title}</h4>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#71767b', lineHeight: '1.5' }}>{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Footer */}
+          <footer style={{
+            marginTop: '48px',
+            padding: '24px',
+            borderTop: '1px solid #2f3336',
+            textAlign: 'center',
+            color: '#71767b',
+            fontSize: '12px',
+          }}>
+            <p style={{ margin: '0 0 8px 0' }}>
+              Salary Equity Dashboard Template | Based on compensation fairness research
+            </p>
+            <p style={{ margin: 0 }}>
+              This tool is for informational purposes only. Consult with HR and legal professionals for official pay equity analyses.
+            </p>
+          </footer>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<SalaryEquityDashboard />);
+  </script>
+</body>
+</html>

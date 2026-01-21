@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Structured Interview Question Generator</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const StructuredInterviewGenerator = () => {
+      const [screen, setScreen] = useState('input');
+      const [roleInfo, setRoleInfo] = useState({
+        title: '',
+        level: 'mid',
+        department: '',
+        description: ''
+      });
+      const [selectedCompetencies, setSelectedCompetencies] = useState([]);
+      const [generatedQuestions, setGeneratedQuestions] = useState(null);
+
+      const levels = [
+        { value: 'entry', label: 'Entry Level', yearsExp: '0-2 years' },
+        { value: 'mid', label: 'Mid Level', yearsExp: '3-5 years' },
+        { value: 'senior', label: 'Senior Level', yearsExp: '6-10 years' },
+        { value: 'lead', label: 'Lead/Principal', yearsExp: '10+ years' },
+        { value: 'manager', label: 'Manager', yearsExp: 'People management' },
+        { value: 'executive', label: 'Director+', yearsExp: 'Executive leadership' }
+      ];
+
+      // Research-backed competency framework
+      const competencyCategories = {
+        cognitive: {
+          name: 'Cognitive Abilities',
+          icon: '\u{1F9E0}',
+          color: '#6366f1',
+          competencies: [
+            { id: 'problem-solving', name: 'Problem Solving', desc: 'Analyzing complex issues and developing solutions' },
+            { id: 'critical-thinking', name: 'Critical Thinking', desc: 'Evaluating information objectively and making reasoned judgments' },
+            { id: 'learning-agility', name: 'Learning Agility', desc: 'Quickly acquiring and applying new knowledge' },
+            { id: 'strategic-thinking', name: 'Strategic Thinking', desc: 'Long-term planning and big-picture perspective' }
+          ]
+        },
+        interpersonal: {
+          name: 'Interpersonal Skills',
+          icon: '\u{1F91D}',
+          color: '#10b981',
+          competencies: [
+            { id: 'communication', name: 'Communication', desc: 'Clear and effective verbal and written expression' },
+            { id: 'collaboration', name: 'Collaboration', desc: 'Working effectively with others toward shared goals' },
+            { id: 'influence', name: 'Influence & Persuasion', desc: 'Gaining buy-in and alignment from stakeholders' },
+            { id: 'conflict-resolution', name: 'Conflict Resolution', desc: 'Navigating disagreements constructively' }
+          ]
+        },
+        execution: {
+          name: 'Execution & Delivery',
+          icon: '\u{1F3AF}',
+          color: '#f59e0b',
+          competencies: [
+            { id: 'results-orientation', name: 'Results Orientation', desc: 'Driving toward outcomes and meeting goals' },
+            { id: 'project-management', name: 'Project Management', desc: 'Planning, organizing, and delivering projects' },
+            { id: 'attention-detail', name: 'Attention to Detail', desc: 'Ensuring accuracy and quality in work' },
+            { id: 'prioritization', name: 'Prioritization', desc: 'Managing competing demands and resources' }
+          ]
+        },
+        leadership: {
+          name: 'Leadership & Growth',
+          icon: '\u{1F451}',
+          color: '#8b5cf6',
+          competencies: [
+            { id: 'people-development', name: 'People Development', desc: 'Coaching, mentoring, and growing others' },
+            { id: 'decision-making', name: 'Decision Making', desc: 'Making sound judgments under uncertainty' },
+            { id: 'change-leadership', name: 'Change Leadership', desc: 'Leading and adapting through change' },
+            { id: 'vision', name: 'Vision & Direction', desc: 'Setting and communicating compelling direction' }
+          ]
+        },
+        character: {
+          name: 'Character & Values',
+          icon: '\u2B50',
+          color: '#06b6d4',
+          competencies: [
+            { id: 'integrity', name: 'Integrity', desc: 'Acting ethically and with honesty' },
+            { id: 'resilience', name: 'Resilience', desc: 'Bouncing back from setbacks and challenges' },
+            { id: 'self-awareness', name: 'Self-Awareness', desc: 'Understanding own strengths and development areas' },
+            { id: 'accountability', name: 'Accountability', desc: 'Taking ownership of actions and outcomes' }
+          ]
+        }
+      };
+
+      // Behaviorally-anchored interview questions by competency
+      const questionBank = {
+        'problem-solving': {
+          questions: [
+            {
+              question: "Tell me about a complex problem you faced that didn't have an obvious solution. Walk me through your approach.",
+              probes: [
+                "What made this problem particularly challenging?",
+                "What frameworks or methods did you use to break it down?",
+                "Who did you involve in solving it?",
+                "What was the outcome?"
+              ]
+            },
+            {
+              question: "Describe a time when you had to make a decision with incomplete information.",
+              probes: [
+                "What information did you have and what was missing?",
+                "How did you proceed despite the uncertainty?",
+                "What would you do differently?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Demonstrates systematic approach; considers multiple perspectives; involves right stakeholders; measures outcomes; learns from the process",
+            good: "Shows logical thinking; considers alternatives; reaches reasonable solution; reflects on results",
+            developing: "Takes action but may be unsystematic; limited consideration of alternatives; doesn't fully evaluate outcomes",
+            concern: "Struggles to articulate approach; jumps to conclusions; blames others for failures; doesn't learn from experience"
+          }
+        },
+        'critical-thinking': {
+          questions: [
+            {
+              question: "Tell me about a time when you challenged a widely-held assumption or conventional wisdom at work.",
+              probes: [
+                "What made you question the assumption?",
+                "How did you validate your alternative view?",
+                "How did others react?",
+                "What was the result?"
+              ]
+            },
+            {
+              question: "Describe a situation where you had to evaluate conflicting data or opinions to make a recommendation.",
+              probes: [
+                "How did you assess the credibility of different sources?",
+                "What was your reasoning process?",
+                "How did you communicate your recommendation?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Questions assumptions systematically; seeks disconfirming evidence; weighs evidence objectively; changes mind when warranted",
+            good: "Shows healthy skepticism; considers multiple viewpoints; makes reasoned arguments",
+            developing: "Accepts information at face value sometimes; may show confirmation bias; limited perspective-taking",
+            concern: "Doesn't question assumptions; ignores contradicting evidence; makes decisions based on gut alone"
+          }
+        },
+        'learning-agility': {
+          questions: [
+            {
+              question: "Tell me about a time you had to quickly get up to speed on something completely new to you.",
+              probes: [
+                "What was your approach to learning?",
+                "What resources did you use?",
+                "How long did it take to become competent?",
+                "What mistakes did you make along the way?"
+              ]
+            },
+            {
+              question: "Describe the most significant piece of feedback you've received and how you applied it.",
+              probes: [
+                "What was your initial reaction?",
+                "What specific changes did you make?",
+                "How did you know if the changes were working?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Actively seeks learning opportunities; quickly applies new knowledge; comfortable with ambiguity; solicits and acts on feedback",
+            good: "Willing to learn; asks good questions; improves with coaching; applies feedback",
+            developing: "Learns when required; may need repeated instruction; takes feedback personally sometimes",
+            concern: "Resistant to learning new things; defensive about feedback; slow to adapt"
+          }
+        },
+        'strategic-thinking': {
+          questions: [
+            {
+              question: "Tell me about a time when you identified an opportunity or threat that others hadn't seen.",
+              probes: [
+                "What signals did you pick up on?",
+                "How did you validate your insight?",
+                "What action did you take?",
+                "What was the business impact?"
+              ]
+            },
+            {
+              question: "Describe a decision you made that balanced short-term pressures against long-term goals.",
+              probes: [
+                "What were the competing priorities?",
+                "How did you think through the trade-offs?",
+                "How did you get buy-in?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Thinks multiple steps ahead; connects dots across domains; balances short and long-term; influences strategic direction",
+            good: "Considers broader implications; plans beyond immediate tasks; anticipates obstacles",
+            developing: "Focuses mainly on immediate work; limited connection to bigger picture; reactive rather than proactive",
+            concern: "Purely tactical; doesn't see implications of decisions; surprised by predictable outcomes"
+          }
+        },
+        'communication': {
+          questions: [
+            {
+              question: "Tell me about a time you had to explain something complex to someone without your technical background.",
+              probes: [
+                "How did you tailor your message?",
+                "How did you check for understanding?",
+                "What would you do differently?"
+              ]
+            },
+            {
+              question: "Describe a situation where miscommunication caused a problem. What happened and what did you learn?",
+              probes: [
+                "What was the root cause of the miscommunication?",
+                "How did you resolve it?",
+                "What changes did you make to prevent recurrence?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Adapts style to audience; confirms understanding; uses multiple channels appropriately; communicates proactively",
+            good: "Generally clear and organized; listens well; seeks clarification when needed",
+            developing: "Can be unclear or verbose; doesn't always check understanding; reactive communication",
+            concern: "Frequently miscommunicates; doesn't listen; assumes understanding; avoids difficult conversations"
+          }
+        },
+        'collaboration': {
+          questions: [
+            {
+              question: "Tell me about a project where you had to work with people who had very different working styles or perspectives.",
+              probes: [
+                "What were the differences?",
+                "How did you adapt your approach?",
+                "What challenges arose?",
+                "What was the outcome?"
+              ]
+            },
+            {
+              question: "Describe a time when you had to rely on someone you didn't manage to complete critical work.",
+              probes: [
+                "How did you establish the working relationship?",
+                "How did you handle competing priorities?",
+                "What did you do when things weren't going well?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Builds strong cross-functional relationships; adapts to different styles; shares credit; helps others succeed",
+            good: "Works well with most people; contributes to team success; supports colleagues",
+            developing: "Works better with some than others; may avoid collaboration; focuses on own work",
+            concern: "Creates friction; hoards information; undermines others; blames teammates"
+          }
+        },
+        'influence': {
+          questions: [
+            {
+              question: "Tell me about a time when you had to gain buy-in for an unpopular idea or change.",
+              probes: [
+                "What was the resistance?",
+                "What approach did you take to influence stakeholders?",
+                "What worked and what didn't?",
+                "What was the outcome?"
+              ]
+            },
+            {
+              question: "Describe a situation where you had to persuade someone more senior to change their mind.",
+              probes: [
+                "What was at stake?",
+                "How did you make your case?",
+                "How did you handle pushback?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Builds compelling cases; reads the room; adapts approach; maintains relationships even in disagreement",
+            good: "Makes reasoned arguments; considers stakeholder concerns; generally persuasive",
+            developing: "Can make case but may not adapt to audience; may push too hard or give up too easily",
+            concern: "Ineffective at influencing; alienates people; manipulative rather than persuasive"
+          }
+        },
+        'results-orientation': {
+          questions: [
+            {
+              question: "Tell me about a goal you set for yourself or your team that felt like a stretch. What happened?",
+              probes: [
+                "Why did you set that particular goal?",
+                "What obstacles did you encounter?",
+                "What did you do when things got difficult?",
+                "What was the outcome and what did you learn?"
+              ]
+            },
+            {
+              question: "Describe a time when you had to deliver results under significant pressure or constraints.",
+              probes: [
+                "What were the constraints?",
+                "What trade-offs did you make?",
+                "How did you maintain quality?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Sets ambitious goals; drives through obstacles; maintains quality; celebrates wins and learns from misses",
+            good: "Meets commitments; takes ownership; problem-solves when blocked",
+            developing: "Achieves some goals; may need help overcoming obstacles; inconsistent follow-through",
+            concern: "Misses commitments; makes excuses; doesn't take ownership; gives up easily"
+          }
+        },
+        'people-development': {
+          questions: [
+            {
+              question: "Tell me about someone you've helped develop in their career. What was your approach?",
+              probes: [
+                "How did you identify their development needs?",
+                "What specific actions did you take?",
+                "How did you handle resistance or setbacks?",
+                "Where are they now?"
+              ]
+            },
+            {
+              question: "Describe a time when you had to give someone difficult feedback about their performance.",
+              probes: [
+                "What was the situation?",
+                "How did you prepare and deliver the feedback?",
+                "How did they respond?",
+                "What was the outcome?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Actively invests in others' growth; provides balanced feedback; creates opportunities; produces strong performers",
+            good: "Supports development; gives feedback; helps team members grow",
+            developing: "Develops others when asked; feedback may lack specificity; inconsistent investment",
+            concern: "Doesn't invest in others; avoids feedback; takes credit for others' work; loses good people"
+          }
+        },
+        'decision-making': {
+          questions: [
+            {
+              question: "Tell me about a decision you made that had significant consequences\u2014positive or negative.",
+              probes: [
+                "What was at stake?",
+                "How did you gather and evaluate options?",
+                "How did you handle uncertainty?",
+                "What would you do differently?"
+              ]
+            },
+            {
+              question: "Describe a time when you had to make a quick decision without being able to consult others.",
+              probes: [
+                "What was the situation?",
+                "What factors did you weigh?",
+                "How did you communicate the decision afterward?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Makes timely decisions with appropriate rigor; involves right people; commits and follows through; learns from outcomes",
+            good: "Makes sound decisions; considers alternatives; takes responsibility for outcomes",
+            developing: "May be too slow or fast; limited consideration of alternatives; doesn't always learn from outcomes",
+            concern: "Paralyzed by decisions or reckless; doesn't consider implications; blames others for poor outcomes"
+          }
+        },
+        'integrity': {
+          questions: [
+            {
+              question: "Tell me about a time when you faced pressure to do something you felt was wrong or unethical.",
+              probes: [
+                "What was the situation?",
+                "What did you do?",
+                "What were the consequences?",
+                "How did you handle any pushback?"
+              ]
+            },
+            {
+              question: "Describe a situation where you made a mistake that affected others. How did you handle it?",
+              probes: [
+                "What was the mistake?",
+                "How and when did you acknowledge it?",
+                "What did you do to make it right?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Acts consistently with values even when difficult; acknowledges mistakes openly; keeps commitments; inspires trust",
+            good: "Generally honest and trustworthy; admits mistakes; follows through on commitments",
+            developing: "Usually honest but may avoid difficult truths; doesn't always acknowledge mistakes promptly",
+            concern: "Inconsistent with truth; blames others; breaks commitments; rationalizes unethical behavior"
+          }
+        },
+        'resilience': {
+          questions: [
+            {
+              question: "Tell me about a significant failure or setback in your career. How did you handle it?",
+              probes: [
+                "What happened and what was the impact?",
+                "How did you respond emotionally?",
+                "What did you do to recover?",
+                "What did you learn?"
+              ]
+            },
+            {
+              question: "Describe a time when you had to persist through multiple obstacles to achieve something important.",
+              probes: [
+                "What were the obstacles?",
+                "What kept you going?",
+                "At what point did you consider giving up?"
+              ]
+            }
+          ],
+          rubric: {
+            excellent: "Bounces back from adversity; learns from setbacks; maintains perspective; supports others through difficulty",
+            good: "Handles setbacks reasonably well; recovers and moves forward; learns from experience",
+            developing: "May be discouraged by setbacks; takes time to recover; doesn't always extract learning",
+            concern: "Derailed by setbacks; gives up easily; blames circumstances; doesn't learn from failures"
+          }
+        }
+      };
+
+      const toggleCompetency = (id) => {
+        setSelectedCompetencies(prev =>
+          prev.includes(id)
+            ? prev.filter(c => c !== id)
+            : prev.length < 6
+              ? [...prev, id]
+              : prev
+        );
+      };
+
+      const generateQuestions = () => {
+        const questions = selectedCompetencies.map(compId => {
+          const bank = questionBank[compId];
+          let compInfo = null;
+          Object.values(competencyCategories).forEach(cat => {
+            const found = cat.competencies.find(c => c.id === compId);
+            if (found) {
+              compInfo = { ...found, category: cat };
+            }
+          });
+
+          return {
+            competency: compInfo,
+            ...bank,
+            selectedQuestion: bank.questions[Math.floor(Math.random() * bank.questions.length)]
+          };
+        });
+
+        setGeneratedQuestions(questions);
+        setScreen('results');
+      };
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: '#e2e8f0',
+          padding: '2rem'
+        }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(16, 185, 129, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                marginBottom: '1rem',
+                border: '1px solid rgba(16, 185, 129, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>{'\u{1F4CB}'}</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#10b981' }}>
+                  I/O Psychology Best Practices
+                </span>
+              </div>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                margin: '0 0 0.5rem 0',
+                background: 'linear-gradient(135deg, #e2e8f0 0%, #10b981 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Structured Interview Question Generator
+              </h1>
+              <p style={{ color: '#94a3b8', margin: 0 }}>
+                Behaviorally-anchored questions with scoring rubrics
+              </p>
+            </div>
+
+            {/* Input Screen */}
+            {screen === 'input' && (
+              <div>
+                {/* Role Info */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h2 style={{ margin: '0 0 1.5rem 0', color: '#e2e8f0', fontSize: '1.25rem' }}>
+                    {'\u{1F4DD}'} Role Information
+                  </h2>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    <div>
+                      <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Job Title
+                      </label>
+                      <input
+                        value={roleInfo.title}
+                        onChange={(e) => setRoleInfo({ ...roleInfo, title: e.target.value })}
+                        placeholder="e.g., Product Manager"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e2e8f0'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Level
+                      </label>
+                      <select
+                        value={roleInfo.level}
+                        onChange={(e) => setRoleInfo({ ...roleInfo, level: e.target.value })}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.75rem',
+                          padding: '0.875rem',
+                          color: '#e2e8f0'
+                        }}
+                      >
+                        {levels.map(l => (
+                          <option key={l.value} value={l.value}>{l.label} ({l.yearsExp})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Competency Selection */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <h2 style={{ margin: 0, color: '#e2e8f0', fontSize: '1.25rem' }}>
+                      {'\u{1F3AF}'} Select Competencies
+                    </h2>
+                    <span style={{
+                      background: selectedCompetencies.length >= 3 && selectedCompetencies.length <= 6
+                        ? 'rgba(16, 185, 129, 0.2)'
+                        : 'rgba(245, 158, 11, 0.2)',
+                      color: selectedCompetencies.length >= 3 && selectedCompetencies.length <= 6
+                        ? '#10b981'
+                        : '#f59e0b',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '1rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '600'
+                    }}>
+                      {selectedCompetencies.length}/6 selected
+                    </span>
+                  </div>
+
+                  <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                    Select 3-6 competencies most relevant to this role. Research shows structured interviews
+                    should focus on key competencies rather than trying to assess everything.
+                  </p>
+
+                  {Object.entries(competencyCategories).map(([catKey, cat]) => (
+                    <div key={catKey} style={{ marginBottom: '1.5rem' }}>
+                      <h3 style={{
+                        margin: '0 0 0.75rem 0',
+                        color: cat.color,
+                        fontSize: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <span>{cat.icon}</span> {cat.name}
+                      </h3>
+
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '0.75rem'
+                      }}>
+                        {cat.competencies.map(comp => (
+                          <button
+                            key={comp.id}
+                            onClick={() => toggleCompetency(comp.id)}
+                            style={{
+                              background: selectedCompetencies.includes(comp.id)
+                                ? `${cat.color}20`
+                                : 'rgba(255, 255, 255, 0.03)',
+                              border: `2px solid ${selectedCompetencies.includes(comp.id) ? cat.color : 'rgba(255, 255, 255, 0.1)'}`,
+                              borderRadius: '0.75rem',
+                              padding: '0.875rem',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              marginBottom: '0.25rem'
+                            }}>
+                              <span style={{
+                                fontWeight: '600',
+                                color: selectedCompetencies.includes(comp.id) ? cat.color : '#e2e8f0',
+                                fontSize: '0.9rem'
+                              }}>
+                                {comp.name}
+                              </span>
+                              {selectedCompetencies.includes(comp.id) && (
+                                <span style={{ color: cat.color }}>{'\u2713'}</span>
+                              )}
+                            </div>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: '#64748b'
+                            }}>
+                              {comp.desc}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={generateQuestions}
+                  disabled={selectedCompetencies.length < 3}
+                  style={{
+                    background: selectedCompetencies.length >= 3
+                      ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                      : 'rgba(255, 255, 255, 0.1)',
+                    color: selectedCompetencies.length >= 3 ? 'white' : '#64748b',
+                    border: 'none',
+                    borderRadius: '1rem',
+                    padding: '1.25rem 2rem',
+                    fontSize: '1.125rem',
+                    fontWeight: '700',
+                    cursor: selectedCompetencies.length >= 3 ? 'pointer' : 'not-allowed',
+                    width: '100%',
+                    marginTop: '1.5rem'
+                  }}
+                >
+                  Generate Interview Questions {'\u2192'}
+                </button>
+              </div>
+            )}
+
+            {/* Results Screen */}
+            {screen === 'results' && generatedQuestions && (
+              <div>
+                {/* Interview Guide Header */}
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(16, 185, 129, 0.2)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h2 style={{ margin: '0 0 0.5rem 0', color: '#10b981', fontSize: '1.25rem' }}>
+                    {'\u{1F4CB}'} Structured Interview Guide
+                  </h2>
+                  <p style={{ color: '#6ee7b7', margin: 0 }}>
+                    {roleInfo.title || 'Role'} {'\u2022'} {levels.find(l => l.value === roleInfo.level)?.label}
+                  </p>
+                </div>
+
+                {/* Interview Tips */}
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  borderRadius: '1rem',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(245, 158, 11, 0.2)'
+                }}>
+                  <h3 style={{ margin: '0 0 0.75rem 0', color: '#f59e0b', fontSize: '1rem' }}>
+                    {'\u{1F4A1}'} Interview Best Practices
+                  </h3>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: '1.25rem',
+                    color: '#fcd34d',
+                    lineHeight: '1.7',
+                    fontSize: '0.9rem'
+                  }}>
+                    <li>Ask the same questions to all candidates for fair comparison</li>
+                    <li>Use the STAR framework: Situation, Task, Action, Result</li>
+                    <li>Take notes on specific examples and behaviors, not impressions</li>
+                    <li>Score each competency independently before discussing with other interviewers</li>
+                    <li>Focus on recent examples (past 2-3 years) for better predictive validity</li>
+                  </ul>
+                </div>
+
+                {/* Question Cards */}
+                {generatedQuestions.map((q, idx) => (
+                  <div key={idx} style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '1.5rem',
+                    padding: '1.5rem',
+                    border: `1px solid ${q.competency.category.color}30`,
+                    marginBottom: '1.5rem'
+                  }}>
+                    {/* Competency Header */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <div style={{
+                        background: `${q.competency.category.color}20`,
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '0.75rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.25rem'
+                      }}>
+                        {q.competency.category.icon}
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, color: q.competency.category.color, fontSize: '1.125rem' }}>
+                          {q.competency.name}
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+                          {q.competency.desc}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Main Question */}
+                    <div style={{
+                      background: 'rgba(0, 0, 0, 0.2)',
+                      borderRadius: '1rem',
+                      padding: '1.25rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <h4 style={{
+                        margin: '0 0 0.5rem 0',
+                        color: '#e2e8f0',
+                        fontSize: '0.8rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        {'\u{1F3A4}'} Main Question
+                      </h4>
+                      <p style={{
+                        margin: 0,
+                        color: '#f1f5f9',
+                        fontSize: '1rem',
+                        lineHeight: '1.6',
+                        fontWeight: '500'
+                      }}>
+                        "{q.selectedQuestion.question}"
+                      </p>
+                    </div>
+
+                    {/* Follow-up Probes */}
+                    <div style={{
+                      background: 'rgba(99, 102, 241, 0.1)',
+                      borderRadius: '1rem',
+                      padding: '1rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <h4 style={{
+                        margin: '0 0 0.75rem 0',
+                        color: '#818cf8',
+                        fontSize: '0.8rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        {'\u{1F50D}'} Follow-up Probes
+                      </h4>
+                      <ul style={{
+                        margin: 0,
+                        paddingLeft: '1.25rem',
+                        color: '#c7d2fe',
+                        lineHeight: '1.8'
+                      }}>
+                        {q.selectedQuestion.probes.map((probe, i) => (
+                          <li key={i}>{probe}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Scoring Rubric */}
+                    <div>
+                      <h4 style={{
+                        margin: '0 0 0.75rem 0',
+                        color: '#e2e8f0',
+                        fontSize: '0.8rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        {'\u{1F4CA}'} Scoring Rubric
+                      </h4>
+                      <div style={{
+                        display: 'grid',
+                        gap: '0.5rem'
+                      }}>
+                        {[
+                          { level: 'excellent', label: 'Excellent (4)', color: '#10b981' },
+                          { level: 'good', label: 'Good (3)', color: '#22d3ee' },
+                          { level: 'developing', label: 'Developing (2)', color: '#f59e0b' },
+                          { level: 'concern', label: 'Concern (1)', color: '#ef4444' }
+                        ].map(({ level, label, color }) => (
+                          <div key={level} style={{
+                            display: 'flex',
+                            gap: '0.75rem',
+                            padding: '0.75rem',
+                            background: `${color}10`,
+                            borderRadius: '0.5rem',
+                            borderLeft: `3px solid ${color}`
+                          }}>
+                            <span style={{
+                              color: color,
+                              fontWeight: '600',
+                              fontSize: '0.8rem',
+                              minWidth: '100px'
+                            }}>
+                              {label}
+                            </span>
+                            <span style={{
+                              color: '#94a3b8',
+                              fontSize: '0.85rem',
+                              lineHeight: '1.4'
+                            }}>
+                              {q.rubric[level]}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Score Sheet */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#e2e8f0', fontSize: '1.125rem' }}>
+                    {'\u{1F4DD}'} Score Summary Sheet
+                  </h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={{
+                          textAlign: 'left',
+                          padding: '0.75rem',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#94a3b8',
+                          fontSize: '0.8rem'
+                        }}>
+                          Competency
+                        </th>
+                        <th style={{
+                          textAlign: 'center',
+                          padding: '0.75rem',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#94a3b8',
+                          fontSize: '0.8rem',
+                          width: '60px'
+                        }}>
+                          1
+                        </th>
+                        <th style={{
+                          textAlign: 'center',
+                          padding: '0.75rem',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#94a3b8',
+                          fontSize: '0.8rem',
+                          width: '60px'
+                        }}>
+                          2
+                        </th>
+                        <th style={{
+                          textAlign: 'center',
+                          padding: '0.75rem',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#94a3b8',
+                          fontSize: '0.8rem',
+                          width: '60px'
+                        }}>
+                          3
+                        </th>
+                        <th style={{
+                          textAlign: 'center',
+                          padding: '0.75rem',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#94a3b8',
+                          fontSize: '0.8rem',
+                          width: '60px'
+                        }}>
+                          4
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {generatedQuestions.map((q, idx) => (
+                        <tr key={idx}>
+                          <td style={{
+                            padding: '0.75rem',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                            color: '#e2e8f0'
+                          }}>
+                            {q.competency.name}
+                          </td>
+                          {[1, 2, 3, 4].map(score => (
+                            <td key={score} style={{
+                              textAlign: 'center',
+                              padding: '0.75rem',
+                              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+                            }}>
+                              <div style={{
+                                width: '24px',
+                                height: '24px',
+                                border: '2px solid rgba(255, 255, 255, 0.2)',
+                                borderRadius: '50%',
+                                margin: '0 auto'
+                              }} />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setScreen('input');
+                    setGeneratedQuestions(null);
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#e2e8f0',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  {'\u21BA'} Generate New Questions
+                </button>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '2rem',
+              color: '#334155',
+              fontSize: '0.75rem'
+            }}>
+              Framework: Schmidt & Hunter Meta-Analysis + Structured Interview Best Practices
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<StructuredInterviewGenerator />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Psychological Safety Quick-Scan</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const PsychologicalSafetyScan = () => {
+      const [screen, setScreen] = useState('intro');
+      const [currentQuestion, setCurrentQuestion] = useState(0);
+      const [responses, setResponses] = useState({});
+      const [results, setResults] = useState(null);
+
+      // Based on Amy Edmondson's research on psychological safety
+      const questions = [
+        {
+          id: 1,
+          category: 'speaking-up',
+          text: 'When team members make mistakes, the focus is on learning rather than blame.',
+          reverseScored: false
+        },
+        {
+          id: 2,
+          category: 'speaking-up',
+          text: 'It is difficult to ask others on this team for help.',
+          reverseScored: true
+        },
+        {
+          id: 3,
+          category: 'risk-taking',
+          text: 'People on this team sometimes reject others for being different.',
+          reverseScored: true
+        },
+        {
+          id: 4,
+          category: 'risk-taking',
+          text: 'It is safe to take a risk on this team.',
+          reverseScored: false
+        },
+        {
+          id: 5,
+          category: 'inclusion',
+          text: 'Members of this team are able to bring up problems and tough issues.',
+          reverseScored: false
+        },
+        {
+          id: 6,
+          category: 'inclusion',
+          text: 'No one on this team would deliberately act in a way that undermines my efforts.',
+          reverseScored: false
+        },
+        {
+          id: 7,
+          category: 'learning',
+          text: 'Working with members of this team, my unique skills and talents are valued and utilized.',
+          reverseScored: false
+        },
+        {
+          id: 8,
+          category: 'learning',
+          text: 'If I make a mistake on this team, it is often held against me.',
+          reverseScored: true
+        }
+      ];
+
+      const categories = {
+        'speaking-up': {
+          name: 'Voice & Speaking Up',
+          description: 'Comfort expressing opinions, concerns, and questions',
+          icon: '\u{1F5E3}\uFE0F',
+          color: '#6366f1'
+        },
+        'risk-taking': {
+          name: 'Risk Taking',
+          description: 'Willingness to try new things without fear of punishment',
+          icon: '\u{1F3AF}',
+          color: '#f59e0b'
+        },
+        'inclusion': {
+          name: 'Belonging & Inclusion',
+          description: 'Feeling accepted and valued as part of the team',
+          icon: '\u{1F91D}',
+          color: '#10b981'
+        },
+        'learning': {
+          name: 'Learning Orientation',
+          description: 'Culture of growth, feedback, and continuous improvement',
+          icon: '\u{1F4DA}',
+          color: '#8b5cf6'
+        }
+      };
+
+      const recommendations = {
+        'speaking-up': {
+          low: [
+            'Start meetings by explicitly inviting input: "I\'d like to hear from everyone on this"',
+            'Thank people publicly when they share concerns or dissenting views',
+            'Model vulnerability by sharing your own mistakes and what you learned',
+            'Create anonymous channels for sensitive feedback',
+            'Follow up on suggestions even if you can\'t implement them\u2014explain why'
+          ],
+          medium: [
+            'Encourage "devil\'s advocate" roles in decision-making discussions',
+            'Ask quieter team members directly for their perspective',
+            'Create regular retrospectives focused on process improvement',
+            'Celebrate instances where speaking up prevented problems'
+          ],
+          high: [
+            'Maintain current practices that encourage voice',
+            'Share your approach with other teams as a model',
+            'Look for opportunities to push into more challenging topics',
+            'Ensure new team members are onboarded into this culture'
+          ]
+        },
+        'risk-taking': {
+          low: [
+            'Reframe failures as "experiments" with valuable learnings',
+            'Share post-mortems that focus on systems, not individuals',
+            'Create explicit "safe to fail" zones for innovation',
+            'Recognize and reward thoughtful risk-taking, regardless of outcome',
+            'Ask "What can we learn?" before "What went wrong?"'
+          ],
+          medium: [
+            'Set up pilot programs with clear parameters for experimentation',
+            'Share stories of successful innovations that started as risky bets',
+            'Build in reflection time after new initiatives',
+            'Encourage small experiments before major changes'
+          ],
+          high: [
+            'Document and share your risk-taking culture practices',
+            'Balance innovation with appropriate guardrails',
+            'Mentor other teams in creating psychologically safe experimentation',
+            'Continue celebrating both successful and instructive failures'
+          ]
+        },
+        'inclusion': {
+          low: [
+            'Examine meeting dynamics\u2014who speaks, who gets interrupted?',
+            'Actively solicit perspectives from underrepresented voices',
+            'Address exclusive behaviors immediately and privately',
+            'Review team norms for unconscious barriers to participation',
+            'Create opportunities for informal relationship-building'
+          ],
+          medium: [
+            'Implement rotating meeting facilitation to share power',
+            'Ask team members how they prefer to contribute (verbal, written, async)',
+            'Celebrate diverse approaches to problem-solving',
+            'Review decision-making processes for inclusivity'
+          ],
+          high: [
+            'Share inclusive practices across the organization',
+            'Mentor team members in inclusive leadership behaviors',
+            'Continue adapting practices as team composition changes',
+            'Look for blind spots in your inclusion efforts'
+          ]
+        },
+        'learning': {
+          low: [
+            'Separate performance discussions from learning discussions',
+            'Implement blameless post-mortems for incidents',
+            'Create explicit learning goals alongside performance goals',
+            'Normalize "I don\'t know" as a starting point for inquiry',
+            'Invest in psychological safety training for the team'
+          ],
+          medium: [
+            'Build dedicated time for skill-sharing and cross-training',
+            'Encourage team members to teach each other',
+            'Create space for discussing what\'s not working',
+            'Recognize growth and learning, not just results'
+          ],
+          high: [
+            'Consider how to scale your learning culture',
+            'Document learnings and make them accessible to others',
+            'Continue pushing the boundaries of team development',
+            'Ensure learning orientation survives leadership transitions'
+          ]
+        }
+      };
+
+      const handleResponse = (score) => {
+        const question = questions[currentQuestion];
+        const adjustedScore = question.reverseScored ? 6 - score : score;
+
+        setResponses(prev => ({
+          ...prev,
+          [question.id]: {
+            score: adjustedScore,
+            category: question.category
+          }
+        }));
+
+        if (currentQuestion < questions.length - 1) {
+          setCurrentQuestion(prev => prev + 1);
+        } else {
+          calculateResults({
+            ...responses,
+            [question.id]: {
+              score: adjustedScore,
+              category: question.category
+            }
+          });
+        }
+      };
+
+      const calculateResults = (allResponses) => {
+        const categoryScores = {};
+        const categoryCounts = {};
+
+        Object.values(allResponses).forEach(response => {
+          if (!categoryScores[response.category]) {
+            categoryScores[response.category] = 0;
+            categoryCounts[response.category] = 0;
+          }
+          categoryScores[response.category] += response.score;
+          categoryCounts[response.category]++;
+        });
+
+        const categoryAverages = {};
+        Object.keys(categoryScores).forEach(cat => {
+          categoryAverages[cat] = categoryScores[cat] / categoryCounts[cat];
+        });
+
+        const overallScore = Object.values(allResponses).reduce((sum, r) => sum + r.score, 0) / Object.values(allResponses).length;
+
+        setResults({
+          overall: overallScore,
+          categories: categoryAverages
+        });
+        setScreen('results');
+      };
+
+      const getScoreLevel = (score) => {
+        if (score < 2.5) return 'low';
+        if (score < 3.75) return 'medium';
+        return 'high';
+      };
+
+      const getScoreLabel = (score) => {
+        if (score < 2.5) return 'Needs Attention';
+        if (score < 3.75) return 'Developing';
+        return 'Strong';
+      };
+
+      const getScoreColor = (score) => {
+        if (score < 2.5) return '#ef4444';
+        if (score < 3.75) return '#f59e0b';
+        return '#10b981';
+      };
+
+      const restart = () => {
+        setScreen('intro');
+        setCurrentQuestion(0);
+        setResponses({});
+        setResults(null);
+      };
+
+      const progress = ((currentQuestion + 1) / questions.length) * 100;
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0c4a6e 0%, #164e63 50%, #0c4a6e 100%)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: '#f0f9ff',
+          padding: '2rem'
+        }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(34, 211, 238, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                marginBottom: '1rem',
+                border: '1px solid rgba(34, 211, 238, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>{'\u{1F6E1}\uFE0F'}</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#22d3ee' }}>
+                  Based on Amy Edmondson's Research
+                </span>
+              </div>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                margin: '0 0 0.5rem 0',
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #22d3ee 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Psychological Safety Quick-Scan
+              </h1>
+              <p style={{ color: '#7dd3fc', margin: 0 }}>
+                Diagnostic tool for team leaders
+              </p>
+            </div>
+
+            {/* Intro Screen */}
+            {screen === 'intro' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '3rem',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <div style={{ display: 'grid', gap: '2rem' }}>
+                  <div style={{
+                    background: 'rgba(34, 211, 238, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(34, 211, 238, 0.2)'
+                  }}>
+                    <h2 style={{
+                      margin: '0 0 0.75rem 0',
+                      fontSize: '1.125rem',
+                      fontWeight: '600',
+                      color: '#22d3ee'
+                    }}>
+                      What is Psychological Safety?
+                    </h2>
+                    <p style={{
+                      margin: 0,
+                      color: '#bae6fd',
+                      lineHeight: '1.7'
+                    }}>
+                      Psychological safety is a shared belief that the team is safe for interpersonal
+                      risk-taking. Harvard professor Amy Edmondson's research shows it's the #1 factor
+                      in high-performing teams{'\u2014'}more important than individual talent or resources.
+                    </p>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    {Object.entries(categories).map(([key, cat]) => (
+                      <div key={key} style={{
+                        background: `${cat.color}10`,
+                        borderRadius: '1rem',
+                        padding: '1.25rem',
+                        border: `1px solid ${cat.color}30`
+                      }}>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{cat.icon}</div>
+                        <div style={{ fontWeight: '600', color: '#f0f9ff', marginBottom: '0.25rem' }}>{cat.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#7dd3fc' }}>{cat.description}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '1rem'
+                  }}>
+                    {[
+                      { icon: '\u23F1\uFE0F', label: '8 Questions', desc: '~3 minutes' },
+                      { icon: '\u{1F4CA}', label: '4 Dimensions', desc: 'Comprehensive view' },
+                      { icon: '\u{1F4A1}', label: 'Action Items', desc: 'Evidence-based' }
+                    ].map((item, i) => (
+                      <div key={i} style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '1rem',
+                        padding: '1rem',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{item.icon}</div>
+                        <div style={{ fontWeight: '600', color: '#f0f9ff', fontSize: '0.9rem' }}>{item.label}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#7dd3fc' }}>{item.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p style={{
+                    color: '#7dd3fc',
+                    fontSize: '0.9rem',
+                    margin: 0,
+                    textAlign: 'center'
+                  }}>
+                    Answer based on your honest perception of your team's current state.
+                    This is a diagnostic tool, not a performance evaluation.
+                  </p>
+
+                  <button
+                    onClick={() => setScreen('quiz')}
+                    style={{
+                      background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
+                      color: '#0c4a6e',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1.25rem 2rem',
+                      fontSize: '1.125rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 20px rgba(34, 211, 238, 0.3)'
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                    onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+                  >
+                    Start Assessment {'\u2192'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Quiz Screen */}
+            {screen === 'quiz' && (
+              <div>
+                {/* Progress */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '1rem',
+                  height: '8px',
+                  marginBottom: '1rem',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    background: 'linear-gradient(90deg, #22d3ee, #06b6d4)',
+                    height: '100%',
+                    width: `${progress}%`,
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '2rem',
+                  color: '#7dd3fc',
+                  fontSize: '0.875rem'
+                }}>
+                  <span>Question {currentQuestion + 1} of {questions.length}</span>
+                  <span style={{
+                    background: `${categories[questions[currentQuestion].category].color}30`,
+                    color: categories[questions[currentQuestion].category].color,
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '1rem',
+                    fontSize: '0.75rem',
+                    fontWeight: '600'
+                  }}>
+                    {categories[questions[currentQuestion].category].name}
+                  </span>
+                </div>
+
+                {/* Question Card */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '2.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                  <div style={{
+                    fontSize: '3rem',
+                    textAlign: 'center',
+                    marginBottom: '1rem'
+                  }}>
+                    {categories[questions[currentQuestion].category].icon}
+                  </div>
+                  <h2 style={{
+                    fontSize: '1.25rem',
+                    fontWeight: '600',
+                    marginBottom: '2rem',
+                    color: '#f0f9ff',
+                    textAlign: 'center',
+                    lineHeight: '1.5'
+                  }}>
+                    "{questions[currentQuestion].text}"
+                  </h2>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '1rem',
+                    padding: '0 1rem',
+                    color: '#7dd3fc',
+                    fontSize: '0.875rem'
+                  }}>
+                    <span>Strongly Disagree</span>
+                    <span>Strongly Agree</span>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(5, 1fr)',
+                    gap: '0.75rem'
+                  }}>
+                    {[1, 2, 3, 4, 5].map((score) => (
+                      <button
+                        key={score}
+                        onClick={() => handleResponse(score)}
+                        style={{
+                          background: 'rgba(34, 211, 238, 0.1)',
+                          border: '2px solid rgba(34, 211, 238, 0.3)',
+                          borderRadius: '1rem',
+                          padding: '1.5rem 1rem',
+                          cursor: 'pointer',
+                          color: '#f0f9ff',
+                          fontSize: '1.5rem',
+                          fontWeight: '700',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.target.style.background = 'rgba(34, 211, 238, 0.3)';
+                          e.target.style.borderColor = '#22d3ee';
+                          e.target.style.transform = 'scale(1.1)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.target.style.background = 'rgba(34, 211, 238, 0.1)';
+                          e.target.style.borderColor = 'rgba(34, 211, 238, 0.3)';
+                          e.target.style.transform = 'scale(1)';
+                        }}
+                      >
+                        {score}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(5, 1fr)',
+                    gap: '0.75rem',
+                    marginTop: '0.5rem'
+                  }}>
+                    {['1', '2', '3', '4', '5'].map((label, i) => (
+                      <div key={i} style={{
+                        textAlign: 'center',
+                        fontSize: '0.7rem',
+                        color: '#7dd3fc'
+                      }}>
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Results Screen */}
+            {screen === 'results' && results && (
+              <div>
+                {/* Overall Score */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '2.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  marginBottom: '1.5rem',
+                  textAlign: 'center'
+                }}>
+                  <h2 style={{
+                    margin: '0 0 1rem 0',
+                    fontSize: '1.25rem',
+                    fontWeight: '600',
+                    color: '#f0f9ff'
+                  }}>
+                    Overall Psychological Safety Score
+                  </h2>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <div style={{
+                      width: '120px',
+                      height: '120px',
+                      borderRadius: '50%',
+                      background: `conic-gradient(${getScoreColor(results.overall)} ${results.overall / 5 * 100}%, rgba(255,255,255,0.1) 0%)`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <div style={{
+                        width: '90px',
+                        height: '90px',
+                        borderRadius: '50%',
+                        background: '#0c4a6e',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: 'column'
+                      }}>
+                        <span style={{
+                          fontSize: '2rem',
+                          fontWeight: '700',
+                          color: getScoreColor(results.overall)
+                        }}>
+                          {results.overall.toFixed(1)}
+                        </span>
+                        <span style={{
+                          fontSize: '0.7rem',
+                          color: '#7dd3fc'
+                        }}>
+                          out of 5
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'inline-block',
+                    background: `${getScoreColor(results.overall)}20`,
+                    color: getScoreColor(results.overall),
+                    padding: '0.5rem 1.5rem',
+                    borderRadius: '2rem',
+                    fontWeight: '600',
+                    fontSize: '1rem'
+                  }}>
+                    {getScoreLabel(results.overall)}
+                  </div>
+                </div>
+
+                {/* Category Breakdown */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '2rem',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h3 style={{
+                    margin: '0 0 1.5rem 0',
+                    fontSize: '1.125rem',
+                    fontWeight: '600',
+                    color: '#f0f9ff'
+                  }}>
+                    {'\u{1F4CA}'} Dimension Scores
+                  </h3>
+
+                  <div style={{ display: 'grid', gap: '1.25rem' }}>
+                    {Object.entries(results.categories).map(([catKey, score]) => {
+                      const cat = categories[catKey];
+                      return (
+                        <div key={catKey}>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '0.5rem'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span>{cat.icon}</span>
+                              <span style={{ fontWeight: '600', color: '#f0f9ff' }}>{cat.name}</span>
+                            </div>
+                            <div style={{
+                              background: `${getScoreColor(score)}20`,
+                              color: getScoreColor(score),
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: '1rem',
+                              fontSize: '0.8rem',
+                              fontWeight: '600'
+                            }}>
+                              {score.toFixed(1)} - {getScoreLabel(score)}
+                            </div>
+                          </div>
+                          <div style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '0.5rem',
+                            height: '12px',
+                            overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              background: `linear-gradient(90deg, ${getScoreColor(score)}, ${getScoreColor(score)}88)`,
+                              height: '100%',
+                              width: `${score / 5 * 100}%`,
+                              borderRadius: '0.5rem',
+                              transition: 'width 0.5s ease'
+                            }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Recommendations */}
+                <div style={{
+                  display: 'grid',
+                  gap: '1.5rem'
+                }}>
+                  {Object.entries(results.categories)
+                    .sort((a, b) => a[1] - b[1])
+                    .map(([catKey, score]) => {
+                      const cat = categories[catKey];
+                      const level = getScoreLevel(score);
+                      const recs = recommendations[catKey][level];
+
+                      return (
+                        <div key={catKey} style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          borderRadius: '1.5rem',
+                          padding: '1.5rem',
+                          border: `1px solid ${cat.color}30`
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            marginBottom: '1rem'
+                          }}>
+                            <div style={{
+                              background: `${cat.color}20`,
+                              width: '48px',
+                              height: '48px',
+                              borderRadius: '1rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '1.5rem'
+                            }}>
+                              {cat.icon}
+                            </div>
+                            <div>
+                              <h4 style={{
+                                margin: 0,
+                                fontSize: '1rem',
+                                fontWeight: '600',
+                                color: cat.color
+                              }}>
+                                {cat.name}
+                              </h4>
+                              <p style={{
+                                margin: 0,
+                                fontSize: '0.8rem',
+                                color: '#7dd3fc'
+                              }}>
+                                {level === 'low' ? 'Priority area for improvement' :
+                                  level === 'medium' ? 'Good foundation, room to grow' :
+                                    'Maintain and share best practices'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <h5 style={{
+                            margin: '0 0 0.75rem 0',
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            color: '#f0f9ff',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em'
+                          }}>
+                            {'\u{1F4A1}'} Recommended Actions
+                          </h5>
+
+                          <ul style={{
+                            margin: 0,
+                            paddingLeft: '1.25rem',
+                            color: '#bae6fd',
+                            lineHeight: '1.8',
+                            fontSize: '0.925rem'
+                          }}>
+                            {recs.slice(0, level === 'low' ? 5 : 3).map((rec, i) => (
+                              <li key={i}>{rec}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* Research Note */}
+                <div style={{
+                  background: 'rgba(34, 211, 238, 0.1)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  marginTop: '1.5rem',
+                  border: '1px solid rgba(34, 211, 238, 0.2)'
+                }}>
+                  <h4 style={{
+                    margin: '0 0 0.75rem 0',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: '#22d3ee'
+                  }}>
+                    {'\u{1F4DA}'} About the Research
+                  </h4>
+                  <p style={{
+                    margin: 0,
+                    color: '#bae6fd',
+                    lineHeight: '1.7',
+                    fontSize: '0.925rem'
+                  }}>
+                    This assessment is based on Amy Edmondson's pioneering research at Harvard Business School.
+                    Her studies show that psychological safety enables teams to learn from mistakes, speak up
+                    about concerns, and innovate more effectively. Google's Project Aristotle found it to be
+                    the most important factor distinguishing high-performing teams.
+                  </p>
+                </div>
+
+                <button
+                  onClick={restart}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#f0f9ff',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%',
+                    marginTop: '1.5rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                  }}
+                >
+                  {'\u21BA'} Retake Assessment
+                </button>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '2rem',
+              color: '#0e7490',
+              fontSize: '0.75rem'
+            }}>
+              Framework: Amy Edmondson's Psychological Safety Research (Harvard Business School)
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<PsychologicalSafetyScan />);
+  </script>
+</body>
+</html>

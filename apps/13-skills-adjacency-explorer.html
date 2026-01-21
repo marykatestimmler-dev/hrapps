@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skills Adjacency Explorer</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    * {
+      margin: 0;
+    }
+    body {
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    img, picture, video, canvas, svg {
+      display: block;
+      max-width: 100%;
+    }
+    input, button, textarea, select {
+      font: inherit;
+    }
+    p, h1, h2, h3, h4, h5, h6 {
+      overflow-wrap: break-word;
+    }
+    #root {
+      isolation: isolate;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo, useCallback } = React;
+
+    // Mock skill adjacency data based on labor market patterns
+    const skillsDatabase = {
+      // Technical Skills
+      'JavaScript': { category: 'technical', related: ['TypeScript', 'React', 'Node.js', 'HTML/CSS', 'Vue.js'], emerging: ['WebAssembly', 'Deno'], weight: 0.9 },
+      'TypeScript': { category: 'technical', related: ['JavaScript', 'React', 'Angular', 'Node.js'], emerging: ['Rust', 'GraphQL'], weight: 0.85 },
+      'React': { category: 'technical', related: ['JavaScript', 'TypeScript', 'Redux', 'Next.js', 'CSS-in-JS'], emerging: ['React Server Components', 'Astro'], weight: 0.9 },
+      'Python': { category: 'technical', related: ['Data Analysis', 'Machine Learning', 'Django', 'FastAPI', 'SQL'], emerging: ['MLOps', 'LLM Engineering'], weight: 0.95 },
+      'SQL': { category: 'technical', related: ['Data Analysis', 'Python', 'Database Design', 'PostgreSQL'], emerging: ['dbt', 'Data Mesh'], weight: 0.8 },
+      'AWS': { category: 'technical', related: ['Cloud Architecture', 'DevOps', 'Terraform', 'Docker', 'Kubernetes'], emerging: ['FinOps', 'Platform Engineering'], weight: 0.85 },
+      'Machine Learning': { category: 'technical', related: ['Python', 'Data Analysis', 'Statistics', 'Deep Learning', 'TensorFlow'], emerging: ['LLM Engineering', 'MLOps', 'AI Ethics'], weight: 0.9 },
+      'DevOps': { category: 'technical', related: ['AWS', 'Docker', 'Kubernetes', 'CI/CD', 'Linux'], emerging: ['Platform Engineering', 'GitOps', 'FinOps'], weight: 0.85 },
+      'Data Analysis': { category: 'technical', related: ['SQL', 'Python', 'Excel', 'Statistics', 'Tableau'], emerging: ['dbt', 'Data Storytelling'], weight: 0.8 },
+      'Node.js': { category: 'technical', related: ['JavaScript', 'TypeScript', 'Express', 'MongoDB', 'REST APIs'], emerging: ['Bun', 'Edge Computing'], weight: 0.75 },
+      'Docker': { category: 'technical', related: ['Kubernetes', 'DevOps', 'Linux', 'CI/CD'], emerging: ['WebAssembly', 'Podman'], weight: 0.7 },
+      'Kubernetes': { category: 'technical', related: ['Docker', 'DevOps', 'AWS', 'Terraform'], emerging: ['Service Mesh', 'Platform Engineering'], weight: 0.75 },
+
+      // Business Skills
+      'Product Management': { category: 'business', related: ['Agile', 'User Research', 'Data Analysis', 'Strategy', 'Roadmapping'], emerging: ['Product-Led Growth', 'AI Product Strategy'], weight: 0.9 },
+      'Strategy': { category: 'business', related: ['Product Management', 'Business Analysis', 'Market Research', 'Financial Modeling'], emerging: ['AI Strategy', 'Sustainability Strategy'], weight: 0.85 },
+      'Project Management': { category: 'business', related: ['Agile', 'Stakeholder Management', 'Risk Management', 'Budget Management'], emerging: ['Hybrid Work Management', 'AI-Assisted PM'], weight: 0.8 },
+      'Agile': { category: 'business', related: ['Scrum', 'Product Management', 'Project Management', 'Team Leadership'], emerging: ['Shape Up', 'Continuous Discovery'], weight: 0.75 },
+      'Business Analysis': { category: 'business', related: ['Data Analysis', 'Strategy', 'Requirements Gathering', 'Process Improvement'], emerging: ['Digital Transformation', 'Automation Strategy'], weight: 0.7 },
+      'Sales': { category: 'business', related: ['Negotiation', 'CRM', 'Lead Generation', 'Account Management', 'Communication'], emerging: ['Sales Enablement', 'Revenue Operations'], weight: 0.8 },
+      'Operations': { category: 'business', related: ['Process Improvement', 'Supply Chain', 'Project Management', 'Analytics'], emerging: ['Automation', 'Sustainable Operations'], weight: 0.75 },
+      'Financial Modeling': { category: 'business', related: ['Excel', 'Strategy', 'Data Analysis', 'Accounting'], emerging: ['FP&A Automation', 'Predictive Finance'], weight: 0.7 },
+      'Stakeholder Management': { category: 'business', related: ['Communication', 'Project Management', 'Negotiation', 'Leadership'], emerging: ['Remote Stakeholder Engagement'], weight: 0.65 },
+
+      // Creative Skills
+      'UI Design': { category: 'creative', related: ['UX Design', 'Figma', 'Design Systems', 'Visual Design', 'Prototyping'], emerging: ['AI-Assisted Design', 'Design Engineering'], weight: 0.85 },
+      'UX Design': { category: 'creative', related: ['UI Design', 'User Research', 'Prototyping', 'Information Architecture', 'Usability Testing'], emerging: ['Conversational UX', 'Inclusive Design'], weight: 0.9 },
+      'Content Strategy': { category: 'creative', related: ['Copywriting', 'SEO', 'Content Marketing', 'Brand Strategy'], emerging: ['AI Content Operations', 'Content Design'], weight: 0.8 },
+      'Copywriting': { category: 'creative', related: ['Content Strategy', 'SEO', 'Marketing', 'Brand Voice'], emerging: ['AI-Augmented Writing', 'Microcopy'], weight: 0.75 },
+      'Brand Strategy': { category: 'creative', related: ['Marketing', 'Visual Design', 'Content Strategy', 'Market Research'], emerging: ['Brand Experience', 'Purpose-Driven Branding'], weight: 0.8 },
+      'Video Production': { category: 'creative', related: ['Video Editing', 'Motion Graphics', 'Storytelling', 'Content Marketing'], emerging: ['AI Video Tools', 'Short-Form Video'], weight: 0.7 },
+      'Graphic Design': { category: 'creative', related: ['Visual Design', 'Adobe Creative Suite', 'Brand Strategy', 'Typography'], emerging: ['Generative Design', '3D Design'], weight: 0.75 },
+      'Marketing': { category: 'creative', related: ['Digital Marketing', 'Content Strategy', 'Analytics', 'Brand Strategy', 'Social Media'], emerging: ['Growth Marketing', 'Marketing Automation'], weight: 0.85 },
+      'SEO': { category: 'creative', related: ['Content Strategy', 'Analytics', 'Copywriting', 'Digital Marketing'], emerging: ['AI SEO', 'Voice Search Optimization'], weight: 0.7 },
+      'User Research': { category: 'creative', related: ['UX Design', 'Product Management', 'Data Analysis', 'Usability Testing'], emerging: ['AI Research Tools', 'Continuous Discovery'], weight: 0.8 },
+
+      // Emerging/Cross-functional
+      'LLM Engineering': { category: 'emerging', related: ['Python', 'Machine Learning', 'Prompt Engineering', 'API Development'], emerging: ['AI Agents', 'RAG Systems'], weight: 0.95 },
+      'Platform Engineering': { category: 'emerging', related: ['DevOps', 'Kubernetes', 'Developer Experience', 'Infrastructure as Code'], emerging: ['Internal Developer Platforms'], weight: 0.85 },
+      'Product-Led Growth': { category: 'emerging', related: ['Product Management', 'Data Analysis', 'UX Design', 'Marketing'], emerging: ['Self-Serve Analytics'], weight: 0.8 },
+      'Data Storytelling': { category: 'emerging', related: ['Data Analysis', 'Visualization', 'Communication', 'Presentation'], emerging: ['Interactive Dashboards'], weight: 0.75 },
+    };
+
+    // Category colors and styling
+    const categoryConfig = {
+      technical: {
+        color: '#3B82F6',
+        gradient: 'from-blue-500 to-cyan-500',
+        bgGradient: 'from-blue-500/20 to-cyan-500/20',
+        label: 'Technical',
+        icon: '{ }'
+      },
+      business: {
+        color: '#8B5CF6',
+        gradient: 'from-purple-500 to-pink-500',
+        bgGradient: 'from-purple-500/20 to-pink-500/20',
+        label: 'Business',
+        icon: '\uD83D\uDCCA'
+      },
+      creative: {
+        color: '#F59E0B',
+        gradient: 'from-amber-500 to-orange-500',
+        bgGradient: 'from-amber-500/20 to-orange-500/20',
+        label: 'Creative',
+        icon: '\u2728'
+      },
+      emerging: {
+        color: '#10B981',
+        gradient: 'from-emerald-500 to-teal-500',
+        bgGradient: 'from-emerald-500/20 to-teal-500/20',
+        label: 'Emerging',
+        icon: '\uD83D\uDE80'
+      }
+    };
+
+    // Skill Chip Component
+    const SkillChip = ({ skill, category, isSelected, isRelated, isEmerging, isGap, onClick, size = 'md' }) => {
+      const config = categoryConfig[category] || categoryConfig.technical;
+
+      const sizeClasses = {
+        sm: 'px-2 py-1 text-xs',
+        md: 'px-3 py-1.5 text-sm',
+        lg: 'px-4 py-2 text-base'
+      };
+
+      let baseClasses = `
+        inline-flex items-center gap-1.5 rounded-full font-medium
+        transition-all duration-300 cursor-pointer select-none
+        ${sizeClasses[size]}
+      `;
+
+      if (isSelected) {
+        baseClasses += ` bg-gradient-to-r ${config.gradient} text-white shadow-lg shadow-${config.color}/30 scale-105`;
+      } else if (isEmerging) {
+        baseClasses += ` bg-gradient-to-r ${config.bgGradient} text-emerald-400 border border-emerald-500/50
+                         hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/20`;
+      } else if (isGap) {
+        baseClasses += ` bg-gray-800/50 text-gray-400 border border-dashed border-gray-600
+                         hover:border-gray-500 hover:text-gray-300`;
+      } else if (isRelated) {
+        baseClasses += ` bg-gradient-to-r ${config.bgGradient} text-gray-200 border border-gray-600
+                         hover:border-gray-500 hover:shadow-md`;
+      } else {
+        baseClasses += ` bg-gray-800/80 text-gray-300 border border-gray-700
+                         hover:bg-gray-700/80 hover:border-gray-600`;
+      }
+
+      return (
+        <button className={baseClasses} onClick={onClick}>
+          {isEmerging && <span className="text-xs">{'\u26A1'}</span>}
+          {isGap && <span className="text-xs opacity-60">+</span>}
+          <span>{skill}</span>
+        </button>
+      );
+    };
+
+    // Radial Cluster Visualization
+    const SkillCluster = ({ centerSkill, relatedSkills, emergingSkills, onSkillClick, selectedSkills }) => {
+      const config = categoryConfig[skillsDatabase[centerSkill]?.category] || categoryConfig.technical;
+
+      // Calculate positions for radial layout
+      const getPosition = (index, total, radius) => {
+        const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+        return {
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius
+        };
+      };
+
+      const relatedPositions = relatedSkills.map((_, i) => getPosition(i, relatedSkills.length, 120));
+      const emergingPositions = emergingSkills.map((_, i) => getPosition(i, emergingSkills.length, 200));
+
+      return (
+        <div className="relative w-full h-96 flex items-center justify-center">
+          {/* Connection lines */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+            <defs>
+              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={config.color} stopOpacity="0.6" />
+                <stop offset="100%" stopColor={config.color} stopOpacity="0.1" />
+              </linearGradient>
+              <linearGradient id="emergingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#10B981" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+              </linearGradient>
+            </defs>
+            <g transform="translate(50%, 50%)">
+              {relatedPositions.map((pos, i) => (
+                <line
+                  key={`related-${i}`}
+                  x1="0" y1="0"
+                  x2={pos.x} y2={pos.y}
+                  stroke="url(#lineGradient)"
+                  strokeWidth="2"
+                  strokeDasharray="4 4"
+                />
+              ))}
+              {emergingPositions.map((pos, i) => (
+                <line
+                  key={`emerging-${i}`}
+                  x1="0" y1="0"
+                  x2={pos.x} y2={pos.y}
+                  stroke="url(#emergingGradient)"
+                  strokeWidth="1.5"
+                  strokeDasharray="2 4"
+                />
+              ))}
+            </g>
+          </svg>
+
+          {/* Center skill */}
+          <div className="absolute z-20" style={{ transform: 'translate(-50%, -50%)', left: '50%', top: '50%' }}>
+            <div className={`
+              px-6 py-3 rounded-2xl font-bold text-lg
+              bg-gradient-to-r ${config.gradient} text-white
+              shadow-2xl shadow-${config.color}/40
+              ring-4 ring-white/10
+            `}>
+              {centerSkill}
+            </div>
+          </div>
+
+          {/* Related skills */}
+          {relatedSkills.map((skill, i) => {
+            const pos = relatedPositions[i];
+            const skillConfig = categoryConfig[skillsDatabase[skill]?.category] || categoryConfig.technical;
+            return (
+              <div
+                key={skill}
+                className="absolute z-10 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 hover:scale-110"
+                style={{
+                  left: `calc(50% + ${pos.x}px)`,
+                  top: `calc(50% + ${pos.y}px)`
+                }}
+              >
+                <SkillChip
+                  skill={skill}
+                  category={skillsDatabase[skill]?.category || 'technical'}
+                  isSelected={selectedSkills.includes(skill)}
+                  isRelated={true}
+                  onClick={() => onSkillClick(skill)}
+                />
+              </div>
+            );
+          })}
+
+          {/* Emerging skills */}
+          {emergingSkills.map((skill, i) => {
+            const pos = emergingPositions[i];
+            return (
+              <div
+                key={skill}
+                className="absolute z-10 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 hover:scale-110"
+                style={{
+                  left: `calc(50% + ${pos.x}px)`,
+                  top: `calc(50% + ${pos.y}px)`
+                }}
+              >
+                <SkillChip
+                  skill={skill}
+                  category="emerging"
+                  isEmerging={true}
+                  onClick={() => onSkillClick(skill)}
+                  size="sm"
+                />
+              </div>
+            );
+          })}
+        </div>
+      );
+    };
+
+    // Skill Gap Card
+    const SkillGapCard = ({ skill, category, connections, onClick }) => {
+      const config = categoryConfig[category] || categoryConfig.technical;
+
+      return (
+        <div
+          onClick={onClick}
+          className={`
+            p-4 rounded-xl cursor-pointer transition-all duration-300
+            bg-gradient-to-br ${config.bgGradient}
+            border border-gray-700/50 hover:border-gray-600
+            hover:shadow-lg hover:shadow-${config.color}/10
+            hover:translate-y-[-2px]
+          `}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-semibold text-white">{skill}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full bg-gradient-to-r ${config.gradient} text-white`}>
+              {config.label}
+            </span>
+          </div>
+          <p className="text-sm text-gray-400 mb-2">
+            Connects to {connections} of your skills
+          </p>
+          <div className="flex items-center gap-1 text-xs text-emerald-400">
+            <span>{'\u26A1'}</span>
+            <span>High adjacency match</span>
+          </div>
+        </div>
+      );
+    };
+
+    // Stats Card
+    const StatsCard = ({ icon, label, value, subtext }) => (
+      <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xl">{icon}</span>
+          <span className="text-gray-400 text-sm">{label}</span>
+        </div>
+        <div className="text-2xl font-bold text-white">{value}</div>
+        {subtext && <div className="text-xs text-gray-500 mt-1">{subtext}</div>}
+      </div>
+    );
+
+    // Main App Component
+    function SkillsAdjacencyExplorer() {
+      const [selectedSkills, setSelectedSkills] = useState(['Python', 'Data Analysis']);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [activeCategory, setActiveCategory] = useState('all');
+      const [focusedSkill, setFocusedSkill] = useState('Python');
+
+      // Get all skills organized by category
+      const skillsByCategory = useMemo(() => {
+        const organized = { technical: [], business: [], creative: [], emerging: [] };
+        Object.entries(skillsDatabase).forEach(([skill, data]) => {
+          if (organized[data.category]) {
+            organized[data.category].push(skill);
+          }
+        });
+        return organized;
+      }, []);
+
+      // Filter skills based on search and category
+      const filteredSkills = useMemo(() => {
+        let skills = Object.keys(skillsDatabase);
+
+        if (searchQuery) {
+          skills = skills.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
+
+        if (activeCategory !== 'all') {
+          skills = skills.filter(s => skillsDatabase[s].category === activeCategory);
+        }
+
+        return skills;
+      }, [searchQuery, activeCategory]);
+
+      // Calculate related and emerging skills based on selection
+      const adjacencyData = useMemo(() => {
+        const related = new Map();
+        const emerging = new Set();
+
+        selectedSkills.forEach(skill => {
+          const data = skillsDatabase[skill];
+          if (data) {
+            data.related.forEach(r => {
+              if (!selectedSkills.includes(r)) {
+                related.set(r, (related.get(r) || 0) + 1);
+              }
+            });
+            data.emerging.forEach(e => emerging.add(e));
+          }
+        });
+
+        // Sort related by connection count
+        const sortedRelated = Array.from(related.entries())
+          .sort((a, b) => b[1] - a[1])
+          .map(([skill, count]) => ({ skill, connections: count }));
+
+        return {
+          related: sortedRelated,
+          emerging: Array.from(emerging)
+        };
+      }, [selectedSkills]);
+
+      // Skill gap opportunities
+      const skillGaps = useMemo(() => {
+        return adjacencyData.related
+          .filter(({ connections }) => connections >= 2)
+          .slice(0, 6)
+          .map(({ skill, connections }) => ({
+            skill,
+            connections,
+            category: skillsDatabase[skill]?.category || 'technical'
+          }));
+      }, [adjacencyData]);
+
+      // Handlers
+      const handleSkillToggle = useCallback((skill) => {
+        setSelectedSkills(prev => {
+          if (prev.includes(skill)) {
+            return prev.filter(s => s !== skill);
+          }
+          return [...prev, skill];
+        });
+      }, []);
+
+      const handleSkillFocus = useCallback((skill) => {
+        setFocusedSkill(skill);
+        if (!selectedSkills.includes(skill) && skillsDatabase[skill]) {
+          setSelectedSkills(prev => [...prev, skill]);
+        }
+      }, [selectedSkills]);
+
+      // Get data for focused skill visualization
+      const focusedSkillData = useMemo(() => {
+        const data = skillsDatabase[focusedSkill];
+        if (!data) return { related: [], emerging: [] };
+
+        return {
+          related: data.related.filter(s => skillsDatabase[s]),
+          emerging: data.emerging
+        };
+      }, [focusedSkill]);
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
+          {/* Header */}
+          <header className="border-b border-gray-800/50 bg-gray-900/50 backdrop-blur-xl sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl">
+                    {'\uD83D\uDD17'}
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                      Skills Adjacency Explorer
+                    </h1>
+                    <p className="text-xs text-gray-500">Discover your skill network</p>
+                  </div>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search skills..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-64 px-4 py-2 pl-10 rounded-xl bg-gray-800/50 border border-gray-700
+                             text-sm text-white placeholder-gray-500
+                             focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20
+                             transition-all duration-300"
+                  />
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto px-6 py-8">
+            {/* Stats Row */}
+            <div className="grid grid-cols-4 gap-4 mb-8">
+              <StatsCard
+                icon={'\uD83C\uDFAF'}
+                label="Selected Skills"
+                value={selectedSkills.length}
+                subtext="Your current skillset"
+              />
+              <StatsCard
+                icon={'\uD83D\uDD17'}
+                label="Related Skills"
+                value={adjacencyData.related.length}
+                subtext="Adjacent opportunities"
+              />
+              <StatsCard
+                icon={'\u26A1'}
+                label="Emerging Skills"
+                value={adjacencyData.emerging.length}
+                subtext="Future-proof options"
+              />
+              <StatsCard
+                icon={'\uD83D\uDCC8'}
+                label="Skill Gaps"
+                value={skillGaps.length}
+                subtext="High-impact additions"
+              />
+            </div>
+
+            <div className="grid grid-cols-12 gap-8">
+              {/* Left Panel - Skill Selection */}
+              <div className="col-span-4 space-y-6">
+                {/* Your Skills */}
+                <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-800/50">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    Your Skills
+                  </h2>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {selectedSkills.map(skill => (
+                      <SkillChip
+                        key={skill}
+                        skill={skill}
+                        category={skillsDatabase[skill]?.category || 'technical'}
+                        isSelected={true}
+                        onClick={() => handleSkillToggle(skill)}
+                      />
+                    ))}
+                    {selectedSkills.length === 0 && (
+                      <p className="text-gray-500 text-sm">Click skills below to add them</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Category Filter */}
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setActiveCategory('all')}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all
+                      ${activeCategory === 'all'
+                        ? 'bg-white text-gray-900'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                  >
+                    All
+                  </button>
+                  {Object.entries(categoryConfig).map(([key, config]) => (
+                    <button
+                      key={key}
+                      onClick={() => setActiveCategory(key)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5
+                        ${activeCategory === key
+                          ? `bg-gradient-to-r ${config.gradient} text-white`
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                    >
+                      <span>{config.icon}</span>
+                      {config.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Available Skills */}
+                <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-800/50 max-h-96 overflow-y-auto">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    Available Skills
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {filteredSkills.map(skill => (
+                      <SkillChip
+                        key={skill}
+                        skill={skill}
+                        category={skillsDatabase[skill]?.category || 'technical'}
+                        isSelected={selectedSkills.includes(skill)}
+                        onClick={() => {
+                          handleSkillToggle(skill);
+                          if (!selectedSkills.includes(skill)) {
+                            setFocusedSkill(skill);
+                          }
+                        }}
+                        size="sm"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Center Panel - Visualization */}
+              <div className="col-span-5">
+                <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-800/50 h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Skill Network
+                    </h2>
+                    <select
+                      value={focusedSkill}
+                      onChange={(e) => setFocusedSkill(e.target.value)}
+                      className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm
+                               focus:outline-none focus:border-blue-500"
+                    >
+                      {selectedSkills.map(skill => (
+                        <option key={skill} value={skill}>{skill}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedSkills.length > 0 ? (
+                    <SkillCluster
+                      centerSkill={focusedSkill}
+                      relatedSkills={focusedSkillData.related}
+                      emergingSkills={focusedSkillData.emerging}
+                      onSkillClick={handleSkillFocus}
+                      selectedSkills={selectedSkills}
+                    />
+                  ) : (
+                    <div className="h-96 flex items-center justify-center text-gray-500">
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">{'\uD83C\uDFAF'}</div>
+                        <p>Select skills to see their network</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Legend */}
+                  <div className="flex items-center justify-center gap-6 mt-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+                      <span>Selected</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-gray-600 border border-gray-500"></div>
+                      <span>Related</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500/30 border border-emerald-500"></div>
+                      <span>Emerging</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Panel - Opportunities */}
+              <div className="col-span-3 space-y-6">
+                {/* Skill Gap Opportunities */}
+                <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-800/50">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    Skill Gap Opportunities
+                  </h2>
+                  <div className="space-y-3">
+                    {skillGaps.length > 0 ? (
+                      skillGaps.map(({ skill, connections, category }) => (
+                        <SkillGapCard
+                          key={skill}
+                          skill={skill}
+                          category={category}
+                          connections={connections}
+                          onClick={() => handleSkillFocus(skill)}
+                        />
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-sm text-center py-4">
+                        Add more skills to discover opportunities
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Emerging Skills */}
+                <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-800/50">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Emerging Skills
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {adjacencyData.emerging.length > 0 ? (
+                      adjacencyData.emerging.map(skill => (
+                        <SkillChip
+                          key={skill}
+                          skill={skill}
+                          category="emerging"
+                          isEmerging={true}
+                          onClick={() => {}}
+                          size="sm"
+                        />
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-sm">
+                        Select skills to see emerging opportunities
+                      </p>
+                    )}
+                  </div>
+                  {adjacencyData.emerging.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-4">
+                      These skills are growing in demand and connect to your current skillset.
+                    </p>
+                  )}
+                </div>
+
+                {/* Quick Stats */}
+                <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl p-6 border border-blue-500/20">
+                  <h3 className="font-semibold mb-3 text-blue-400">Skill Coverage</h3>
+                  <div className="space-y-3">
+                    {Object.entries(categoryConfig).map(([key, config]) => {
+                      const total = skillsByCategory[key]?.length || 0;
+                      const selected = selectedSkills.filter(s => skillsDatabase[s]?.category === key).length;
+                      const percentage = total > 0 ? Math.round((selected / total) * 100) : 0;
+
+                      return (
+                        <div key={key}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-400">{config.label}</span>
+                            <span className="text-gray-300">{selected}/{total}</span>
+                          </div>
+                          <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full bg-gradient-to-r ${config.gradient} transition-all duration-500`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<SkillsAdjacencyExplorer />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Style Archetype Quiz</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const WorkStyleArchetypeQuiz = () => {
+      const [screen, setScreen] = useState('intro');
+      const [currentQuestion, setCurrentQuestion] = useState(0);
+      const [answers, setAnswers] = useState({});
+      const [archetype, setArchetype] = useState(null);
+
+      // Based on Big Five (OCEAN) + Holland Codes integration
+      const dimensions = {
+        openness: { name: 'Openness', low: 'Conventional', high: 'Innovative' },
+        conscientiousness: { name: 'Conscientiousness', low: 'Flexible', high: 'Structured' },
+        extraversion: { name: 'Extraversion', low: 'Independent', high: 'Collaborative' },
+        agreeableness: { name: 'Agreeableness', low: 'Challenger', high: 'Harmonizer' },
+        neuroticism: { name: 'Stability', low: 'Resilient', high: 'Sensitive' }
+      };
+
+      const questions = [
+        // Openness
+        { id: 1, dim: 'openness', text: "When facing a new project, I prefer to:",
+          options: [
+            { text: "Follow established methods that have proven successful", score: 1 },
+            { text: "Adapt existing approaches to fit the situation", score: 3 },
+            { text: "Experiment with entirely new approaches", score: 5 }
+          ]},
+        { id: 2, dim: 'openness', text: "In meetings, I'm most engaged when discussing:",
+          options: [
+            { text: "Concrete plans and immediate priorities", score: 1 },
+            { text: "Improvements to current processes", score: 3 },
+            { text: "Big-picture possibilities and future trends", score: 5 }
+          ]},
+        { id: 3, dim: 'openness', text: "When learning something new at work, I:",
+          options: [
+            { text: "Focus on mastering practical skills I can use immediately", score: 1 },
+            { text: "Balance practical learning with exploring new concepts", score: 3 },
+            { text: "Dive deep into theory and underlying principles first", score: 5 }
+          ]},
+        // Conscientiousness
+        { id: 4, dim: 'conscientiousness', text: "My ideal workspace organization is:",
+          options: [
+            { text: "Flexible—I know where things are in my own system", score: 1 },
+            { text: "Moderately organized with key items in consistent places", score: 3 },
+            { text: "Highly structured with everything labeled and sorted", score: 5 }
+          ]},
+        { id: 5, dim: 'conscientiousness', text: "When given a deadline, I typically:",
+          options: [
+            { text: "Work best under pressure, often finishing close to the deadline", score: 1 },
+            { text: "Pace myself but might need a final push", score: 3 },
+            { text: "Create a detailed schedule and complete work well in advance", score: 5 }
+          ]},
+        { id: 6, dim: 'conscientiousness', text: "My approach to task lists is:",
+          options: [
+            { text: "I keep things in my head and adapt as needed", score: 1 },
+            { text: "I maintain a general list but don't track everything", score: 3 },
+            { text: "I meticulously track tasks, priorities, and progress", score: 5 }
+          ]},
+        // Extraversion
+        { id: 7, dim: 'extraversion', text: "After a day full of meetings, I feel:",
+          options: [
+            { text: "Drained and need time alone to recharge", score: 1 },
+            { text: "Fine, though I appreciate some quiet time", score: 3 },
+            { text: "Energized and ready for more interaction", score: 5 }
+          ]},
+        { id: 8, dim: 'extraversion', text: "When problem-solving, I prefer to:",
+          options: [
+            { text: "Think it through independently first", score: 1 },
+            { text: "Mix solo thinking with selective collaboration", score: 3 },
+            { text: "Talk it through with others from the start", score: 5 }
+          ]},
+        { id: 9, dim: 'extraversion', text: "In group projects, I naturally gravitate toward:",
+          options: [
+            { text: "Individual contributor roles with clear deliverables", score: 1 },
+            { text: "Supporting roles that balance solo and group work", score: 3 },
+            { text: "Coordinating roles that involve lots of interaction", score: 5 }
+          ]},
+        // Agreeableness
+        { id: 10, dim: 'agreeableness', text: "When I disagree with a team decision, I:",
+          options: [
+            { text: "Directly challenge the decision and advocate for my view", score: 1 },
+            { text: "Share my concerns but ultimately support the group", score: 3 },
+            { text: "Focus on finding common ground and maintaining harmony", score: 5 }
+          ]},
+        { id: 11, dim: 'agreeableness', text: "In negotiations, my priority is:",
+          options: [
+            { text: "Getting the best possible outcome for my side", score: 1 },
+            { text: "Finding a fair balance between competing interests", score: 3 },
+            { text: "Ensuring everyone feels good about the result", score: 5 }
+          ]},
+        { id: 12, dim: 'agreeableness', text: "When a colleague makes a mistake, I tend to:",
+          options: [
+            { text: "Point it out directly so it can be fixed", score: 1 },
+            { text: "Address it privately with constructive feedback", score: 3 },
+            { text: "Find a gentle way to help without embarrassing them", score: 5 }
+          ]},
+        // Neuroticism (reverse scored for 'stability')
+        { id: 13, dim: 'neuroticism', text: "When facing uncertainty at work, I:",
+          options: [
+            { text: "Stay calm and focus on what I can control", score: 1 },
+            { text: "Feel some anxiety but manage it effectively", score: 3 },
+            { text: "Often worry and need reassurance", score: 5 }
+          ]},
+        { id: 14, dim: 'neuroticism', text: "After receiving critical feedback, I:",
+          options: [
+            { text: "Process it objectively and move forward quickly", score: 1 },
+            { text: "Feel disappointed briefly but recover fairly soon", score: 3 },
+            { text: "Tend to dwell on it and feel it deeply", score: 5 }
+          ]},
+        { id: 15, dim: 'neuroticism', text: "Under high pressure, I:",
+          options: [
+            { text: "Thrive and perform at my best", score: 1 },
+            { text: "Handle it adequately with some stress", score: 3 },
+            { text: "Feel overwhelmed and my performance suffers", score: 5 }
+          ]}
+      ];
+
+      const archetypes = {
+        'strategic-architect': {
+          name: 'The Strategic Architect',
+          emoji: '🏗️',
+          tagline: 'Visionary planner who builds for the future',
+          color: '#6366f1',
+          profile: {
+            openness: 'high',
+            conscientiousness: 'high',
+            extraversion: 'low-mid',
+            agreeableness: 'low-mid',
+            neuroticism: 'low'
+          },
+          strengths: [
+            'Long-term strategic thinking',
+            'Systematic problem-solving',
+            'Turning ideas into executable plans',
+            'Independent deep work',
+            'Quality-focused delivery'
+          ],
+          blindSpots: [
+            'May over-plan at the expense of action',
+            'Can be perceived as detached or aloof',
+            'Might resist quick pivots when needed',
+            'Could dismiss ideas that seem impractical'
+          ],
+          teamTips: [
+            'Give them space for independent thinking before group discussions',
+            'Value their need for context and the "why" behind decisions',
+            'Pair them with action-oriented colleagues for balance',
+            'Respect their preference for written over verbal communication'
+          ],
+          idealRoles: ['Strategy', 'Architecture', 'Research', 'Systems Design', 'Policy']
+        },
+        'dynamic-catalyst': {
+          name: 'The Dynamic Catalyst',
+          emoji: '⚡',
+          tagline: 'Energetic connector who sparks change',
+          color: '#f59e0b',
+          profile: {
+            openness: 'high',
+            conscientiousness: 'low-mid',
+            extraversion: 'high',
+            agreeableness: 'mid-high',
+            neuroticism: 'low-mid'
+          },
+          strengths: [
+            'Generating enthusiasm and buy-in',
+            'Cross-functional relationship building',
+            'Adapting quickly to change',
+            'Creative brainstorming',
+            'Energizing team morale'
+          ],
+          blindSpots: [
+            'May start more than they finish',
+            'Can overlook important details',
+            'Might dominate conversations unintentionally',
+            'Could resist routine or repetitive work'
+          ],
+          teamTips: [
+            'Channel their energy toward specific initiatives',
+            'Pair them with detail-oriented colleagues',
+            'Give them variety and new challenges regularly',
+            'Value their networking and influence skills'
+          ],
+          idealRoles: ['Sales', 'Business Development', 'Marketing', 'Entrepreneurship', 'Change Management']
+        },
+        'steady-anchor': {
+          name: 'The Steady Anchor',
+          emoji: '⚓',
+          tagline: 'Reliable foundation who keeps things running',
+          color: '#10b981',
+          profile: {
+            openness: 'low-mid',
+            conscientiousness: 'high',
+            extraversion: 'low-mid',
+            agreeableness: 'high',
+            neuroticism: 'low'
+          },
+          strengths: [
+            'Consistent, dependable execution',
+            'Strong process management',
+            'Team stability and support',
+            'Patient problem resolution',
+            'Maintaining quality standards'
+          ],
+          blindSpots: [
+            'May resist change when change is needed',
+            'Can be too accommodating to others',
+            'Might avoid necessary conflicts',
+            'Could miss innovation opportunities'
+          ],
+          teamTips: [
+            'Provide clear expectations and stable priorities',
+            'Value their institutional knowledge',
+            'Give advance notice of major changes',
+            'Don\'t mistake their quietness for disengagement'
+          ],
+          idealRoles: ['Operations', 'Project Management', 'HR', 'Quality Assurance', 'Administration']
+        },
+        'maverick-innovator': {
+          name: 'The Maverick Innovator',
+          emoji: '🚀',
+          tagline: 'Bold disruptor who challenges the status quo',
+          color: '#ef4444',
+          profile: {
+            openness: 'high',
+            conscientiousness: 'low-mid',
+            extraversion: 'mid-high',
+            agreeableness: 'low',
+            neuroticism: 'low'
+          },
+          strengths: [
+            'Breakthrough thinking',
+            'Challenging assumptions',
+            'Rapid prototyping and iteration',
+            'Thriving in ambiguity',
+            'Driving transformation'
+          ],
+          blindSpots: [
+            'May disregard proven methods too quickly',
+            'Can alienate more traditional colleagues',
+            'Might underestimate implementation challenges',
+            'Could create chaos when stability is needed'
+          ],
+          teamTips: [
+            'Give them room to experiment (with guardrails)',
+            'Don\'t expect them to follow standard processes',
+            'Pair them with implementers who can execute their ideas',
+            'Appreciate their directness even when uncomfortable'
+          ],
+          idealRoles: ['R&D', 'Product Innovation', 'Startups', 'Consulting', 'Design Thinking']
+        },
+        'empathetic-bridge': {
+          name: 'The Empathetic Bridge',
+          emoji: '🌉',
+          tagline: 'Diplomatic connector who builds understanding',
+          color: '#8b5cf6',
+          profile: {
+            openness: 'mid-high',
+            conscientiousness: 'mid',
+            extraversion: 'mid-high',
+            agreeableness: 'high',
+            neuroticism: 'mid-high'
+          },
+          strengths: [
+            'Reading emotional dynamics',
+            'Facilitating difficult conversations',
+            'Building inclusive environments',
+            'Mediating conflicts',
+            'Coaching and development'
+          ],
+          blindSpots: [
+            'May absorb others\' stress too readily',
+            'Can struggle with tough decisions that hurt people',
+            'Might avoid giving direct negative feedback',
+            'Could prioritize harmony over results'
+          ],
+          teamTips: [
+            'Recognize their emotional labor',
+            'Don\'t put them in the middle of conflicts repeatedly',
+            'Value their insights on team dynamics',
+            'Support their need for processing difficult situations'
+          ],
+          idealRoles: ['People Management', 'HR Business Partner', 'Coaching', 'Customer Success', 'Mediation']
+        },
+        'analytical-optimizer': {
+          name: 'The Analytical Optimizer',
+          emoji: '📊',
+          tagline: 'Data-driven expert who maximizes efficiency',
+          color: '#06b6d4',
+          profile: {
+            openness: 'mid',
+            conscientiousness: 'high',
+            extraversion: 'low',
+            agreeableness: 'low-mid',
+            neuroticism: 'low'
+          },
+          strengths: [
+            'Rigorous analysis and logic',
+            'Process improvement',
+            'Quality and accuracy focus',
+            'Independent deep expertise',
+            'Objective decision-making'
+          ],
+          blindSpots: [
+            'May over-analyze at the expense of action',
+            'Can come across as cold or impersonal',
+            'Might dismiss qualitative insights',
+            'Could struggle with ambiguity'
+          ],
+          teamTips: [
+            'Provide data and evidence for decisions',
+            'Respect their need for accuracy',
+            'Don\'t rush them on complex problems',
+            'Value their devil\'s advocate perspective'
+          ],
+          idealRoles: ['Data Science', 'Finance', 'Engineering', 'Compliance', 'Technical Specialist']
+        }
+      };
+
+      const handleAnswer = (questionId, score, dimension) => {
+        const newAnswers = {
+          ...answers,
+          [questionId]: { score, dimension }
+        };
+        setAnswers(newAnswers);
+
+        if (currentQuestion < questions.length - 1) {
+          setCurrentQuestion(prev => prev + 1);
+        } else {
+          calculateArchetype(newAnswers);
+        }
+      };
+
+      const calculateArchetype = (allAnswers) => {
+        const dimScores = {
+          openness: [],
+          conscientiousness: [],
+          extraversion: [],
+          agreeableness: [],
+          neuroticism: []
+        };
+
+        Object.values(allAnswers).forEach(answer => {
+          dimScores[answer.dimension].push(answer.score);
+        });
+
+        const dimAverages = {};
+        Object.entries(dimScores).forEach(([dim, scores]) => {
+          dimAverages[dim] = scores.reduce((a, b) => a + b, 0) / scores.length;
+        });
+
+        // Match to archetype
+        let bestMatch = null;
+        let bestScore = -Infinity;
+
+        Object.entries(archetypes).forEach(([key, arch]) => {
+          let matchScore = 0;
+
+          // Calculate fit based on profile
+          Object.entries(arch.profile).forEach(([dim, expected]) => {
+            const actual = dimAverages[dim];
+            if (expected === 'high' && actual > 3.5) matchScore += 2;
+            else if (expected === 'low' && actual < 2.5) matchScore += 2;
+            else if (expected.includes('mid') && actual >= 2 && actual <= 4) matchScore += 1;
+            else if (expected === 'high' && actual > 2.5) matchScore += 1;
+            else if (expected === 'low' && actual < 3.5) matchScore += 1;
+          });
+
+          if (matchScore > bestScore) {
+            bestScore = matchScore;
+            bestMatch = key;
+          }
+        });
+
+        setArchetype({
+          key: bestMatch,
+          ...archetypes[bestMatch],
+          scores: dimAverages
+        });
+        setScreen('results');
+      };
+
+      const restart = () => {
+        setScreen('intro');
+        setCurrentQuestion(0);
+        setAnswers({});
+        setArchetype(null);
+      };
+
+      const progress = ((currentQuestion + 1) / questions.length) * 100;
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: '#f1f5f9',
+          padding: '2rem'
+        }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(251, 191, 36, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                marginBottom: '1rem',
+                border: '1px solid rgba(251, 191, 36, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>🧬</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#fbbf24' }}>
+                  Big Five + Holland Codes Framework
+                </span>
+              </div>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                margin: '0 0 0.5rem 0',
+                background: 'linear-gradient(135deg, #f1f5f9 0%, #fbbf24 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Work Style Archetype Quiz
+              </h1>
+              <p style={{ color: '#94a3b8', margin: 0 }}>
+                Discover your professional personality profile
+              </p>
+            </div>
+
+            {/* Intro Screen */}
+            {screen === 'intro' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1.5rem',
+                padding: '3rem',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <div style={{ display: 'grid', gap: '2rem' }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    {Object.entries(dimensions).map(([key, dim]) => (
+                      <div key={key} style={{
+                        background: 'rgba(251, 191, 36, 0.05)',
+                        borderRadius: '1rem',
+                        padding: '1rem',
+                        textAlign: 'center',
+                        border: '1px solid rgba(251, 191, 36, 0.1)'
+                      }}>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          color: '#94a3b8',
+                          marginBottom: '0.25rem'
+                        }}>
+                          {dim.low}
+                        </div>
+                        <div style={{
+                          fontWeight: '600',
+                          color: '#fbbf24',
+                          fontSize: '0.875rem'
+                        }}>
+                          {dim.name}
+                        </div>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          color: '#94a3b8',
+                          marginTop: '0.25rem'
+                        }}>
+                          {dim.high}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p style={{
+                    color: '#cbd5e1',
+                    lineHeight: '1.7',
+                    margin: 0
+                  }}>
+                    This assessment measures your work style across five research-validated personality
+                    dimensions (the Big Five/OCEAN model) and maps your profile to one of six work
+                    archetypes. Understanding your archetype helps you leverage your natural strengths
+                    and collaborate more effectively with colleagues who have different styles.
+                  </p>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '1rem'
+                  }}>
+                    {[
+                      { icon: '⏱️', label: '15 Questions', desc: '~5 minutes' },
+                      { icon: '🎯', label: '6 Archetypes', desc: 'Unique profiles' },
+                      { icon: '🤝', label: 'Team Tips', desc: 'Collaboration guide' }
+                    ].map((item, i) => (
+                      <div key={i} style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '1rem',
+                        padding: '1rem',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{item.icon}</div>
+                        <div style={{ fontWeight: '600', color: '#f1f5f9', fontSize: '0.9rem' }}>{item.label}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setScreen('quiz')}
+                    style={{
+                      background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                      color: '#0f172a',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '1.25rem 2rem',
+                      fontSize: '1.125rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 20px rgba(251, 191, 36, 0.3)'
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                    onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+                  >
+                    Discover Your Archetype →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Quiz Screen */}
+            {screen === 'quiz' && (
+              <div>
+                {/* Progress */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '1rem',
+                  height: '8px',
+                  marginBottom: '1rem',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
+                    height: '100%',
+                    width: `${progress}%`,
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '2rem',
+                  color: '#64748b',
+                  fontSize: '0.875rem'
+                }}>
+                  <span>Question {currentQuestion + 1} of {questions.length}</span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+
+                {/* Question Card */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '1.5rem',
+                  padding: '2.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  <h2 style={{
+                    fontSize: '1.375rem',
+                    fontWeight: '600',
+                    marginBottom: '2rem',
+                    color: '#f1f5f9',
+                    lineHeight: '1.4'
+                  }}>
+                    {questions[currentQuestion].text}
+                  </h2>
+
+                  <div style={{ display: 'grid', gap: '1rem' }}>
+                    {questions[currentQuestion].options.map((option, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleAnswer(
+                          questions[currentQuestion].id,
+                          option.score,
+                          questions[currentQuestion].dim
+                        )}
+                        style={{
+                          background: 'rgba(251, 191, 36, 0.05)',
+                          border: '2px solid rgba(251, 191, 36, 0.2)',
+                          borderRadius: '1rem',
+                          padding: '1.25rem 1.5rem',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          color: '#e2e8f0',
+                          transition: 'all 0.2s ease',
+                          fontSize: '1rem',
+                          lineHeight: '1.5'
+                        }}
+                        onMouseOver={(e) => {
+                          e.target.style.background = 'rgba(251, 191, 36, 0.1)';
+                          e.target.style.borderColor = 'rgba(251, 191, 36, 0.4)';
+                          e.target.style.transform = 'translateX(8px)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.target.style.background = 'rgba(251, 191, 36, 0.05)';
+                          e.target.style.borderColor = 'rgba(251, 191, 36, 0.2)';
+                          e.target.style.transform = 'translateX(0)';
+                        }}
+                      >
+                        {option.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Results Screen */}
+            {screen === 'results' && archetype && (
+              <div>
+                {/* Archetype Card */}
+                <div style={{
+                  background: `linear-gradient(135deg, ${archetype.color}15 0%, rgba(0,0,0,0.3) 100%)`,
+                  borderRadius: '1.5rem',
+                  padding: '2.5rem',
+                  border: `2px solid ${archetype.color}40`,
+                  marginBottom: '1.5rem',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    fontSize: '4rem',
+                    marginBottom: '1rem'
+                  }}>
+                    {archetype.emoji}
+                  </div>
+                  <h2 style={{
+                    fontSize: '2rem',
+                    fontWeight: '700',
+                    margin: '0 0 0.5rem 0',
+                    color: archetype.color
+                  }}>
+                    {archetype.name}
+                  </h2>
+                  <p style={{
+                    fontSize: '1.125rem',
+                    color: '#94a3b8',
+                    margin: 0
+                  }}>
+                    {archetype.tagline}
+                  </p>
+                </div>
+
+                {/* Dimension Scores */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '1.5rem',
+                  padding: '2rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h3 style={{
+                    margin: '0 0 1.5rem 0',
+                    fontSize: '1.125rem',
+                    fontWeight: '600',
+                    color: '#f1f5f9'
+                  }}>
+                    📊 Your Dimension Scores
+                  </h3>
+                  <div style={{ display: 'grid', gap: '1.25rem' }}>
+                    {Object.entries(archetype.scores).map(([dim, score]) => (
+                      <div key={dim}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: '0.5rem',
+                          fontSize: '0.875rem'
+                        }}>
+                          <span style={{ color: '#64748b' }}>{dimensions[dim].low}</span>
+                          <span style={{ color: '#f1f5f9', fontWeight: '600' }}>{dimensions[dim].name}</span>
+                          <span style={{ color: '#64748b' }}>{dimensions[dim].high}</span>
+                        </div>
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.5rem',
+                          height: '12px',
+                          position: 'relative'
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            left: `${((score - 1) / 4) * 100}%`,
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: '20px',
+                            height: '20px',
+                            background: archetype.color,
+                            borderRadius: '50%',
+                            boxShadow: `0 0 10px ${archetype.color}`
+                          }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Strengths & Blind Spots */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gap: '1.5rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.05)',
+                    borderRadius: '1.5rem',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(16, 185, 129, 0.2)'
+                  }}>
+                    <h3 style={{
+                      margin: '0 0 1rem 0',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      color: '#10b981'
+                    }}>
+                      💪 Core Strengths
+                    </h3>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.25rem',
+                      color: '#a7f3d0',
+                      lineHeight: '1.8'
+                    }}>
+                      {archetype.strengths.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.05)',
+                    borderRadius: '1.5rem',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(239, 68, 68, 0.2)'
+                  }}>
+                    <h3 style={{
+                      margin: '0 0 1rem 0',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      color: '#ef4444'
+                    }}>
+                      🔍 Potential Blind Spots
+                    </h3>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.25rem',
+                      color: '#fca5a5',
+                      lineHeight: '1.8'
+                    }}>
+                      {archetype.blindSpots.map((b, i) => (
+                        <li key={i}>{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Team Tips */}
+                <div style={{
+                  background: 'rgba(99, 102, 241, 0.05)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(99, 102, 241, 0.2)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h3 style={{
+                    margin: '0 0 1rem 0',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: '#818cf8'
+                  }}>
+                    🤝 Working With This Archetype
+                  </h3>
+                  <p style={{
+                    color: '#94a3b8',
+                    fontSize: '0.875rem',
+                    margin: '0 0 1rem 0'
+                  }}>
+                    Share these tips with colleagues for better collaboration:
+                  </p>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: '1.25rem',
+                    color: '#c7d2fe',
+                    lineHeight: '1.8'
+                  }}>
+                    {archetype.teamTips.map((t, i) => (
+                      <li key={i}>{t}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Ideal Roles */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '1.5rem',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h3 style={{
+                    margin: '0 0 1rem 0',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: '#f1f5f9'
+                  }}>
+                    🎯 Ideal Role Types
+                  </h3>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem'
+                  }}>
+                    {archetype.idealRoles.map((role, i) => (
+                      <span key={i} style={{
+                        background: `${archetype.color}20`,
+                        color: archetype.color,
+                        padding: '0.5rem 1rem',
+                        borderRadius: '2rem',
+                        fontSize: '0.9rem',
+                        fontWeight: '500'
+                      }}>
+                        {role}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={restart}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#f1f5f9',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1rem',
+                    padding: '1rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                  }}
+                >
+                  ↺ Retake Quiz
+                </button>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '2rem',
+              color: '#475569',
+              fontSize: '0.75rem'
+            }}>
+              Framework: Big Five (OCEAN) + Holland Codes Integration
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<WorkStyleArchetypeQuiz />);
+  </script>
+</body>
+</html>
