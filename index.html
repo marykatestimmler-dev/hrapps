@@ -3,88 +3,316 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HR Apps - 20 Research-Based Workplace Tools</title>
+  <title>Promptletariat - HR Apps Collection</title>
   <meta name="description" content="A collection of 20 interactive, research-based HR and workplace tools. Free, private, and runs entirely in your browser.">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #0f0f1a 100%);
       min-height: 100vh;
       color: #f8fafc;
+      overflow-x: hidden;
     }
-    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-    header { text-align: center; padding: 3rem 0; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; position: relative; }
+
+    /* Fun decorative elements */
+    .container::before {
+      content: '';
+      position: fixed;
+      top: 10%;
+      left: 5%;
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, #ff2e63, #ff6b9d);
+      border-radius: 50%;
+      opacity: 0.1;
+      animation: float 6s ease-in-out infinite;
+    }
+    .container::after {
+      content: '';
+      position: fixed;
+      bottom: 20%;
+      right: 10%;
+      width: 150px;
+      height: 150px;
+      background: linear-gradient(135deg, #08d9d6, #00fff5);
+      border-radius: 50%;
+      opacity: 0.1;
+      animation: float 8s ease-in-out infinite reverse;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(10deg); }
+    }
+
+    header { text-align: center; padding: 2rem 0 3rem; position: relative; }
+
+    .brand-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #ff2e63;
+      margin-bottom: 0.75rem;
+      opacity: 0.9;
+    }
+
+    .main-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 4.5rem;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+      background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+    }
+
+    .tagline {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 500;
+      background: linear-gradient(90deg, #ff2e63, #08d9d6, #c8ff00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 2rem;
+      letter-spacing: -0.5px;
+    }
+
+    .header-image {
+      max-width: 550px;
+      width: 100%;
+      border-radius: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 4px solid #ff2e63;
+      box-shadow: 0 0 30px rgba(255,46,99,0.4), 0 0 60px rgba(8,217,214,0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .header-image:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 40px rgba(255,46,99,0.6), 0 0 80px rgba(8,217,214,0.4);
+    }
+
+    .subtitle-tagline {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: #a0a0a0;
+      margin-bottom: 2rem;
+      letter-spacing: 0.5px;
+    }
+    .subtitle-tagline span {
+      color: #08d9d6;
+      font-weight: 600;
+    }
+
+    .intro-text {
+      color: #888;
+      text-align: center;
+      font-size: 0.95rem;
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.8;
+      font-family: 'Inter', sans-serif;
+    }
+    .intro-text a {
+      color: #ff2e63;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s;
+      border-bottom: 1px solid transparent;
+    }
+    .intro-text a:hover {
+      color: #08d9d6;
+      border-bottom-color: #08d9d6;
+    }
+
     .badge {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      background: rgba(99, 102, 241, 0.2); padding: 0.5rem 1rem;
-      border-radius: 2rem; font-size: 0.875rem; color: #a5b4fc; margin-bottom: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,46,99,0.15);
+      border: 1px solid rgba(255,46,99,0.3);
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+      color: #ff2e63;
+      margin-bottom: 1.5rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
-    h1 {
-      font-size: 3rem; font-weight: 700;
-      background: linear-gradient(135deg, #f8fafc 0%, #c7d2fe 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text; margin-bottom: 1rem;
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: #fff;
+      margin-bottom: 1rem;
     }
-    .subtitle { color: #a5b4fc; font-size: 1.25rem; max-width: 600px; margin: 0 auto 2rem; }
-    .features { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 2rem; }
-    .feature { display: flex; align-items: center; gap: 0.5rem; color: #6ee7b7; font-size: 0.925rem; }
+
+    .subtitle {
+      color: #666;
+      font-size: 1rem;
+      max-width: 600px;
+      margin: 0 auto 2rem;
+      line-height: 1.7;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: #666;
+      font-size: 0.85rem;
+      font-weight: 500;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .feature::before {
+      content: '●';
+      color: #08d9d6;
+      font-size: 0.5rem;
+    }
+
     .category { margin-bottom: 3rem; }
     .category-header {
-      display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;
-      padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
-    .category-icon { font-size: 1.5rem; }
-    .category-title { font-size: 1.5rem; font-weight: 600; }
-    .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem; }
+    .category-icon {
+      font-size: 1.5rem;
+      opacity: 0.8;
+    }
+    .category-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 1.25rem;
+    }
     .tool-card {
-      background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem;
-      padding: 1.5rem; text-decoration: none; color: inherit;
-      transition: all 0.2s ease; display: block;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.25s ease;
+      display: block;
+      position: relative;
     }
     .tool-card:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px);
+      transform: translateY(-3px);
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,46,99,0.3);
     }
+
     .tool-number {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 28px; background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border-radius: 0.5rem; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: rgba(255,46,99,0.2);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+      color: #ff2e63;
+      margin-bottom: 0.75rem;
     }
-    .tool-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; color: #f8fafc; }
-    .tool-description { font-size: 0.875rem; color: #a5b4fc; line-height: 1.5; margin-bottom: 0.75rem; }
+    .tool-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+    .tool-description {
+      font-size: 0.85rem;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
     .tool-research {
-      font-size: 0.75rem; color: #6366f1; background: rgba(99, 102, 241, 0.1);
-      padding: 0.25rem 0.625rem; border-radius: 1rem; display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 500;
+      font-family: 'Space Grotesk', sans-serif;
+      color: #08d9d6;
+      background: rgba(8,217,214,0.1);
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      display: inline-block;
+      letter-spacing: 0.3px;
     }
-    footer { text-align: center; padding: 3rem 0; color: #6366f1; font-size: 0.875rem; }
-    footer a { color: #a5b4fc; text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
+
+    footer {
+      text-align: center;
+      padding: 3rem 0;
+      color: #444;
+      font-size: 0.85rem;
+      font-family: 'Space Grotesk', sans-serif;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin-top: 2rem;
+    }
+
     @media (max-width: 768px) {
-      h1 { font-size: 2rem; }
+      .main-title { font-size: 2.5rem; letter-spacing: -1px; }
+      .tagline { font-size: 1.2rem; }
+      .section-title { font-size: 1.8rem; }
       .tools-grid { grid-template-columns: 1fr; }
       .container { padding: 1rem; }
+      .features { gap: 1rem; }
+      .feature { font-size: 0.8rem; }
+      .brand-label { font-size: 0.75rem; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1 style="font-size: 3.5rem; margin-bottom: 0.5rem;">Welcome to Promptletariat.com</h1>
-      <p style="color: #a5b4fc; font-size: 1.25rem; font-style: italic; margin-bottom: 1.5rem;">The point is to prompt it.</p>
-      <img src="header-image.png" alt="Promptletariat" style="max-width: 500px; width: 100%; border-radius: 1rem; margin-bottom: 1rem;">
-      <p style="color: #6ee7b7; font-size: 1.3rem; font-weight: 600; margin-bottom: 1.5rem;">Prompting for the future of work.</p>
-      <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1.5rem;">
-        <p style="color: #a5b4fc; text-align: center; font-size: 1.1rem;">This is 100% vibe coded just for fun by Mary Kate Stimmler (using Claude Cowork + Github) and is a work in progress.<br><br>To follow my progress, follow me on <a href="https://www.linkedin.com/in/marykatestimmler/" target="_blank" style="color: #6ee7b7;">LinkedIn</a></p>
-      </div>
-      <div class="badge">&#x1F3AF; 20 Research-Based Tools</div>
-      <h1>HR Apps Collection</h1>
-      <p class="subtitle">Interactive workplace tools grounded in organizational psychology, behavioral economics, and I/O research. Free, private, and runs entirely in your browser.</p>
+      <p class="brand-label">Promptletariat</p>
+      <h1 class="main-title">AI-Powered Tools<br>for Modern Work</h1>
+      <p class="tagline">Where research meets the future of HR.</p>
+      <img src="header-image.png" alt="Promptletariat" class="header-image">
+      <p class="subtitle-tagline">Built with <span>Claude</span> + vibes. No code, no problem.</p>
+      <p class="intro-text">
+        A personal experiment by <a href="https://www.linkedin.com/in/marykatestimmler/" target="_blank">Mary Kate Stimmler</a> exploring what's possible when you prompt with purpose. Work in progress, always evolving.
+      </p>
+      <div class="badge">20 Research-Based Tools</div>
+      <h2 class="section-title">The Collection</h2>
+      <p class="subtitle">Interactive workplace tools grounded in I/O psychology and behavioral science. Free, private, browser-based.</p>
       <div class="features">
-        <div class="feature">&#x2713; No login required</div>
-        <div class="feature">&#x2713; 100% private</div>
-        <div class="feature">&#x2713; Mobile friendly</div>
+        <div class="feature">No login</div>
+        <div class="feature">100% private</div>
+        <div class="feature">Mobile ready</div>
       </div>
     </header>
 
@@ -272,6 +500,7 @@
     </section>
 
     <footer>
+      <p>Power to the Promptletariat</p>
     </footer>
   </div>
 </body>
