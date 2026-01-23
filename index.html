@@ -10,7 +10,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #0f0f1a 100%);
+      background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #1a0a2e 100%);
       min-height: 100vh;
       color: #f8fafc;
       overflow-x: hidden;
@@ -50,27 +50,20 @@
     header { text-align: center; padding: 2rem 0 3rem; position: relative; }
 
     .brand-label {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 0.85rem;
-      font-weight: 600;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: #ff2e63;
-      margin-bottom: 0.75rem;
-      opacity: 0.9;
-    }
-
-    .main-title {
       font-family: 'Syne', sans-serif;
-      font-size: 4.5rem;
+      font-size: 5rem;
       font-weight: 800;
       letter-spacing: -2px;
-      line-height: 1;
-      background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ff2e63 0%, #08d9d6 50%, #c8ff00 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .main-title {
+      display: none;
     }
 
     .tagline {
@@ -131,6 +124,16 @@
     .intro-text a:hover {
       color: #08d9d6;
       border-bottom-color: #08d9d6;
+    }
+    .intro-text .linkedin-link {
+      color: #c8ff00;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      font-weight: 700;
+    }
+    .intro-text .linkedin-link:hover {
+      color: #ff2e63;
+      text-decoration: underline;
     }
 
     .badge {
@@ -284,27 +287,27 @@
     }
 
     @media (max-width: 768px) {
-      .main-title { font-size: 2.5rem; letter-spacing: -1px; }
-      .tagline { font-size: 1.2rem; }
+      .brand-label { font-size: 2.5rem; letter-spacing: -1px; }
+      .tagline { font-size: 1.1rem; }
       .section-title { font-size: 1.8rem; }
       .tools-grid { grid-template-columns: 1fr; }
       .container { padding: 1rem; }
       .features { gap: 1rem; }
       .feature { font-size: 0.8rem; }
-      .brand-label { font-size: 0.75rem; }
+      .subtitle-tagline { font-size: 1rem; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <p class="brand-label">Promptletariat</p>
-      <h1 class="main-title">AI-Powered Tools<br>for Modern Work</h1>
-      <p class="tagline">Where research meets the future of HR.</p>
+      <h1 class="brand-label">Promptletariat</h1>
+      <p class="tagline">Vibe-coded HR apps that explore what's possible for the modern worker</p>
       <img src="header-image.png" alt="Promptletariat" class="header-image">
-      <p class="subtitle-tagline">Built with <span>Claude</span> + vibes. No code, no problem.</p>
+      <p class="subtitle-tagline">Built with <span>Claude</span> + <span>Github</span> + <span>Squarespace</span> (Domain/hosting) + <span>Canva/Nano Banana</span> (images)</p>
       <p class="intro-text">
-        A personal experiment by <a href="https://www.linkedin.com/in/marykatestimmler/" target="_blank">Mary Kate Stimmler</a> exploring what's possible when you prompt with purpose. Work in progress, always evolving.
+        A personal experiment by Mary Kate Stimmler exploring what's possible when you prompt with purpose. Work in progress, always evolving.<br><br>
+        To watch the (r)evolution of this site, <a href="https://www.linkedin.com/in/marykatestimmler/" target="_blank" class="linkedin-link">follow me on LinkedIn</a>
       </p>
       <div class="badge">20 Research-Based Tools</div>
       <h2 class="section-title">The Collection</h2>
