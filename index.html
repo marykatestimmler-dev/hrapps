@@ -51,15 +51,16 @@
 
     .brand-label {
       font-family: 'Syne', sans-serif;
-      font-size: 5rem;
+      font-size: clamp(2rem, 8vw, 3.5rem);
       font-weight: 800;
-      letter-spacing: -2px;
+      letter-spacing: -1px;
       text-transform: uppercase;
       background: linear-gradient(135deg, #ff2e63 0%, #08d9d6 50%, #c8ff00 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
+      white-space: nowrap;
     }
 
     .main-title {
@@ -287,7 +288,6 @@
     }
 
     @media (max-width: 768px) {
-      .brand-label { font-size: 2.5rem; letter-spacing: -1px; }
       .tagline { font-size: 1.1rem; }
       .section-title { font-size: 1.8rem; }
       .tools-grid { grid-template-columns: 1fr; }
