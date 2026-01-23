@@ -18,33 +18,77 @@
     .container { max-width: 1200px; margin: 0 auto; padding: 2rem; position: relative; }
 
     /* Fun decorative elements */
-    .container::before {
-      content: '';
+    .orb {
       position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .orb-1 {
       top: 10%;
       left: 5%;
       width: 100px;
       height: 100px;
       background: linear-gradient(135deg, #ff2e63, #ff6b9d);
-      border-radius: 50%;
-      opacity: 0.1;
-      animation: float 6s ease-in-out infinite;
+      opacity: 0.15;
+      animation: float1 3s ease-in-out infinite;
     }
-    .container::after {
-      content: '';
-      position: fixed;
+    .orb-2 {
       bottom: 20%;
       right: 10%;
       width: 150px;
       height: 150px;
       background: linear-gradient(135deg, #08d9d6, #00fff5);
-      border-radius: 50%;
-      opacity: 0.1;
-      animation: float 8s ease-in-out infinite reverse;
+      opacity: 0.12;
+      animation: float2 4s ease-in-out infinite;
     }
-    @keyframes float {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      50% { transform: translateY(-20px) rotate(10deg); }
+    .orb-3 {
+      top: 40%;
+      right: 5%;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #c8ff00, #a0e000);
+      opacity: 0.1;
+      animation: float3 3.5s ease-in-out infinite;
+    }
+    .orb-4 {
+      bottom: 40%;
+      left: 8%;
+      width: 120px;
+      height: 120px;
+      background: linear-gradient(135deg, #ff6b9d, #ff2e63);
+      opacity: 0.1;
+      animation: float1 4.5s ease-in-out infinite reverse;
+    }
+    .orb-5 {
+      top: 60%;
+      left: 15%;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #08d9d6, #c8ff00);
+      opacity: 0.12;
+      animation: float2 3s ease-in-out infinite reverse;
+    }
+    .orb-6 {
+      top: 25%;
+      right: 20%;
+      width: 90px;
+      height: 90px;
+      background: linear-gradient(135deg, #ff2e63, #08d9d6);
+      opacity: 0.08;
+      animation: float3 3.5s ease-in-out infinite reverse;
+    }
+    @keyframes float1 {
+      0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
+      50% { transform: translateY(-30px) translateX(15px) rotate(15deg); }
+    }
+    @keyframes float2 {
+      0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
+      50% { transform: translateY(-25px) translateX(-20px) rotate(-10deg); }
+    }
+    @keyframes float3 {
+      0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+      50% { transform: translateY(-20px) translateX(10px) scale(1.1); }
     }
 
     header { text-align: center; padding: 2rem 0 3rem; position: relative; }
@@ -326,6 +370,12 @@
   </style>
 </head>
 <body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+  <div class="orb orb-5"></div>
+  <div class="orb orb-6"></div>
   <div class="container">
     <header>
       <h1 class="brand-label">Promptletariat</h1>
