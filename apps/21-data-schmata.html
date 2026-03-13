@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Data Schmata — Synthetic Data Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0d1a; color: #e2e8f0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useCallback, useRef } = React;
+
+// ============================================================
+// CONSTANTS & FAKE DATA
+// ============================================================
+const FIRST_NAMES = [
+  "James","Mary","Robert","Patricia","John","Jennifer","Michael","Linda",
+  "David","Elizabeth","William","Barbara","Richard","Susan","Joseph","Jessica",
+  "Thomas","Sarah","Charles","Karen","Christopher","Lisa","Daniel","Nancy",
+  "Matthew","Betty","Anthony","Margaret","Mark","Sandra","Donald","Ashley",
+  "Steven","Kimberly","Paul","Emily","Andrew","Donna","Joshua","Michelle",
+  "Kenneth","Carol","Kevin","Amanda","Brian","Dorothy","George","Melissa",
+  "Timothy","Deborah","Ronald","Stephanie","Jason","Rebecca","Edward","Sharon",
+  "Jeffrey","Laura","Ryan","Cynthia","Jacob","Kathleen","Gary","Amy",
+  "Nicholas","Angela","Eric","Shirley","Jonathan","Anna","Stephen","Brenda",
+  "Larry","Pamela","Justin","Emma","Scott","Nicole","Brandon","Helen",
+  "Benjamin","Samantha","Samuel","Katherine","Raymond","Christine","Gregory","Debra",
+  "Frank","Rachel","Alexander","Carolyn","Patrick","Janet","Jack","Catherine",
+  "Dennis","Maria","Jerry","Heather","Tyler","Diane","Aaron","Ruth",
+  "Jose","Julie","Adam","Olivia","Nathan","Joyce","Henry","Virginia",
+  "Aisha","Wei","Priya","Carlos","Fatima","Hiroshi","Olga","Kwame",
+  "Mei","Raj","Sofia","Ahmed","Yuki","Diego","Nneka","Sven",
+  "Leila","Andrei","Ingrid","Chen","Amara","Takeshi","Elena","Omar"
+];
+
+const LAST_NAMES = [
+  "Smith","Johnson","Williams","Brown","Jones","Garcia","Miller","Davis",
+  "Rodriguez","Martinez","Hernandez","Lopez","Gonzalez","Wilson","Anderson",
+  "Thomas","Taylor","Moore","Jackson","Martin","Lee","Perez","Thompson",
+  "White","Harris","Sanchez","Clark","Ramirez","Lewis","Robinson","Walker",
+  "Young","Allen","King","Wright","Scott","Torres","Nguyen","Hill",
+  "Flores","Green","Adams","Nelson","Baker","Hall","Rivera","Campbell",
+  "Mitchell","Carter","Roberts","Gomez","Phillips","Evans","Turner","Diaz",
+  "Parker","Cruz","Edwards","Collins","Reyes","Stewart","Morris","Morales",
+  "Murphy","Cook","Rogers","Gutierrez","Ortiz","Morgan","Cooper","Peterson",
+  "Bailey","Reed","Kelly","Howard","Ramos","Kim","Cox","Ward",
+  "Richardson","Watson","Brooks","Chavez","Wood","James","Bennett","Gray",
+  "Mendoza","Ruiz","Hughes","Price","Alvarez","Castillo","Sanders","Patel",
+  "Chen","Wang","Liu","Zhang","Tanaka","Yamamoto","Nakamura","Sato",
+  "Mueller","Schmidt","Weber","Fischer","Johansson","Larsson","Andersen","Nielsen"
+];
+
+const EMAIL_DOMAINS = [
+  "gmail.com","yahoo.com","outlook.com","company.org","example.com",
+  "mail.com","proton.me","icloud.com","fastmail.com","hey.com"
+];
+
+const COLUMN_TYPES = [
+  { value: "name", label: "Person Name" },
+  { value: "email", label: "Email Address" },
+  { value: "phone", label: "Phone Number" },
+  { value: "id", label: "ID / SSN" },
+  { value: "date", label: "Date" },
+  { value: "salary", label: "Salary / Currency" },
+  { value: "category", label: "Category" },
+  { value: "likert", label: "Likert / Rating" },
+  { value: "numeric", label: "Continuous Numeric" },
+  { value: "string", label: "String (letters/words)" },
+  { value: "text", label: "Free Text" },
+  { value: "skip", label: "Skip (exclude)" },
+];
+
+// ============================================================
+// STATISTICAL UTILITIES
+// ============================================================
+function mean(arr) {
+  const nums = arr.filter((v) => typeof v === "number" && !isNaN(v));
+  return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+}
+
+function std(arr) {
+  const nums = arr.filter((v) => typeof v === "number" && !isNaN(v));
+  if (nums.length < 2) return 0;
+  const m = mean(nums);
+  return Math.sqrt(nums.reduce((s, v) => s + (v - m) ** 2, 0) / (nums.length - 1));
+}
+
+function arrMin(arr) {
+  const nums = arr.filter((v) => typeof v === "number" && !isNaN(v));
+  return nums.length ? Math.min(...nums) : 0;
+}
+
+function arrMax(arr) {
+  const nums = arr.filter((v) => typeof v === "number" && !isNaN(v));
+  return nums.length ? Math.max(...nums) : 0;
+}
+
+function randNormal(mu, sigma) {
+  const u1 = Math.random();
+  const u2 = Math.random();
+  return mu + sigma * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+function sampleFromDistribution(arr, n) {
+  if (!arr || arr.length === 0) return Array.from({ length: n }, () => "N/A");
+  const counts = _.countBy(arr);
+  const total = arr.length;
+  const entries = Object.entries(counts);
+  if (entries.length === 0) return Array.from({ length: n }, () => "N/A");
+  const result = [];
+  for (let i = 0; i < n; i++) {
+    let r = Math.random() * total;
+    for (const [val, count] of entries) {
+      r -= count;
+      if (r <= 0) { result.push(val); break; }
+    }
+    if (result.length <= i) result.push(entries[0][0]);
+  }
+  return result;
+}
+
+function buildHistogramData(original, synthetic) {
+  const all = [...original, ...synthetic].filter(v => typeof v === "number" && !isNaN(v));
+  if (all.length === 0) return [];
+  const lo = Math.min(...all);
+  const hi = Math.max(...all);
+  if (lo === hi) return [{ bin: String(lo), Original: original.length, Synthetic: synthetic.length }];
+  const binCount = Math.min(12, Math.max(5, Math.ceil(Math.sqrt(all.length / 2))));
+  const binWidth = (hi - lo) / binCount;
+  const bins = Array.from({ length: binCount }, (_, i) => ({
+    bin: `${(lo + i * binWidth).toFixed(0)}-${(lo + (i + 1) * binWidth).toFixed(0)}`,
+    lo: lo + i * binWidth,
+    hi: lo + (i + 1) * binWidth,
+    Original: 0,
+    Synthetic: 0,
+  }));
+  for (const v of original.filter(v => typeof v === "number" && !isNaN(v))) {
+    const idx = Math.min(binCount - 1, Math.floor((v - lo) / binWidth));
+    bins[idx].Original++;
+  }
+  for (const v of synthetic.filter(v => typeof v === "number" && !isNaN(v))) {
+    const idx = Math.min(binCount - 1, Math.floor((v - lo) / binWidth));
+    bins[idx].Synthetic++;
+  }
+  return bins;
+}
+
+// ============================================================
+// K-ANONYMITY CHECK
+// ============================================================
+function checkKAnonymity(data, headers, columnTypes, k = 5) {
+  const quasiIdCols = headers.filter((col) => {
+    const type = columnTypes[col];
+    return ["category", "likert", "date"].includes(type);
+  });
+  if (quasiIdCols.length === 0) return { safe: true, risks: [], quasiIdCols: [], k };
+  const risks = [];
+  const fingerprint = (row, cols) =>
+    cols.map((c) => String(row[c] ?? "").trim().toLowerCase()).join("||");
+
+  for (const col of quasiIdCols) {
+    const groups = _.countBy(data, (row) => fingerprint(row, [col]));
+    const smallGroups = Object.entries(groups).filter(([, count]) => count < k);
+    if (smallGroups.length > 0) {
+      risks.push({
+        columns: [col],
+        uniqueValues: smallGroups.length,
+        smallestGroup: Math.min(...smallGroups.map(([, c]) => c)),
+        examples: smallGroups.slice(0, 3).map(([val, count]) => ({
+          value: val.replace(/\|\|/g, " + "), count,
+        })),
+      });
+    }
+  }
+  for (let i = 0; i < quasiIdCols.length; i++) {
+    for (let j = i + 1; j < quasiIdCols.length; j++) {
+      const cols = [quasiIdCols[i], quasiIdCols[j]];
+      const groups = _.countBy(data, (row) => fingerprint(row, cols));
+      const smallGroups = Object.entries(groups).filter(([, count]) => count < k);
+      if (smallGroups.length > 0) {
+        risks.push({
+          columns: cols, uniqueValues: smallGroups.length,
+          smallestGroup: Math.min(...smallGroups.map(([, c]) => c)),
+          examples: smallGroups.slice(0, 3).map(([val, count]) => ({
+            value: val.replace(/\|\|/g, " + "), count,
+          })),
+        });
+      }
+    }
+  }
+  if (quasiIdCols.length >= 3) {
+    for (let i = 0; i < quasiIdCols.length; i++) {
+      for (let j = i + 1; j < quasiIdCols.length; j++) {
+        for (let m = j + 1; m < quasiIdCols.length; m++) {
+          const cols = [quasiIdCols[i], quasiIdCols[j], quasiIdCols[m]];
+          const groups = _.countBy(data, (row) => fingerprint(row, cols));
+          const smallGroups = Object.entries(groups).filter(([, count]) => count < k);
+          if (smallGroups.length > 0) {
+            risks.push({
+              columns: cols, uniqueValues: smallGroups.length,
+              smallestGroup: Math.min(...smallGroups.map(([, c]) => c)),
+              examples: smallGroups.slice(0, 3).map(([val, count]) => ({
+                value: val.replace(/\|\|/g, " + "), count,
+              })),
+            });
+          }
+        }
+      }
+    }
+  }
+  risks.sort((a, b) => a.smallestGroup - b.smallestGroup);
+  return { safe: risks.length === 0, risks, quasiIdCols, k, worstCase: risks.length > 0 ? risks[0].smallestGroup : Infinity };
+}
+
+// Filter rows that don't meet k-anonymity threshold
+function filterBelowK(data, headers, columnTypes, k = 5) {
+  const quasiIdCols = headers.filter((col) => {
+    const type = columnTypes[col];
+    return ["category", "likert", "date"].includes(type);
+  });
+  if (quasiIdCols.length === 0) return { filtered: data, excluded: 0 };
+  const fingerprint = (row) =>
+    quasiIdCols.map((c) => String(row[c] ?? "").trim().toLowerCase()).join("||");
+  const groups = _.countBy(data, fingerprint);
+  const filtered = data.filter((row) => (groups[fingerprint(row)] || 0) >= k);
+  return { filtered, excluded: data.length - filtered.length, total: data.length, quasiIdCols };
+}
+
+// ============================================================
+// COLUMN TYPE DETECTION
+// ============================================================
+function detectColumnType(header, values) {
+  const h = header.toLowerCase().trim();
+  const nonEmpty = values.filter((v) => v !== null && v !== undefined && String(v).trim() !== "");
+  if (nonEmpty.length === 0) return "text";
+  if (/\b(name|first.?name|last.?name|full.?name|employee.?name)\b/i.test(h)) return "name";
+  if (/email|e-mail/i.test(h) || nonEmpty.filter(v => /@/.test(String(v))).length > nonEmpty.length * 0.5) return "email";
+  if (/phone|tel|mobile|cell/i.test(h)) return "phone";
+  if (/\b(id|ssn|social.?security|employee.?id|emp.?id|badge)\b/i.test(h)) return "id";
+  if (/salary|wage|pay|comp|income|earning|bonus|revenue/i.test(h)) return "salary";
+  if (/date|hire|start|end|birth|dob|created|updated|join/i.test(h)) return "date";
+  const dateCount = nonEmpty.filter(v => {
+    const d = new Date(String(v));
+    return !isNaN(d.getTime()) && String(v).length > 5;
+  }).length;
+  if (dateCount > nonEmpty.length * 0.7) return "date";
+  const numericVals = nonEmpty.map(v => {
+    const s = String(v).replace(/[$,]/g, "").trim();
+    return parseFloat(s);
+  }).filter(v => !isNaN(v));
+  if (numericVals.length > nonEmpty.length * 0.8) {
+    const unique = new Set(numericVals);
+    if (unique.size <= 10 && numericVals.every(v => Number.isInteger(v) && v >= 1 && v <= 10)) return "likert";
+    if (mean(numericVals) > 10000) return "salary";
+    return "numeric";
+  }
+  const unique = new Set(nonEmpty.map(v => String(v).trim().toLowerCase()));
+  if (unique.size <= 20 && unique.size < nonEmpty.length * 0.5) return "category";
+
+  // String: short-to-medium text that isn't a category (high cardinality short strings)
+  const avgLen = nonEmpty.reduce((s, v) => s + String(v).length, 0) / nonEmpty.length;
+  if (avgLen < 60 && nonEmpty.every(v => typeof v === "string" || typeof v === "number")) return "string";
+
+  return "text";
+}
+
+// ============================================================
+// SYNTHETIC DATA GENERATORS
+// ============================================================
+function generateFakeName() {
+  return FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)] + " " +
+    LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+}
+function generateFakeEmail(name) {
+  const parts = (name || generateFakeName()).toLowerCase().split(" ");
+  const formats = [
+    () => `${parts[0]}.${parts[1]}`,
+    () => `${parts[0][0]}${parts[1]}`,
+    () => `${parts[0]}${Math.floor(Math.random() * 99)}`,
+  ];
+  const local = formats[Math.floor(Math.random() * formats.length)]();
+  const domain = EMAIL_DOMAINS[Math.floor(Math.random() * EMAIL_DOMAINS.length)];
+  return `${local}@${domain}`;
+}
+function generateFakePhone(sample) {
+  const s = String(sample || "555-123-4567");
+  return s.replace(/\d/g, () => String(Math.floor(Math.random() * 10)));
+}
+function generateFakeId(sample) {
+  const s = String(sample || "10001");
+  return s.replace(/\d/g, () => String(Math.floor(Math.random() * 10)));
+}
+
+function generateColumn(type, originalValues, n, noiseLevel = 0.05) {
+  const nonEmpty = originalValues.filter(v => v !== null && v !== undefined && String(v).trim() !== "");
+  if (nonEmpty.length === 0 && !["name", "email", "text", "skip"].includes(type)) {
+    return Array.from({ length: n }, () => "");
+  }
+  switch (type) {
+    case "name":
+      return Array.from({ length: n }, () => generateFakeName());
+    case "email": {
+      const names = Array.from({ length: n }, () => generateFakeName());
+      return names.map(name => generateFakeEmail(name));
+    }
+    case "phone":
+      return Array.from({ length: n }, () => generateFakePhone(nonEmpty[0]));
+    case "id":
+      return Array.from({ length: n }, () => generateFakeId(nonEmpty[0]));
+    case "date": {
+      const dates = nonEmpty.map(v => new Date(String(v))).filter(d => !isNaN(d.getTime()));
+      if (dates.length === 0) return Array.from({ length: n }, () => "2024-01-01");
+      const timestamps = dates.map(d => d.getTime());
+      const m = mean(timestamps);
+      const s = std(timestamps) || 86400000 * 30;
+      return Array.from({ length: n }, () => {
+        const t = randNormal(m, s);
+        return new Date(t).toISOString().split("T")[0];
+      });
+    }
+    case "salary":
+    case "numeric": {
+      const nums = nonEmpty.map(v => parseFloat(String(v).replace(/[$,]/g, ""))).filter(v => !isNaN(v));
+      if (nums.length === 0) return Array.from({ length: n }, () => 0);
+      const m = mean(nums);
+      const s = std(nums) || m * 0.1;
+      const lo = arrMin(nums);
+      const hi = arrMax(nums);
+      return Array.from({ length: n }, () => {
+        let v = randNormal(m, s * (1 + noiseLevel));
+        v = Math.max(lo * 0.8, Math.min(hi * 1.2, v));
+        return type === "salary" ? Math.round(v / 100) * 100 : Math.round(v * 100) / 100;
+      });
+    }
+    case "likert": {
+      const nums = nonEmpty.map(v => parseInt(String(v))).filter(v => !isNaN(v));
+      return sampleFromDistribution(nums, n).map(v => parseInt(v));
+    }
+    case "category":
+      return sampleFromDistribution(nonEmpty.map(v => String(v).trim()), n);
+    case "string": {
+      // Scramble strings: shuffle characters within words, preserving word count and length patterns
+      const strs = nonEmpty.map(v => String(v).trim());
+      const avgLen = Math.round(strs.reduce((s, v) => s + v.length, 0) / strs.length);
+      const chars = "abcdefghijklmnopqrstuvwxyz";
+      return Array.from({ length: n }, () => {
+        // Pick a random original string as a template for length/word structure
+        const template = strs[Math.floor(Math.random() * strs.length)];
+        const words = template.split(/\s+/);
+        return words.map(w => {
+          // Generate a random word of the same length, preserving capitalization pattern
+          return w.split("").map((ch, ci) => {
+            const isUpper = ch === ch.toUpperCase() && ch !== ch.toLowerCase();
+            const rc = chars[Math.floor(Math.random() * chars.length)];
+            return isUpper ? rc.toUpperCase() : rc;
+          }).join("");
+        }).join(" ");
+      });
+    }
+    case "text":
+      return Array.from({ length: n }, (_, i) => `[Redacted entry ${i + 1}]`);
+    case "skip":
+      return Array.from({ length: n }, () => "");
+    default:
+      return Array.from({ length: n }, () => "");
+  }
+}
+
+// ============================================================
+// K-ANONYMITY TOOLTIP COMPONENT
+// ============================================================
+const K_ANON_TOOLTIP = "k-Anonymity is a privacy metric from the data anonymization literature (Sweeney, 2002). A dataset satisfies k-anonymity when every combination of quasi-identifiers (non-PII attributes like department, location, or job level that could be combined to narrow down an individual) maps to at least k people in the dataset.\n\nRe-identification risk: If k=1, a unique combination exists and an attacker with outside knowledge (e.g., knowing someone's department and location) could match them to a specific row — even without names or emails. Higher k means more people share each profile, making it harder to single anyone out.\n\nThis tool checks singles, pairs, and triples of quasi-identifier columns and flags any combination where the group size falls below your chosen k threshold.";
+
+function KAnonLabel({ children, style, className }) {
+  const [show, setShow] = React.useState(false);
+  return (
+    <span style={{ position: "relative", ...style }} className={className}>
+      <span
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        style={{ cursor: "help", borderBottom: "1px dashed rgba(255,255,255,0.3)" }}
+      >
+        {children}
+      </span>
+      {show && (
+        <span style={{
+          position: "absolute",
+          bottom: "calc(100% + 8px)",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "340px",
+          padding: "12px 14px",
+          borderRadius: "8px",
+          fontSize: "11px",
+          lineHeight: "1.5",
+          color: "#e2e8f0",
+          background: "#1a1730",
+          border: "1px solid #3d3660",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          zIndex: 50,
+          whiteSpace: "pre-wrap",
+          pointerEvents: "none",
+        }}>
+          {K_ANON_TOOLTIP}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ============================================================
+// SIMPLE BAR CHART COMPONENT (replaces Recharts)
+// ============================================================
+function SimpleBarChart({ data, dataKeyX, dataKeys, colors, height = 260 }) {
+  if (!data || data.length === 0) return null;
+  const maxVal = Math.max(...data.flatMap(d => dataKeys.map(k => d[k] || 0)), 1);
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "4px", padding: "0 4px", height: `${height}px` }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "2px", height: `${height}px` }}>
+            {dataKeys.map((key, ki) => {
+              const val = d[key] || 0;
+              const barH = Math.round((val / maxVal) * (height - 10));
+              return (
+                <div
+                  key={key}
+                  style={{
+                    width: "100%",
+                    maxWidth: "36px",
+                    height: `${Math.max(barH, val > 0 ? 4 : 0)}px`,
+                    backgroundColor: colors[ki],
+                    opacity: 0.8,
+                    borderRadius: "3px 3px 0 0",
+                    transition: "height 0.3s ease",
+                  }}
+                  title={`${key}: ${val}`}
+                />
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: "4px", padding: "0 4px", marginTop: "6px" }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex: 1, textAlign: "center", fontSize: "10px", color: "#9ca3af", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {d[dataKeyX]}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "10px" }}>
+        {dataKeys.map((key, ki) => (
+          <div key={key} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#9ca3af" }}>
+            <div style={{ width: "14px", height: "14px", borderRadius: "3px", backgroundColor: colors[ki], opacity: 0.8 }} />
+            {key}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// SAMPLE DATA GENERATOR (200 employees)
+// ============================================================
+function generateSampleCSV() {
+  const departments = [
+    { name: "Engineering", weight: 35, titles: ["Software Engineer", "Senior Developer", "Staff Engineer", "QA Engineer", "DevOps Engineer", "Data Scientist", "Frontend Developer", "Backend Developer", "Tech Lead", "Platform Engineer"], salaryRange: [85000, 195000], manager: "VP Engineering" },
+    { name: "Sales", weight: 20, titles: ["Account Executive", "Sales Rep", "Sales Manager", "Business Development Rep", "Enterprise Account Exec", "Sales Operations Analyst", "Regional Sales Manager"], salaryRange: [65000, 175000], manager: "VP Sales" },
+    { name: "Marketing", weight: 15, titles: ["Marketing Manager", "Content Strategist", "Designer", "Brand Manager", "Digital Marketing Specialist", "Growth Analyst", "Product Marketing Manager"], salaryRange: [70000, 165000], manager: "VP Marketing" },
+    { name: "HR", weight: 10, titles: ["HR Business Partner", "Recruiter", "HR Coordinator", "Talent Acquisition Lead", "People Operations Specialist", "L&D Specialist"], salaryRange: [65000, 155000], manager: "CHRO" },
+    { name: "Finance", weight: 10, titles: ["Financial Analyst", "Senior Accountant", "FP&A Manager", "Controller", "Accounts Payable Specialist", "Revenue Analyst"], salaryRange: [70000, 170000], manager: "VP Finance" },
+    { name: "Product", weight: 10, titles: ["Product Manager", "Senior Product Manager", "Product Analyst", "UX Researcher", "Product Designer", "Program Manager"], salaryRange: [80000, 180000], manager: "VP Product" },
+  ];
+  const locations = ["New York", "San Francisco", "Austin", "Chicago", "Seattle", "Denver", "Boston", "Remote"];
+  const locationWeights = [25, 20, 15, 10, 10, 8, 7, 5];
+  const levels = ["IC1", "IC2", "IC3", "IC4", "IC5"];
+  const levelWeights = [15, 30, 30, 18, 7];
+  const pick = (arr, weights) => {
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < arr.length; i++) { r -= weights[i]; if (r <= 0) return arr[i]; }
+    return arr[arr.length - 1];
+  };
+  const randDate = (startYear, endYear) => {
+    const start = new Date(startYear, 0, 1).getTime();
+    const end = new Date(endYear, 11, 31).getTime();
+    return new Date(start + Math.random() * (end - start)).toISOString().split("T")[0];
+  };
+  const rows = [];
+  const usedNames = new Set();
+  for (let i = 0; i < 200; i++) {
+    const dept = pick(departments, departments.map(d => d.weight));
+    const title = dept.titles[Math.floor(Math.random() * dept.titles.length)];
+    let name;
+    do {
+      name = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)] + " " + LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+    } while (usedNames.has(name));
+    usedNames.add(name);
+    const nameParts = name.toLowerCase().split(" ");
+    const emailFormats = [`${nameParts[0]}.${nameParts[1]}`, `${nameParts[0][0]}${nameParts[1]}`, `${nameParts[0]}${Math.floor(Math.random() * 99)}`];
+    const email = emailFormats[Math.floor(Math.random() * emailFormats.length)] + "@acmecorp.com";
+    const level = pick(levels, levelWeights);
+    const levelIdx = levels.indexOf(level);
+    const salaryBase = dept.salaryRange[0] + (dept.salaryRange[1] - dept.salaryRange[0]) * (levelIdx / 4);
+    const salary = Math.round((salaryBase + (Math.random() - 0.5) * 20000) / 1000) * 1000;
+    const hireDate = randDate(2014, 2024);
+    const perfRating = pick([1, 2, 3, 4, 5], [2, 8, 25, 45, 20]);
+    const engagement = Math.round((5 + Math.random() * 5 + (perfRating - 3) * 0.5) * 10) / 10;
+    const location = pick(locations, locationWeights);
+    rows.push(`${name},${email},${dept.name},${title},${salary},${hireDate},${perfRating},${Math.min(10, Math.max(1, engagement)).toFixed(1)},${dept.manager},${location},${level}`);
+  }
+  return "Employee Name,Email,Department,Job Title,Salary,Hire Date,Performance Rating,Engagement Score,Manager,Location,Level\n" + rows.join("\n");
+}
+
+// ============================================================
+// APP COMPONENT
+// ============================================================
+function DataSchmata() {
+  const [step, setStep] = useState(1);
+  const [rawData, setRawData] = useState(null);
+  const [headers, setHeaders] = useState([]);
+  const [columnTypes, setColumnTypes] = useState({});
+  const [syntheticData, setSyntheticData] = useState(null);
+  const [rowCount, setRowCount] = useState(0);
+  const [noiseLevel, setNoiseLevel] = useState(5);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [kThreshold, setKThreshold] = useState(5);
+  const [excludeBelowK, setExcludeBelowK] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const parseCSV = useCallback((text, name) => {
+    const result = Papa.parse(text.trim(), { header: true, skipEmptyLines: true, dynamicTyping: true });
+    if (result.data.length === 0) return;
+    setRawData(result.data);
+    setHeaders(result.meta.fields || []);
+    setRowCount(result.data.length);
+    setFileName(name || "dataset.csv");
+    const types = {};
+    for (const col of result.meta.fields) {
+      const values = result.data.map((row) => row[col]);
+      types[col] = detectColumnType(col, values);
+    }
+    setColumnTypes(types);
+    setStep(2);
+  }, []);
+
+  const handleFileUpload = useCallback((e) => {
+    const file = e.target?.files?.[0] || e.dataTransfer?.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => parseCSV(ev.target.result, file.name);
+    reader.readAsText(file);
+  }, [parseCSV]);
+
+  const loadSample = useCallback(() => {
+    parseCSV(generateSampleCSV(), "sample_hr_data.csv");
+  }, [parseCSV]);
+
+  const generate = useCallback(() => {
+    if (!rawData) return;
+    setIsGenerating(true);
+    setTimeout(() => {
+      try {
+        const sourceData = excludeBelowK
+          ? filterBelowK(rawData, headers, columnTypes, kThreshold).filtered
+          : rawData;
+        const generatedCols = {};
+        for (const col of headers) {
+          const type = columnTypes[col] || "text";
+          const origValues = sourceData.map((row) => row[col]);
+          generatedCols[col] = generateColumn(type, origValues, rowCount, noiseLevel / 100);
+        }
+        const synthetic = [];
+        for (let i = 0; i < rowCount; i++) {
+          const row = {};
+          for (const col of headers) {
+            row[col] = generatedCols[col][i];
+          }
+          synthetic.push(row);
+        }
+        setSyntheticData(synthetic);
+        setIsGenerating(false);
+        setStep(4);
+      } catch (err) {
+        console.error("Generation error:", err);
+        setIsGenerating(false);
+        alert("Error generating data: " + err.message);
+      }
+    }, 100);
+  }, [rawData, headers, columnTypes, rowCount, noiseLevel, excludeBelowK, kThreshold]);
+
+  const downloadCSV = useCallback(() => {
+    if (!syntheticData) return;
+    const csv = Papa.unparse(syntheticData);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `synthetic_${fileName}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [syntheticData, fileName]);
+
+  const comparisonStats = useMemo(() => {
+    if (!rawData || !syntheticData) return [];
+    return headers
+      .filter((col) => ["salary", "numeric", "likert"].includes(columnTypes[col]))
+      .map((col) => {
+        const orig = rawData.map((r) => r[col]).filter((v) => typeof v === "number" && !isNaN(v));
+        const synth = syntheticData.map((r) => r[col]).filter((v) => typeof v === "number" && !isNaN(v));
+        return {
+          column: col, type: columnTypes[col],
+          origMean: mean(orig).toFixed(1), synthMean: mean(synth).toFixed(1),
+          origStd: std(orig).toFixed(1), synthStd: std(synth).toFixed(1),
+          origMin: arrMin(orig).toFixed(0), synthMin: arrMin(synth).toFixed(0),
+          origMax: arrMax(orig).toFixed(0), synthMax: arrMax(synth).toFixed(0),
+        };
+      });
+  }, [rawData, syntheticData, headers, columnTypes]);
+
+  const histogramData = useMemo(() => {
+    if (!rawData || !syntheticData) return null;
+    const numCol = headers.find((c) => ["salary", "numeric"].includes(columnTypes[c]));
+    if (!numCol) return null;
+    const orig = rawData.map((r) => r[numCol]).filter((v) => typeof v === "number");
+    const synth = syntheticData.map((r) => r[numCol]).filter((v) => typeof v === "number");
+    return { column: numCol, data: buildHistogramData(orig, synth) };
+  }, [rawData, syntheticData, headers, columnTypes]);
+
+  const categoryComparison = useMemo(() => {
+    if (!rawData || !syntheticData) return null;
+    const catCol = headers.find((c) => columnTypes[c] === "category");
+    if (!catCol) return null;
+    const origCounts = _.countBy(rawData.map((r) => r[catCol]));
+    const synthCounts = _.countBy(syntheticData.map((r) => r[catCol]));
+    const allKeys = [...new Set([...Object.keys(origCounts), ...Object.keys(synthCounts)])];
+    return {
+      column: catCol,
+      data: allKeys.map((k) => ({ category: k, Original: origCounts[k] || 0, Synthetic: synthCounts[k] || 0 })),
+    };
+  }, [rawData, syntheticData, headers, columnTypes]);
+
+  const origKAnonymity = useMemo(() => {
+    if (!rawData || !headers.length) return null;
+    return checkKAnonymity(rawData, headers, columnTypes, kThreshold);
+  }, [rawData, headers, columnTypes, kThreshold]);
+
+  const exclusionPreview = useMemo(() => {
+    if (!rawData || !headers.length) return null;
+    return filterBelowK(rawData, headers, columnTypes, kThreshold);
+  }, [rawData, headers, columnTypes, kThreshold]);
+
+  const synthKAnonymity = useMemo(() => {
+    if (!syntheticData || !headers.length) return null;
+    return checkKAnonymity(syntheticData, headers, columnTypes, kThreshold);
+  }, [syntheticData, headers, columnTypes, kThreshold]);
+
+  const reset = () => {
+    setStep(1); setRawData(null); setSyntheticData(null);
+    setHeaders([]); setColumnTypes({}); setFileName("");
+  };
+
+  const TYPE_DESCRIPTIONS = {
+    name: "Replace with synthetic names",
+    email: "Generate new email addresses",
+    phone: "Randomize digits (keep format)",
+    id: "Generate random IDs",
+    date: "Shift dates randomly",
+    salary: "Sample from same salary distribution",
+    category: "Preserve category proportions",
+    likert: "Sample from same rating distribution",
+    numeric: "Sample from fitted distribution",
+    string: "Generate random strings matching length and word patterns",
+    text: "Redact / replace with placeholder",
+    skip: "Excluded from output",
+  };
+
+  const accentGreen = "#22c55e";
+  const accentPink = "#ec4899";
+  const accentCyan = "#06b6d4";
+  const darkBg = "#0f0d1a";
+  const cardBg = "#1a1730";
+  const cardBorder = "#2d2845";
+
+  const stepColors = [
+    step >= 1 ? "text-white" : "text-gray-600",
+    step >= 2 ? "text-white" : "text-gray-600",
+    step >= 3 ? "text-white" : "text-gray-600",
+    step >= 4 ? "text-white" : "text-gray-600",
+  ];
+
+  return (
+    <div className="min-h-screen p-4" style={{ background: darkBg, fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", color: "#e2e8f0" }}>
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-6">
+          <h1 className="text-4xl font-extrabold mb-1 tracking-tight" style={{ background: `linear-gradient(135deg, ${accentPink}, ${accentCyan})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>The Data Schmata</h1>
+          <p className="text-gray-400 text-base mb-2">Change your real data into fake "schmata" data for use with LLMs</p>
+          <p className="text-xs text-gray-500 italic">
+            Brought to you by{" "}
+            <a href="https://promptletariat.com" target="_blank" rel="noopener noreferrer" style={{ color: accentCyan }} className="underline hover:opacity-80 transition-opacity">promptletariat.com</a>
+            {" "}&middot; 100% vibe-coded &middot; use at your own risk
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {["Upload", "Configure", "Generate", "Compare"].map((label, i) => (
+            <div key={label} className="flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${stepColors[i]}`} style={{ background: step >= i + 1 ? accentGreen : "#2d2845" }}>{i + 1}</div>
+              <span className="text-sm font-medium" style={{ color: step >= i + 1 ? "#e2e8f0" : "#4a5568" }}>{label}</span>
+              {i < 3 && <div className="w-8 h-0.5" style={{ background: step > i + 1 ? accentGreen : "#2d2845" }} />}
+            </div>
+          ))}
+        </div>
+
+        {step === 1 && (
+          <div className="rounded-xl p-8" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+            <div className="rounded-lg p-12 text-center cursor-pointer transition-all hover:opacity-90" style={{ border: `2px dashed ${accentPink}`, background: "rgba(236,72,153,0.05)" }} onClick={() => fileInputRef.current?.click()} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.preventDefault(); e.stopPropagation(); handleFileUpload(e); }}>
+              <div className="text-4xl mb-3">&#128274;</div>
+              <p className="text-lg font-semibold text-gray-200 mb-1">Drop your CSV here, or click to browse</p>
+              <p className="text-sm text-gray-500">Your data never leaves this browser. Everything runs locally.</p>
+              <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
+            </div>
+            <div className="mt-4 text-center">
+              <button onClick={loadSample} className="text-sm font-medium underline hover:opacity-80 transition-opacity" style={{ color: accentCyan }}>Or try it with a sample HR dataset (200 employees)</button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && rawData && (
+          <div className="rounded-xl p-6" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-200">Column Configuration</h2>
+                <p className="text-sm text-gray-500">We auto-detected each column type. Adjust if needed.</p>
+              </div>
+              <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ background: "rgba(34,197,94,0.15)", color: accentGreen }}>{rawData.length} rows &middot; {headers.length} columns</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr style={{ borderBottom: `1px solid ${cardBorder}` }}><th className="text-left py-2 px-3 font-medium text-gray-500">Column</th><th className="text-left py-2 px-3 font-medium text-gray-500">Detected Type</th><th className="text-left py-2 px-3 font-medium text-gray-500">Sample Values</th></tr></thead>
+                <tbody>
+                  {headers.map((col) => (
+                    <tr key={col} style={{ borderBottom: "1px solid rgba(45,40,69,0.5)" }} className="hover:bg-white hover:bg-opacity-5">
+                      <td className="py-2 px-3 font-medium text-gray-300">{col}</td>
+                      <td className="py-2 px-3">
+                        <select value={columnTypes[col] || "text"} onChange={(e) => setColumnTypes({ ...columnTypes, [col]: e.target.value })} className="rounded px-2 py-1 text-sm outline-none" style={{ background: "#0f0d1a", color: "#e2e8f0", border: `1px solid ${cardBorder}` }}>
+                          {COLUMN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                      </td>
+                      <td className="py-2 px-3 text-gray-500 text-xs font-mono truncate max-w-xs">{rawData.slice(0, 3).map((r) => String(r[col] ?? "")).join(" · ")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button onClick={() => setStep(3)} className="text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity" style={{ background: accentGreen }}>Next: Configure Generation &rarr;</button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="rounded-xl p-6" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+            <h2 className="text-lg font-semibold text-gray-200 mb-4">Generation Settings</h2>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Number of synthetic rows</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={Math.max(10, Math.floor(rawData.length * 0.5))} max={Math.min(10000, rawData.length * 10)} value={rowCount} onChange={(e) => setRowCount(parseInt(e.target.value))} className="flex-1" style={{ accentColor: accentGreen }} />
+                  <input type="number" value={rowCount} onChange={(e) => setRowCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-20 rounded px-2 py-1 text-sm text-center" style={{ background: "#0f0d1a", color: "#e2e8f0", border: `1px solid ${cardBorder}` }} />
+                </div>
+                <p className="text-xs text-gray-600 mt-1">Original dataset has {rawData.length} rows</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Noise level: {noiseLevel}%</label>
+                <input type="range" min={0} max={50} value={noiseLevel} onChange={(e) => setNoiseLevel(parseInt(e.target.value))} className="w-full" style={{ accentColor: accentPink }} />
+                <div className="flex justify-between text-xs text-gray-600 mt-1"><span>Exact match (0%)</span><span>High variation (50%)</span></div>
+              </div>
+              <div className="rounded-lg p-4 text-sm" style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.2)" }}>
+                <p className="font-medium mb-1" style={{ color: accentCyan }}>What will happen:</p>
+                <ul className="space-y-1 text-gray-400">
+                  {headers.map((col) => <li key={col}><span className="font-medium text-gray-300">{col}</span>: {TYPE_DESCRIPTIONS[columnTypes[col]] || ""}</li>)}
+                </ul>
+              </div>
+
+              <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${cardBorder}` }}>
+                <div className="px-4 py-3 flex items-center justify-between" style={{ background: "rgba(15,13,26,0.5)" }}>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-300">Privacy Risk Check (<KAnonLabel>k-Anonymity</KAnonLabel>)</p>
+                    <p className="text-xs text-gray-500">Flags groups where fewer than k people share the same profile.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">k =</label>
+                    <select value={kThreshold} onChange={(e) => setKThreshold(parseInt(e.target.value))} className="rounded px-2 py-1 text-sm" style={{ background: "#0f0d1a", color: "#e2e8f0", border: `1px solid ${cardBorder}` }}>
+                      {[3, 5, 10, 15, 20].map((v) => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {origKAnonymity && (
+                  <div className="px-4 py-3">
+                    {origKAnonymity.safe ? (
+                      <div className="flex items-start gap-2 text-sm rounded-lg p-3" style={{ background: "rgba(34,197,94,0.1)", color: accentGreen }}>
+                        <span className="text-lg leading-none mt-px">&#9989;</span>
+                        <div>
+                          <p className="font-medium">Passes k={kThreshold} anonymity check</p>
+                          <p className="text-xs mt-0.5" style={{ color: "rgba(34,197,94,0.7)" }}>Every combination of quasi-identifiers ({origKAnonymity.quasiIdCols.join(", ")}) has at least {kThreshold} people sharing the same profile.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-start gap-2 text-sm rounded-lg p-3 mb-3" style={{ background: "rgba(245,158,11,0.1)", color: "#fbbf24" }}>
+                          <span className="text-lg leading-none mt-px">&#9888;&#65039;</span>
+                          <div>
+                            <p className="font-medium">Privacy risk detected — {origKAnonymity.risks.length} vulnerable combination{origKAnonymity.risks.length > 1 ? "s" : ""} found</p>
+                            <p className="text-xs mt-0.5" style={{ color: "rgba(251,191,36,0.7)" }}>Some people can be uniquely identified by combinations of non-PII columns.</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {origKAnonymity.risks.slice(0, 5).map((risk, i) => (
+                            <div key={i} className="rounded p-2 text-xs" style={{ background: "rgba(15,13,26,0.5)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-medium text-gray-300">{risk.columns.join(" + ")}</span>
+                                <span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: risk.smallestGroup === 1 ? "rgba(239,68,68,0.2)" : "rgba(245,158,11,0.2)", color: risk.smallestGroup === 1 ? "#f87171" : "#fbbf24" }}>
+                                  {risk.smallestGroup === 1 ? "Unique individual" : `Smallest group: ${risk.smallestGroup}`}
+                                </span>
+                              </div>
+                              <div className="text-gray-500">
+                                {risk.examples.map((ex, j) => <span key={j}>{j > 0 && " · "}<span className="font-mono text-gray-400">{ex.value}</span><span className="text-gray-600"> ({ex.count} {ex.count === 1 ? "person" : "people"})</span></span>)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {origKAnonymity.risks.length > 5 && <p className="text-xs text-gray-600 mt-2">+ {origKAnonymity.risks.length - 5} more vulnerable combinations</p>}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {origKAnonymity && !origKAnonymity.safe && exclusionPreview && exclusionPreview.excluded > 0 && (
+                <div className="mt-4 rounded-lg p-4" style={{ background: "rgba(236,72,153,0.05)", border: "1px solid rgba(236,72,153,0.3)" }}>
+                  <div className="flex items-start gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer mt-0.5">
+                      <input type="checkbox" checked={excludeBelowK} onChange={(e) => setExcludeBelowK(e.target.checked)} className="sr-only peer" />
+                      <div className="w-9 h-5 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-600 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{ background: excludeBelowK ? accentPink : "#2d2845" }}></div>
+                    </label>
+                    <div>
+                      <p className="text-sm font-medium text-gray-300">Exclude rows that fail k={kThreshold} <KAnonLabel>anonymity</KAnonLabel></p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {excludeBelowK ? (
+                          <span style={{ color: accentPink }} className="font-medium">{exclusionPreview.excluded} row{exclusionPreview.excluded > 1 ? "s" : ""} will be excluded. Synthetic data generated from remaining {exclusionPreview.filtered.length} rows (based on: {exclusionPreview.quasiIdCols.join(", ")}).</span>
+                        ) : (
+                          <span>Would remove {exclusionPreview.excluded} of {exclusionPreview.total} rows whose quasi-identifier combination ({exclusionPreview.quasiIdCols.join(", ")}) has fewer than {kThreshold} members.</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-between">
+              <button onClick={() => setStep(2)} className="text-gray-500 hover:text-gray-300 text-sm font-medium">&larr; Back</button>
+              <button onClick={generate} disabled={isGenerating} className="text-white px-8 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50" style={{ background: accentGreen }}>
+                {isGenerating ? "Generating..." : "Generate Synthetic Data"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && syntheticData && (
+          <div className="space-y-6">
+            <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+              <div>
+                <p className="text-sm font-medium" style={{ color: accentGreen }}>
+                  Generated {syntheticData.length} synthetic rows from {rawData.length} original rows
+                  {excludeBelowK && exclusionPreview && exclusionPreview.excluded > 0 && <span style={{ color: accentPink }}> ({exclusionPreview.excluded} risky rows excluded)</span>}
+                </p>
+                <p className="text-xs text-gray-500">Zero original PII in the output</p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={reset} className="text-gray-500 hover:text-gray-300 text-sm font-medium px-4 py-2">Start Over</button>
+                <button onClick={downloadCSV} className="text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity" style={{ background: accentGreen }}>Download CSV</button>
+              </div>
+            </div>
+
+            {/* Side-by-side K-Anonymity Comparison */}
+            {(origKAnonymity || synthKAnonymity) && (
+              <div className="rounded-xl p-5" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+                <h3 className="text-base font-semibold text-gray-200 mb-1">Privacy Comparison (k={kThreshold} <KAnonLabel>Anonymity</KAnonLabel>)</h3>
+                <p className="text-xs text-gray-500 mb-4">How identifiable are individuals in each dataset based on quasi-identifier combinations?</p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Original */}
+                  {origKAnonymity && (
+                    <div className="rounded-lg p-4" style={{ border: `1px solid rgba(6,182,212,0.3)`, background: "rgba(6,182,212,0.05)" }}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg leading-none">{origKAnonymity.safe ? "\u2705" : "\u26A0\uFE0F"}</span>
+                        <h4 className="text-sm font-semibold" style={{ color: accentCyan }}>Original Data</h4>
+                      </div>
+                      {origKAnonymity.safe ? (
+                        <p className="text-xs text-gray-400">All quasi-identifier combinations have {kThreshold}+ members. Low re-identification risk.</p>
+                      ) : (
+                        <div>
+                          <p className="text-xs text-gray-400 mb-2">{origKAnonymity.risks.length} vulnerable combination{origKAnonymity.risks.length > 1 ? "s" : ""} found. Smallest group: {origKAnonymity.worstCase} {origKAnonymity.worstCase === 1 ? "person" : "people"}.</p>
+                          <div className="space-y-1">
+                            {origKAnonymity.risks.slice(0, 4).map((risk, i) => (
+                              <div key={i} className="rounded px-2 py-1 text-xs flex items-center justify-between" style={{ background: "rgba(15,13,26,0.5)" }}>
+                                <span className="text-gray-400 truncate mr-2">{risk.columns.join(" + ")}</span>
+                                <span className="font-mono whitespace-nowrap" style={{ color: risk.smallestGroup === 1 ? "#f87171" : "#fbbf24" }}>min={risk.smallestGroup}</span>
+                              </div>
+                            ))}
+                            {origKAnonymity.risks.length > 4 && <p className="text-xs text-gray-600">+{origKAnonymity.risks.length - 4} more</p>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Synthetic */}
+                  {synthKAnonymity && (
+                    <div className="rounded-lg p-4" style={{ border: `1px solid rgba(236,72,153,0.3)`, background: "rgba(236,72,153,0.05)" }}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg leading-none">{synthKAnonymity.safe ? "\u2705" : "\u26A0\uFE0F"}</span>
+                        <h4 className="text-sm font-semibold" style={{ color: accentPink }}>Synthetic Data</h4>
+                      </div>
+                      {synthKAnonymity.safe ? (
+                        <p className="text-xs text-gray-400">All quasi-identifier combinations have {kThreshold}+ members. Low re-identification risk.</p>
+                      ) : (
+                        <div>
+                          <p className="text-xs text-gray-400 mb-2">{synthKAnonymity.risks.length} vulnerable combination{synthKAnonymity.risks.length > 1 ? "s" : ""} found. Smallest group: {synthKAnonymity.worstCase} {synthKAnonymity.worstCase === 1 ? "person" : "people"}.</p>
+                          <div className="space-y-1">
+                            {synthKAnonymity.risks.slice(0, 4).map((risk, i) => (
+                              <div key={i} className="rounded px-2 py-1 text-xs flex items-center justify-between" style={{ background: "rgba(15,13,26,0.5)" }}>
+                                <span className="text-gray-400 truncate mr-2">{risk.columns.join(" + ")}</span>
+                                <span className="font-mono whitespace-nowrap" style={{ color: risk.smallestGroup === 1 ? "#f87171" : "#fbbf24" }}>min={risk.smallestGroup}</span>
+                              </div>
+                            ))}
+                            {synthKAnonymity.risks.length > 4 && <p className="text-xs text-gray-600">+{synthKAnonymity.risks.length - 4} more</p>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Summary comparison line */}
+                {origKAnonymity && synthKAnonymity && (
+                  <div className="mt-4 rounded-lg px-4 py-3 text-xs" style={{ background: "rgba(15,13,26,0.5)", border: `1px solid ${cardBorder}` }}>
+                    {origKAnonymity.safe && synthKAnonymity.safe ? (
+                      <span style={{ color: accentGreen }}>Both datasets pass k={kThreshold} anonymity. The synthetic data is safe to share.</span>
+                    ) : !origKAnonymity.safe && synthKAnonymity.safe ? (
+                      <span style={{ color: accentGreen }}>The synthetic data resolved all k-anonymity risks from the original. Safe to share.</span>
+                    ) : origKAnonymity.safe && !synthKAnonymity.safe ? (
+                      <span style={{ color: "#fbbf24" }}>The original was safe, but synthetic generation introduced new sparse combinations. Consider increasing rows or noise.</span>
+                    ) : (
+                      <span style={{ color: "#fbbf24" }}>
+                        Both datasets have risks. Original: {origKAnonymity.risks.length} vulnerable combination{origKAnonymity.risks.length > 1 ? "s" : ""} (smallest group: {origKAnonymity.worstCase}).
+                        Synthetic: {synthKAnonymity.risks.length} combination{synthKAnonymity.risks.length > 1 ? "s" : ""} (smallest group: {synthKAnonymity.worstCase}).
+                        {synthKAnonymity.risks.length < origKAnonymity.risks.length
+                          ? " Synthetic data has fewer risks — generation helped."
+                          : " Consider increasing noise or using the exclude toggle."}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {comparisonStats.length > 0 && (
+              <div className="rounded-xl p-6" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+                <h3 className="text-base font-semibold text-gray-200 mb-3">Statistical Comparison</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr style={{ borderBottom: `1px solid ${cardBorder}` }}>
+                      <th className="text-left py-2 px-3 font-medium text-gray-500">Column</th>
+                      <th className="text-right py-2 px-3 font-medium" style={{ color: accentCyan }}>Orig Mean</th>
+                      <th className="text-right py-2 px-3 font-medium" style={{ color: accentPink }}>Synth Mean</th>
+                      <th className="text-right py-2 px-3 font-medium" style={{ color: accentCyan }}>Orig SD</th>
+                      <th className="text-right py-2 px-3 font-medium" style={{ color: accentPink }}>Synth SD</th>
+                      <th className="text-right py-2 px-3 font-medium" style={{ color: accentCyan }}>Orig Range</th>
+                      <th className="text-right py-2 px-3 font-medium" style={{ color: accentPink }}>Synth Range</th>
+                    </tr></thead>
+                    <tbody>
+                      {comparisonStats.map((s) => (
+                        <tr key={s.column} style={{ borderBottom: "1px solid rgba(45,40,69,0.5)" }}>
+                          <td className="py-2 px-3 font-medium text-gray-300">{s.column}</td>
+                          <td className="py-2 px-3 text-right font-mono" style={{ color: accentCyan }}>{s.origMean}</td>
+                          <td className="py-2 px-3 text-right font-mono" style={{ color: accentPink }}>{s.synthMean}</td>
+                          <td className="py-2 px-3 text-right font-mono" style={{ color: accentCyan }}>{s.origStd}</td>
+                          <td className="py-2 px-3 text-right font-mono" style={{ color: accentPink }}>{s.synthStd}</td>
+                          <td className="py-2 px-3 text-right font-mono text-xs" style={{ color: accentCyan }}>{s.origMin}-{s.origMax}</td>
+                          <td className="py-2 px-3 text-right font-mono text-xs" style={{ color: accentPink }}>{s.synthMin}-{s.synthMax}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {histogramData && (
+              <div className="rounded-xl p-6" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+                <h3 className="text-base font-semibold text-gray-200 mb-3">Distribution: {histogramData.column}</h3>
+                <SimpleBarChart data={histogramData.data} dataKeyX="bin" dataKeys={["Original", "Synthetic"]} colors={[accentCyan, accentPink]} />
+              </div>
+            )}
+
+            {categoryComparison && (
+              <div className="rounded-xl p-6" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+                <h3 className="text-base font-semibold text-gray-200 mb-3">Category Distribution: {categoryComparison.column}</h3>
+                <SimpleBarChart data={categoryComparison.data} dataKeyX="category" dataKeys={["Original", "Synthetic"]} colors={[accentCyan, accentPink]} height={220} />
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-xl p-4" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+                <h3 className="text-sm font-semibold mb-2" style={{ color: accentCyan }}>Original Data (first 5 rows)</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead><tr>{headers.slice(0, 5).map((h) => <th key={h} className="text-left py-1 px-2 font-medium text-gray-500">{h}</th>)}</tr></thead>
+                    <tbody>
+                      {rawData.slice(0, 5).map((row, i) => (
+                        <tr key={i} style={{ borderTop: "1px solid rgba(45,40,69,0.5)" }}>
+                          {headers.slice(0, 5).map((h) => <td key={h} className="py-1 px-2 text-gray-400 truncate max-w-[120px]">{String(row[h] ?? "")}</td>)}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div className="rounded-xl p-4" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+                <h3 className="text-sm font-semibold mb-2" style={{ color: accentPink }}>Synthetic Data (first 5 rows)</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead><tr>{headers.slice(0, 5).map((h) => <th key={h} className="text-left py-1 px-2 font-medium text-gray-500">{h}</th>)}</tr></thead>
+                    <tbody>
+                      {syntheticData.slice(0, 5).map((row, i) => (
+                        <tr key={i} style={{ borderTop: "1px solid rgba(45,40,69,0.5)" }}>
+                          {headers.slice(0, 5).map((h) => <td key={h} className="py-1 px-2 text-gray-400 truncate max-w-[120px]">{String(row[h] ?? "")}</td>)}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center text-xs text-gray-600 py-4">The Data Schmata runs 100% in your browser. No data was transmitted to any server.</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<DataSchmata />, document.getElementById("root"));
+</script>
+</body>
+</html>
