@@ -400,6 +400,14 @@
       margin-bottom: 1rem;
       line-height: 1.6;
     }
+    .new-release-desc a {
+      color: #08d9d6;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .new-release-desc a:hover {
+      color: #c8ff00;
+    }
     .new-release-link {
       display: inline-block;
       font-family: 'Space Grotesk', sans-serif;
@@ -452,16 +460,23 @@
       <p class="tagline">Untested and unserious. For exploration purposes only. Use with caution.</p>
 
       <div class="new-release">
-        <span class="new-release-label">✨ New Releases</span>
+        <span class="new-release-label">&#10024; New Releases</span>
+        <h3 class="new-release-title">AI Mapping Masterclass</h3>
+        <p class="new-release-desc">AI Strategy Lessons based on <a href="https://ssrn.com/abstract=6513481" target="_blank" rel="noopener">Kim et al. 2026</a></p>
+        <a href="apps/22-ai-masterclass-lessons.html" target="_blank" class="new-release-link">Try It Now &#8594;</a>
+      </div>
+
+      <div class="new-release" style="margin-top: 1rem;">
+        <span class="new-release-label">&#10024; New Releases</span>
         <h3 class="new-release-title">The Data Schmata</h3>
         <p class="new-release-desc">Turn your real data into fake "schmata" data for safer use with LLMs. Includes k-anonymity privacy analysis.</p>
-        <a href="apps/21-data-schmata.html" target="_blank" class="new-release-link">Try It Now →</a>
+        <a href="apps/21-data-schmata.html" target="_blank" class="new-release-link">Try It Now &#8594;</a>
       </div>
 
       <div class="new-release" style="margin-top: 1rem;">
         <h3 class="new-release-title">The App for Making Apps</h3>
         <p class="new-release-desc">Makes workplace assessment apps based on your needs and validated social science scales.</p>
-        <a href="https://builder.promptletariat.com" target="_blank" class="new-release-link">Try It Now →</a>
+        <a href="https://builder.promptletariat.com" target="_blank" class="new-release-link">Try It Now &#8594;</a>
       </div>
 
       <img src="header-image.png" alt="Promptletariat" class="header-image">
@@ -656,7 +671,7 @@
     <section class="category">
       <div class="category-header">
         <span class="category-icon">&#x1F52C;</span>
-        <h2 class="category-title">Research Translation & Thought Leadership</h2>
+        <h2 class="category-title">Research Translation</h2>
       </div>
       <div class="tools-grid">
         <a href="apps/19-academic-brief-generator.html" class="tool-card">
@@ -670,6 +685,12 @@
           <h3 class="tool-title">Myth vs Evidence Flashcard Builder</h3>
           <p class="tool-description">Create myth-busting flashcards with citations and spaced repetition review.</p>
           <span class="tool-research">Evidence-Based Practice</span>
+        </a>
+        <a href="apps/22-ai-masterclass-lessons.html" class="tool-card">
+          <div class="tool-number">22</div>
+          <h3 class="tool-title">AI Mapping Masterclass</h3>
+          <p class="tool-description">AI Strategy Lessons based on <a href="https://ssrn.com/abstract=6513481" target="_blank" rel="noopener" style="color:#08d9d6;text-decoration:underline;">Kim et al. 2026</a></p>
+          <span class="tool-research">Mapping AI</span>
         </a>
       </div>
     </section>
