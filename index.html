@@ -1,703 +1,328 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Promptletariat - HR Apps Collection</title>
-  <meta name="description" content="A collection of 20 interactive, research-based HR and workplace tools. Free, private, and runs entirely in your browser.">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #1a0a2e 100%);
-      min-height: 100vh;
-      color: #f8fafc;
-      overflow-x: hidden;
-    }
-    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; position: relative; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mary Kate Stimmler Consulting | Behavioral Science for the Workplace</title>
+<meta name="description" content="Mary Kate Stimmler Consulting helps organizations apply behavioral and organizational science to how people work, decide, and grow. Advisory, research translation, talks, and workshops.">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #16202b;
+  --ink-soft: #44525f;
+  --muted: #6b7785;
+  --bg: #f7f5f1;
+  --card: #ffffff;
+  --line: #e6e1d8;
+  --accent: #1f6f6b;
+  --accent-dark: #155350;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+.container { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
 
-    /* Fun decorative elements */
-    .orb {
-      position: fixed;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: -1;
-    }
-    .orb-1 {
-      top: 10%;
-      left: 5%;
-      width: 100px;
-      height: 100px;
-      background: linear-gradient(135deg, #ff2e63, #ff6b9d);
-      opacity: 0.15;
-      animation: float1 3s ease-in-out infinite;
-    }
-    .orb-2 {
-      bottom: 20%;
-      right: 10%;
-      width: 150px;
-      height: 150px;
-      background: linear-gradient(135deg, #08d9d6, #00fff5);
-      opacity: 0.12;
-      animation: float2 4s ease-in-out infinite;
-    }
-    .orb-3 {
-      top: 40%;
-      right: 5%;
-      width: 80px;
-      height: 80px;
-      background: linear-gradient(135deg, #c8ff00, #a0e000);
-      opacity: 0.1;
-      animation: float3 3.5s ease-in-out infinite;
-    }
-    .orb-4 {
-      bottom: 40%;
-      left: 8%;
-      width: 120px;
-      height: 120px;
-      background: linear-gradient(135deg, #ff6b9d, #ff2e63);
-      opacity: 0.1;
-      animation: float1 4.5s ease-in-out infinite reverse;
-    }
-    .orb-5 {
-      top: 60%;
-      left: 15%;
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #08d9d6, #c8ff00);
-      opacity: 0.12;
-      animation: float2 3s ease-in-out infinite reverse;
-    }
-    .orb-6 {
-      top: 25%;
-      right: 20%;
-      width: 90px;
-      height: 90px;
-      background: linear-gradient(135deg, #ff2e63, #08d9d6);
-      opacity: 0.08;
-      animation: float3 3.5s ease-in-out infinite reverse;
-    }
-    @keyframes float1 {
-      0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
-      50% { transform: translateY(-30px) translateX(15px) rotate(15deg); }
-    }
-    @keyframes float2 {
-      0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
-      50% { transform: translateY(-25px) translateX(-20px) rotate(-10deg); }
-    }
-    @keyframes float3 {
-      0%, 100% { transform: translateY(0) translateX(0) scale(1); }
-      50% { transform: translateY(-20px) translateX(10px) scale(1.1); }
-    }
+/* Nav */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 0;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+.nav-brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.nav-links { display: flex; gap: 1.75rem; align-items: center; }
+.nav-links a {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.nav-links a:hover { color: var(--accent); }
+.nav-cta {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--accent);
+  color: #fff !important;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.88rem !important;
+}
+.nav-cta:hover { background: var(--accent-dark); }
 
-    header { text-align: center; padding: 2rem 0 3rem; position: relative; }
+/* Hero */
+.hero {
+  padding: 5rem 0 4.5rem;
+  text-align: center;
+  max-width: 820px;
+  margin: 0 auto;
+}
+.eyebrow {
+  font-family: 'Space Grotesk', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 1.25rem;
+}
+.hero h1 {
+  font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  font-size: clamp(2.2rem, 5.5vw, 3.7rem);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  margin-bottom: 1.25rem;
+}
+.hero p.lead {
+  font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+  color: var(--ink-soft);
+  max-width: 640px;
+  margin: 0 auto 2.25rem;
+}
+.hero-actions { display: flex; gap: 0.85rem; justify-content: center; flex-wrap: wrap; }
+.btn {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 0.98rem;
+  padding: 0.8rem 1.6rem;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+.btn-secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 
-    .brand-label {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(1.1rem, 6vw, 3.5rem);
-      font-weight: 800;
-      letter-spacing: -1px;
-      text-transform: uppercase;
-      background: linear-gradient(135deg, #ff2e63 0%, #08d9d6 50%, #c8ff00 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 1rem;
-      word-break: break-word;
-      overflow-wrap: break-word;
-    }
+/* Section scaffolding */
+section { padding: 4rem 0; }
+.section-head { max-width: 640px; margin: 0 auto 2.75rem; text-align: center; }
+.section-head h2 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.7rem, 3.5vw, 2.3rem);
+  letter-spacing: -0.6px;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+.section-head p { color: var(--muted); font-size: 1.02rem; }
 
-    .main-title {
-      display: none;
-    }
+/* Services */
+.services {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+.service-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 2rem 1.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(22,32,43,0.07);
+}
+.service-icon {
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(31,111,107,0.1);
+  color: var(--accent);
+  border-radius: 12px;
+  font-size: 1.4rem;
+  margin-bottom: 1.1rem;
+}
+.service-card h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.18rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.6rem;
+}
+.service-card p { color: var(--ink-soft); font-size: 0.96rem; }
 
-    .tagline {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.6rem;
-      font-weight: 500;
-      background: linear-gradient(90deg, #ff2e63, #08d9d6, #c8ff00);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 2rem;
-      letter-spacing: -0.5px;
-    }
+/* About */
+.about { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.about-grid {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+.about-grid h2 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.7rem, 3.5vw, 2.2rem);
+  letter-spacing: -0.6px;
+  margin-bottom: 1.1rem;
+}
+.about-grid p { color: var(--ink-soft); margin-bottom: 1rem; }
+.creds { list-style: none; display: flex; flex-direction: column; gap: 0.9rem; }
+.creds li {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+}
+.creds .role { font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: var(--ink); display: block; font-size: 1rem; }
+.creds .place { color: var(--muted); font-size: 0.9rem; }
 
-    .header-image {
-      max-width: 550px;
-      width: 100%;
-      border-radius: 1.5rem;
-      margin-bottom: 1.5rem;
-      border: 4px solid #ff2e63;
-      box-shadow: 0 0 30px rgba(255,46,99,0.4), 0 0 60px rgba(8,217,214,0.2);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .header-image:hover {
-      transform: scale(1.02);
-      box-shadow: 0 0 40px rgba(255,46,99,0.6), 0 0 80px rgba(8,217,214,0.4);
-    }
+/* Experiments callout */
+.experiments {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.experiments-box {
+  background: linear-gradient(135deg, #16202b 0%, #243140 100%);
+  color: #fff;
+  border-radius: 20px;
+  padding: 3rem 2rem;
+}
+.experiments-box h2 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin-bottom: 0.85rem;
+  letter-spacing: -0.5px;
+}
+.experiments-box p { color: #c7d0d9; max-width: 520px; margin: 0 auto 1.75rem; }
+.experiments-box .btn-primary { background: #fff; color: var(--ink); }
+.experiments-box .btn-primary:hover { background: #e9eef2; }
 
-    .subtitle-tagline {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.25rem;
-      font-weight: 500;
-      color: #a0a0a0;
-      margin-bottom: 2rem;
-      letter-spacing: 0.5px;
-    }
-    .subtitle-tagline span {
-      color: #08d9d6;
-      font-weight: 600;
-    }
+/* Contact */
+.contact { text-align: center; max-width: 620px; margin: 0 auto; }
+.contact h2 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.7rem, 3.5vw, 2.3rem);
+  letter-spacing: -0.6px;
+  margin-bottom: 0.85rem;
+}
+.contact p { color: var(--muted); margin-bottom: 2rem; }
+.contact-links { display: flex; gap: 0.85rem; justify-content: center; flex-wrap: wrap; }
 
-    .intro-text {
-      color: #888;
-      text-align: center;
-      font-size: 0.95rem;
-      max-width: 600px;
-      margin: 0 auto 2.5rem;
-      line-height: 1.8;
-      font-family: 'Inter', sans-serif;
-    }
-    .intro-text a {
-      color: #ff2e63;
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.2s;
-      border-bottom: 1px solid transparent;
-    }
-    .intro-text a:hover {
-      color: #08d9d6;
-      border-bottom-color: #08d9d6;
-    }
-    .intro-text .linkedin-link {
-      color: #c8ff00;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      font-weight: 700;
-    }
-    .intro-text .linkedin-link:hover {
-      color: #ff2e63;
-      text-decoration: underline;
-    }
+/* Footer */
+footer {
+  border-top: 1px solid var(--line);
+  padding: 2.5rem 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+footer a { color: var(--muted); text-decoration: none; }
+footer a:hover { color: var(--accent); }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: rgba(255,46,99,0.15);
-      border: 1px solid rgba(255,46,99,0.3);
-      padding: 0.5rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-      font-family: 'Space Grotesk', sans-serif;
-      color: #ff2e63;
-      margin-bottom: 1.5rem;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    .section-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 2.2rem;
-      font-weight: 700;
-      letter-spacing: -1px;
-      color: #fff;
-      margin-bottom: 1rem;
-    }
-
-    .subtitle {
-      color: #666;
-      font-size: 1rem;
-      max-width: 600px;
-      margin: 0 auto 2rem;
-      line-height: 1.7;
-      font-family: 'Inter', sans-serif;
-    }
-
-    .features {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      flex-wrap: wrap;
-      margin-bottom: 2rem;
-    }
-    .feature {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      color: #666;
-      font-size: 0.85rem;
-      font-weight: 500;
-      font-family: 'Space Grotesk', sans-serif;
-    }
-    .feature::before {
-      content: '●';
-      color: #08d9d6;
-      font-size: 0.5rem;
-    }
-
-    .category-list {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.75rem;
-      margin-top: 2rem;
-      max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .category-chip {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: #fff;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 0.5rem 1rem;
-      border-radius: 2rem;
-      transition: all 0.2s ease;
-    }
-    .category-chip:hover {
-      background: rgba(255,46,99,0.15);
-      border-color: rgba(255,46,99,0.3);
-    }
-
-    .category { margin-bottom: 3rem; }
-    .category-header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    .category-icon {
-      font-size: 1.5rem;
-      opacity: 0.8;
-    }
-    .category-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.3rem;
-      font-weight: 600;
-      color: #fff;
-      letter-spacing: -0.5px;
-    }
-
-    .tools-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 1.25rem;
-    }
-    .tool-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 1.5rem;
-      text-decoration: none;
-      color: inherit;
-      transition: all 0.25s ease;
-      display: block;
-      position: relative;
-    }
-    .tool-card:hover {
-      transform: translateY(-3px);
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,46,99,0.3);
-    }
-
-    .tool-number {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: rgba(255,46,99,0.2);
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      font-family: 'Space Grotesk', sans-serif;
-      color: #ff2e63;
-      margin-bottom: 0.75rem;
-    }
-    .tool-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: #fff;
-      letter-spacing: -0.3px;
-    }
-    .tool-description {
-      font-size: 0.85rem;
-      color: #666;
-      line-height: 1.6;
-      margin-bottom: 0.75rem;
-    }
-    .tool-research {
-      font-size: 0.7rem;
-      font-weight: 500;
-      font-family: 'Space Grotesk', sans-serif;
-      color: #08d9d6;
-      background: rgba(8,217,214,0.1);
-      padding: 0.3rem 0.6rem;
-      border-radius: 4px;
-      display: inline-block;
-      letter-spacing: 0.3px;
-    }
-
-    .new-release {
-      background: linear-gradient(135deg, rgba(255,46,99,0.15) 0%, rgba(8,217,214,0.15) 100%);
-      border: 2px solid #ff2e63;
-      border-radius: 16px;
-      padding: 1.5rem 2rem;
-      margin: 2rem auto;
-      max-width: 600px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .new-release::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-      animation: shimmer 3s infinite;
-    }
-    @keyframes shimmer {
-      0% { left: -100%; }
-      100% { left: 100%; }
-    }
-    .new-release-label {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: #ff2e63;
-      margin-bottom: 0.5rem;
-      display: inline-block;
-      background: rgba(255,46,99,0.2);
-      padding: 0.25rem 0.75rem;
-      border-radius: 4px;
-    }
-    .new-release-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 0.5rem;
-    }
-    .new-release-desc {
-      font-family: 'Inter', sans-serif;
-      font-size: 0.9rem;
-      color: #a0a0a0;
-      margin-bottom: 1rem;
-      line-height: 1.6;
-    }
-    .new-release-desc a {
-      color: #08d9d6;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-    .new-release-desc a:hover {
-      color: #c8ff00;
-    }
-    .new-release-link {
-      display: inline-block;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #0d0d0d;
-      background: linear-gradient(135deg, #c8ff00, #08d9d6);
-      padding: 0.6rem 1.5rem;
-      border-radius: 2rem;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-    .new-release-link:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 20px rgba(200,255,0,0.4);
-    }
-
-    footer {
-      text-align: center;
-      padding: 3rem 0;
-      color: #444;
-      font-size: 0.85rem;
-      font-family: 'Space Grotesk', sans-serif;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      margin-top: 2rem;
-    }
-
-    @media (max-width: 768px) {
-      .tagline { font-size: 1.1rem; }
-      .section-title { font-size: 1.8rem; }
-      .tools-grid { grid-template-columns: 1fr; }
-      .container { padding: 1rem; }
-      .features { gap: 1rem; }
-      .feature { font-size: 0.8rem; }
-      .subtitle-tagline { font-size: 1rem; }
-    }
-  </style>
+@media (max-width: 760px) {
+  .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .nav-links a:not(.nav-cta) { display: none; }
+  .hero { padding: 3.5rem 0 3rem; }
+  section { padding: 3rem 0; }
+}
+</style>
 </head>
 <body>
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
-  <div class="orb orb-4"></div>
-  <div class="orb orb-5"></div>
-  <div class="orb orb-6"></div>
-  <div class="container">
-    <header>
-      <h1 class="brand-label">Promptletariat</h1>
-      <p class="tagline">Vibe-coded HR apps that explore what's possible for the modern worker</p>
-      <p class="tagline">Untested and unserious. For exploration purposes only. Use with caution.</p>
 
-      <div class="new-release">
-        <span class="new-release-label">&#10024; New Releases</span>
-        <h3 class="new-release-title">AI Mapping Masterclass</h3>
-        <p class="new-release-desc">AI Strategy Lessons based on <a href="https://ssrn.com/abstract=6513481" target="_blank" rel="noopener">Kim et al. 2026</a></p>
-        <a href="apps/22-ai-masterclass-lessons.html" target="_blank" class="new-release-link">Try It Now &#8594;</a>
-      </div>
-
-      <div class="new-release" style="margin-top: 1rem;">
-        <span class="new-release-label">&#10024; New Releases</span>
-        <h3 class="new-release-title">The Data Schmata</h3>
-        <p class="new-release-desc">Turn your real data into fake "schmata" data for safer use with LLMs. Includes k-anonymity privacy analysis.</p>
-        <a href="apps/21-data-schmata.html" target="_blank" class="new-release-link">Try It Now &#8594;</a>
-      </div>
-
-      <div class="new-release" style="margin-top: 1rem;">
-        <h3 class="new-release-title">The App for Making Apps</h3>
-        <p class="new-release-desc">Makes workplace assessment apps based on your needs and validated social science scales.</p>
-        <a href="https://builder.promptletariat.com" target="_blank" class="new-release-link">Try It Now &#8594;</a>
-      </div>
-
-      <img src="header-image.png" alt="Promptletariat" class="header-image">
-      <p class="subtitle-tagline">Built with <span>Claude</span> + <span>Gemini</span> + <span>Github</span> + <span>Squarespace</span> (Domain/hosting) + <span>Vercel</span> + <span>Canva/Nano Banana</span> (images)</p>
-      <p class="intro-text">
-        A personal experiment by Mary Kate Stimmler exploring what's possible when you prompt with purpose, but no knowledge of code. Work in progress, always evolving.<br><br>
-        To watch the (r)evolution of this site, <a href="https://www.linkedin.com/in/marykatestimmler/" target="_blank" class="linkedin-link">follow me on LinkedIn</a>
-      </p>
-
-      <div class="badge">20 Research-Based Tools</div>
-      <h2 class="section-title">The Collection</h2>
-      <p class="subtitle">Interactive workplace tools grounded in I/O psychology and behavioral science. Free, private, browser-based.</p>
-      <div class="features">
-        <div class="feature">No login</div>
-        <div class="feature">100% private</div>
-        <div class="feature">Mobile ready</div>
-      </div>
-
-      <div class="category-list">
-        <div class="category-chip">&#x1F9ED; Assessment & Self-Discovery</div>
-        <div class="category-chip">&#x2696; Decision Support</div>
-        <div class="category-chip">&#x1F465; Hiring & Talent</div>
-        <div class="category-chip">&#x1F4CA; Culture & Engagement</div>
-        <div class="category-chip">&#x1F5FA; Data Visualization</div>
-        <div class="category-chip">&#x1F4DA; Learning & Development</div>
-        <div class="category-chip">&#x1F52C; Research Translation</div>
-      </div>
-    </header>
-
-    <section class="category">
-      <div class="category-header">
-        <span class="category-icon">&#x1F9ED;</span>
-        <h2 class="category-title">Assessment & Self-Discovery</h2>
-      </div>
-      <div class="tools-grid">
-        <a href="apps/01-career-values-clarification.html" class="tool-card">
-          <div class="tool-number">01</div>
-          <h3 class="tool-title">Career Values Clarification</h3>
-          <p class="tool-description">12-scenario assessment revealing your core work values and aligned career paths.</p>
-          <span class="tool-research">Schwartz's Theory of Basic Values</span>
-        </a>
-        <a href="apps/02-work-style-archetype-quiz.html" class="tool-card">
-          <div class="tool-number">02</div>
-          <h3 class="tool-title">Work Style Archetype Quiz</h3>
-          <p class="tool-description">Personality assessment mapping to 6 work archetypes with strengths and blind spots.</p>
-          <span class="tool-research">Big Five (OCEAN) Model</span>
-        </a>
-        <a href="apps/03-psychological-safety-scan.html" class="tool-card">
-          <div class="tool-number">03</div>
-          <h3 class="tool-title">Psychological Safety Quick-Scan</h3>
-          <p class="tool-description">8-question team assessment across speaking up, risk-taking, and inclusion dimensions.</p>
-          <span class="tool-research">Amy Edmondson's Research</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category">
-      <div class="category-header">
-        <span class="category-icon">&#x2696;</span>
-        <h2 class="category-title">Decision Support & Behavioral Economics</h2>
-      </div>
-      <div class="tools-grid">
-        <a href="apps/04-job-offer-comparison.html" class="tool-card">
-          <div class="tool-number">04</div>
-          <h3 class="tool-title">Job Offer Comparison Calculator</h3>
-          <p class="tool-description">Multi-dimensional offer comparison with weighted scoring and behavioral nudges.</p>
-          <span class="tool-research">Behavioral Economics</span>
-        </a>
-        <a href="apps/05-negotiation-prep-simulator.html" class="tool-card">
-          <div class="tool-number">05</div>
-          <h3 class="tool-title">Negotiation Prep Simulator</h3>
-          <p class="tool-description">BATNA worksheet with scripted language and anchoring strategies.</p>
-          <span class="tool-research">Fisher & Ury's Principled Negotiation</span>
-        </a>
-        <a href="apps/06-career-pivot-analyzer.html" class="tool-card">
-          <div class="tool-number">06</div>
-          <h3 class="tool-title">Career Pivot Risk/Reward Analyzer</h3>
-          <p class="tool-description">Decision matrix with regret minimization and prospect theory visualization.</p>
-          <span class="tool-research">Prospect Theory</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category">
-      <div class="category-header">
-        <span class="category-icon">&#x1F465;</span>
-        <h2 class="category-title">Hiring & Talent Acquisition</h2>
-      </div>
-      <div class="tools-grid">
-        <a href="apps/07-job-description-bias-auditor.html" class="tool-card">
-          <div class="tool-number">07</div>
-          <h3 class="tool-title">Job Description Bias Auditor</h3>
-          <p class="tool-description">Scans JDs for gendered and exclusionary language with replacement suggestions.</p>
-          <span class="tool-research">Linguistic Bias Research</span>
-        </a>
-        <a href="apps/08-structured-interview-generator.html" class="tool-card">
-          <div class="tool-number">08</div>
-          <h3 class="tool-title">Structured Interview Question Generator</h3>
-          <p class="tool-description">Generates behavioral questions with scoring rubrics by competency.</p>
-          <span class="tool-research">I/O Psychology</span>
-        </a>
-        <a href="apps/09-candidate-experience-survey.html" class="tool-card">
-          <div class="tool-number">09</div>
-          <h3 class="tool-title">Candidate Experience Pulse Survey</h3>
-          <p class="tool-description">Drag-and-drop survey builder for hiring stage feedback collection.</p>
-          <span class="tool-research">Organizational Justice Theory</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category">
-      <div class="category-header">
-        <span class="category-icon">&#x1F4CA;</span>
-        <h2 class="category-title">Culture & Engagement Diagnostics</h2>
-      </div>
-      <div class="tools-grid">
-        <a href="apps/10-burnout-risk-calculator.html" class="tool-card">
-          <div class="tool-number">10</div>
-          <h3 class="tool-title">Burnout Risk Calculator</h3>
-          <p class="tool-description">12-question assessment across exhaustion, cynicism, and efficacy dimensions.</p>
-          <span class="tool-research">Maslach Burnout Inventory</span>
-        </a>
-        <a href="apps/11-meeting-effectiveness-scorecard.html" class="tool-card">
-          <div class="tool-number">11</div>
-          <h3 class="tool-title">Meeting Effectiveness Scorecard</h3>
-          <p class="tool-description">Rate meetings on 6 dimensions and track patterns over time.</p>
-          <span class="tool-research">Meeting Science Research</span>
-        </a>
-        <a href="apps/12-recognition-culture-audit.html" class="tool-card">
-          <div class="tool-number">12</div>
-          <h3 class="tool-title">Recognition Culture Audit</h3>
-          <p class="tool-description">Assess recognition practices with gap analysis and improvement actions.</p>
-          <span class="tool-research">Self-Determination Theory</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category">
-      <div class="category-header">
-        <span class="category-icon">&#x1F5FA;</span>
-        <h2 class="category-title">Data Visualization & Labor Market Intelligence</h2>
-      </div>
-      <div class="tools-grid">
-        <a href="apps/13-skills-adjacency-explorer.html" class="tool-card">
-          <div class="tool-number">13</div>
-          <h3 class="tool-title">Skills Adjacency Explorer</h3>
-          <p class="tool-description">Visual skill clustering with learning paths between skill domains.</p>
-          <span class="tool-research">Skills Taxonomy Research</span>
-        </a>
-        <a href="apps/14-salary-equity-dashboard.html" class="tool-card">
-          <div class="tool-number">14</div>
-          <h3 class="tool-title">Salary Equity Dashboard</h3>
-          <p class="tool-description">Pay gap visualization with statistical controls and compa-ratios.</p>
-          <span class="tool-research">Compensation Analytics</span>
-        </a>
-        <a href="apps/15-org-network-mapper.html" class="tool-card">
-          <div class="tool-number">15</div>
-          <h3 class="tool-title">Org Network Mapper</h3>
-          <p class="tool-description">Visualize informal influence networks and identify key connectors.</p>
-          <span class="tool-research">Organizational Network Analysis</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category">
-      <div class="category-header">
-        <span class="category-icon">&#x1F4DA;</span>
-        <h2 class="category-title">Learning & Development</h2>
-      </div>
-      <div class="tools-grid">
-        <a href="apps/16-feedback-quality-coach.html" class="tool-card">
-          <div class="tool-number">16</div>
-          <h3 class="tool-title">Feedback Quality Coach</h3>
-          <p class="tool-description">Analyze feedback text for specificity, actionability, and growth orientation.</p>
-          <span class="tool-research">Feedback Effectiveness Research</span>
-        </a>
-        <a href="apps/17-microlearning-generator.html" class="tool-card">
-          <div class="tool-number">17</div>
-          <h3 class="tool-title">Microlearning Module Generator</h3>
-          <p class="tool-description">Create spaced repetition learning modules with quizzes.</p>
-          <span class="tool-research">Cognitive Load Theory</span>
-        </a>
-        <a href="apps/18-manager-effectiveness-assessment.html" class="tool-card">
-          <div class="tool-number">18</div>
-          <h3 class="tool-title">Manager Effectiveness Self-Assessment</h3>
-          <p class="tool-description">15-question assessment with radar chart results and development priorities.</p>
-          <span class="tool-research">Google's Project Oxygen</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category">
-      <div class="category-header">
-        <span class="category-icon">&#x1F52C;</span>
-        <h2 class="category-title">Research Translation</h2>
-      </div>
-      <div class="tools-grid">
-        <a href="apps/19-academic-brief-generator.html" class="tool-card">
-          <div class="tool-number">19</div>
-          <h3 class="tool-title">Academic-to-Practitioner Brief Generator</h3>
-          <p class="tool-description">Convert research findings to practitioner-friendly summaries.</p>
-          <span class="tool-research">Knowledge Translation Frameworks</span>
-        </a>
-        <a href="apps/20-myth-vs-evidence-flashcards.html" class="tool-card">
-          <div class="tool-number">20</div>
-          <h3 class="tool-title">Myth vs Evidence Flashcard Builder</h3>
-          <p class="tool-description">Create myth-busting flashcards with citations and spaced repetition review.</p>
-          <span class="tool-research">Evidence-Based Practice</span>
-        </a>
-        <a href="apps/22-ai-masterclass-lessons.html" class="tool-card">
-          <div class="tool-number">22</div>
-          <h3 class="tool-title">AI Mapping Masterclass</h3>
-          <p class="tool-description">AI Strategy Lessons based on <a href="https://ssrn.com/abstract=6513481" target="_blank" rel="noopener" style="color:#08d9d6;text-decoration:underline;">Kim et al. 2026</a></p>
-          <span class="tool-research">Mapping AI</span>
-        </a>
-      </div>
-    </section>
-
-    <footer>
-      <p>Power to the Promptletariat</p>
-    </footer>
+<nav>
+  <a href="/" class="nav-brand">Mary Kate Stimmler</a>
+  <div class="nav-links">
+    <a href="#services">Services</a>
+    <a href="#about">About</a>
+    <a href="/ai-experiments-for-hr.html">AI Experiments</a>
+    <a href="#contact" class="nav-cta">Get in touch</a>
   </div>
+</nav>
+
+<header class="hero container">
+  <div class="eyebrow">Behavioral Science for the Workplace</div>
+  <h1>Helping organizations work, decide, and grow&mdash;by design.</h1>
+  <p class="lead">Mary Kate Stimmler Consulting brings rigorous behavioral and organizational science to the everyday decisions leaders make about people, teams, and the future of work.</p>
+  <div class="hero-actions">
+    <a href="#contact" class="btn btn-primary">Start a conversation</a>
+    <a href="#services" class="btn btn-secondary">Explore services</a>
+  </div>
+</header>
+
+<section id="services" class="container">
+  <div class="section-head">
+    <h2>How I help</h2>
+    <p>Practical, evidence-based engagements tailored to your organization&rsquo;s people and priorities.</p>
+  </div>
+  <div class="services">
+    <div class="service-card">
+      <div class="service-icon">&#x1F9ED;</div>
+      <h3>People &amp; Org Strategy</h3>
+      <p>Advisory grounded in organizational behavior research&mdash;on team design, culture, hiring, performance, and the systems that shape how people do their best work.</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">&#x2728;</div>
+      <h3>AI &amp; the Future of Work</h3>
+      <p>Clear-eyed, research-informed guidance for adopting AI in ways that augment people, sharpen decisions, and hold up to scrutiny&mdash;not just hype.</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">&#x1F399;</div>
+      <h3>Research Translation, Talks &amp; Workshops</h3>
+      <p>Turning rigorous social science into usable practice through briefings, keynotes, and hands-on workshops for leaders and teams.</p>
+    </div>
+  </div>
+</section>
+
+<section id="about" class="about">
+  <div class="container about-grid">
+    <div>
+      <h2>About</h2>
+      <p>I&rsquo;m Mary Kate Stimmler&mdash;a behavioral scientist who helps organizations make better decisions about their people. My work sits at the intersection of organizational behavior, I/O psychology, and evidence-based management.</p>
+      <p>I hold a PhD in Organizational Behavior from UC Berkeley (Haas School of Business) and bring 12+ years of experience leading People Analytics teams at Google. I&rsquo;m the first practitioner fellow of Stanford University&rsquo;s Center for Advanced Study in the Behavioral Sciences (CASBS), and I teach Data and AI Ethics at UC Berkeley.</p>
+    </div>
+  </div>
+</section>
+
+<section class="container experiments">
+  <div class="experiments-box">
+    <h2>AI Experiments for HR</h2>
+    <p>Curious what AI can do for people and workplaces? Explore a growing collection of interactive, research-based HR tools&mdash;free, private, and built to spark ideas.</p>
+    <a href="/ai-experiments-for-hr.html" class="btn btn-primary">View the experiments &#8594;</a>
+  </div>
+</section>
+
+<section id="contact" class="container contact">
+  <h2>Let&rsquo;s talk</h2>
+  <p>Whether you&rsquo;re rethinking how your teams work, navigating AI, or looking for a speaker who can make research land&mdash;I&rsquo;d love to hear from you.</p>
+  <div class="contact-links">
+    <a href="mailto:mary.kate.stimmler@gmail.com" class="btn btn-primary">Email me</a>
+    <a href="https://www.linkedin.com/in/marykatestimmler/" target="_blank" rel="noopener" class="btn btn-secondary">Connect on LinkedIn</a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>&copy; <span id="year"></span> Mary Kate Stimmler Consulting &nbsp;&middot;&nbsp; <a href="/ai-experiments-for-hr.html">AI Experiments for HR</a></p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
 </body>
 </html>
