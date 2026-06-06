@@ -251,7 +251,7 @@ async function run(){
     // primary output: a real photo from the Wear Where backend, sketch as fallback
     $('#stage').innerHTML='<div class="empty"><span class="spin dark"></span><div style="margin-top:10px">Generating your photo… (a few seconds)</div></div>';
     try{
-      const uri=await genPhoto(buildPhotoPrompt(pal,gv,wx,loc));
+      const uri=await genPhoto(buildPhotoPrompt(pal,gv,wx,loc),loc.region);
       $('#stage').innerHTML='<img class="fade" src="'+uri+'" alt="your outfit">';
     }catch(e){
       $('#stage').innerHTML=drawOutfit(pal,{gender:gv,temp:wx.temp,code:wx.code});
@@ -284,9 +284,9 @@ function buildPhotoPrompt(pal,gv,wx,loc){
     `Soft natural daylight, crisp focus, high detail, magazine quality. No people, no text, no logos.`;}
 // where the photos come from — paste YOUR deployed Cloudflare Worker URL here:
 const BACKEND_URL="https://wear-where.mary-kate-stimmler.workers.dev";
-async function genPhoto(prompt){
+async function genPhoto(prompt,region){
   const r=await fetch(BACKEND_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:prompt})});
+    body:JSON.stringify({prompt:prompt,region:region})});
   const d=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(d.error||("photo service error "+r.status));
   if(!d.image)throw new Error("no image returned, try again");
