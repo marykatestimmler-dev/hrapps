@@ -240,14 +240,12 @@ async function run(){
     // blend the two influences
     const pal=envDer.map((c,i)=>mixHsl(c,pplDer[i],0.5));
 
-    const sw=pal.map(c=>`<div class="sw" style="background:${c}"></div>`).join('');
     $('#facts').innerHTML=`
       <div class="row"><b>Place</b><div>${loc.label}</div></div>
       <div class="row"><b>Weather</b><div>${wx.temp}°F, ${weatherWords(wx.code)}</div></div>
       <div class="row"><b>Style</b><div>${genderWords(gv)}</div></div>
       <div class="row"><b>Surroundings</b><div>${axisWord(+$('#envSlider').value,"Matching the place","Standing out from the place")} (drawn from ${loc.region}'s colors)</div></div>
-      <div class="row"><b>People</b><div>${axisWord(+$('#pplSlider').value,"Fitting in with locals","Standing out from locals")} (local style: ${pp.name})</div></div>
-      <div class="row"><b>Palette</b><div class="swatches">${sw}</div></div>`;
+      <div class="row"><b>People</b><div>${axisWord(+$('#pplSlider').value,"Fitting in with locals","Standing out from locals")} (local style: ${pp.name})</div></div>`;
     // primary output: a real photo from the Wear Where backend, sketch as fallback
     $('#stage').innerHTML='<div class="empty"><span class="spin dark"></span><div style="margin-top:10px">Generating your photo… (a few seconds)</div></div>';
     try{
