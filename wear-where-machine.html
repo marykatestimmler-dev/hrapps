@@ -273,11 +273,13 @@ function garmentGuidance(temp,code){
 function buildPhotoPrompt(pal,gv,wx,loc){
   const g=genderWords(gv).toLowerCase();
   const ev=+$('#envSlider').value, pv=+$('#pplSlider').value;
+  const patternIdeas=["a soft floral or botanical print","a clean stripe or pinstripe","a classic check, plaid or houndstooth","a small ditsy or polka-dot print","an abstract painterly or watercolour motif","a folk, paisley or ikat-inspired pattern","rich woven texture, tweed or cable knit","tonal colour-blocking"];
+  const pat=patternIdeas[Math.floor(Math.random()*patternIdeas.length)];
   const envText=ev<45?`a colour palette drawn from the natural surroundings, light and architecture of ${loc.region}, so the outfit harmonises with the place`
     :ev>55?`bold, saturated colours chosen to deliberately contrast and pop against the typical surroundings of ${loc.region}`
     :`a balanced palette loosely inspired by ${loc.region}`;
   const pplText=pv<45?`The colours and styling should fit in with how locals there actually dress`
-    :pv>55?`Make the look artsy, bold and fashion-forward: a striking statement outfit with expressive, saturated colour, creative avant-garde silhouettes, eye-catching prints and unexpected designer details that deliberately defy how locals there dress`
+    :pv>55?`Make the look artsy, bold and fashion-forward: a striking statement outfit with expressive saturated colour, an unexpected silhouette and a distinctive use of ${pat}, deliberately defying how locals there dress — but avoid repetitive 1980s geometric colour-block patterns`
     :`The colours and styling should sit comfortably among the locals`;
   const bottoms=gv>60?`Make a dress or a skirt the centrepiece of the look (a dress, or a skirt paired with a top).`
     :gv<40?`Use trousers for the bottoms.`
@@ -286,7 +288,7 @@ function buildPhotoPrompt(pal,gv,wx,loc){
     `Dressed for ${weatherWords(wx.code)} weather around ${wx.temp}°F: include ${garmentGuidance(wx.temp,wx.code)}. `+
     `Use ${envText}. ${pplText}. `+
     `Pick realistic, harmonious, true-to-life clothing colours; avoid muddy, washed-out, purple or olive-green tones unless they genuinely suit the place. `+
-    `Vary the look with tasteful prints, patterns, stripes or textures where they suit the style — not every piece should be a flat solid colour. `+
+    `Where pattern or texture suits the style, work in ${pat} (vary it — not every piece needs to be a flat solid), and do NOT default to bold 1980s-style geometric colour-block prints. `+
     `${bottoms} Also include an outer layer, a top, shoes, and one accessory, all laid out. `+
     `Soft natural daylight, crisp focus, high detail, magazine quality. No people, no text, no logos.`;}
 // where the photos come from — paste YOUR deployed Cloudflare Worker URL here:
