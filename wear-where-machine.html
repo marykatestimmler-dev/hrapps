@@ -247,7 +247,7 @@ async function run(){
       <div class="row"><b>Surroundings</b><div>${axisWord(+$('#envSlider').value,"Matching the place","Standing out from the place")} (drawn from ${loc.region}'s colors)</div></div>
       <div class="row"><b>People</b><div>${axisWord(+$('#pplSlider').value,"Fitting in with locals","Standing out from locals")} (local style: ${pp.name})</div></div>`;
     // primary output: a real photo from the Wear Where backend, sketch as fallback
-    $('#stage').innerHTML='<div class="empty"><span class="spin dark"></span><div style="margin-top:10px">Generating your photo… (a few seconds)</div></div>';
+    $('#stage').innerHTML='<div class="empty"><span class="spin dark"></span><div style="margin-top:10px">Generating your photo… this can take up to 15 seconds.<br><em style="color:var(--muted)">Elegance can’t be rushed.</em></div></div>';
     try{
       const uri=await genPhoto(buildPhotoPrompt(pal,gv,wx,loc),loc.region);
       $('#stage').innerHTML='<img class="fade" src="'+uri+'" alt="your outfit">';
