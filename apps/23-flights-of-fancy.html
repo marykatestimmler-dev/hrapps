@@ -138,6 +138,31 @@
   .chip:hover { border-color: var(--accent); transform: translateY(-2px); }
   .chip .chip-tag { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--teal); }
   .wiki-loading { font-style: italic; opacity: 0.6; padding: 10px 4px; }
+  /* ---- now showing (movies) ---- */
+  .movie {
+    background: var(--card); border-radius: 16px; padding: 14px 18px; margin-bottom: 12px;
+    box-shadow: 0 5px 14px rgba(90,120,160,0.1);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .movie-num {
+    flex: none; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent-deep);
+    font-family: var(--rounded); font-weight: 800; font-size: 0.95rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .movie-main { flex: 1; min-width: 150px; }
+  .movie-title { font-weight: 700; font-size: 1rem; }
+  .movie-year { opacity: 0.6; font-weight: 600; font-size: 0.85rem; margin-left: 4px; }
+  .movie-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  .movie-links a {
+    text-decoration: none; font-size: 0.78rem; font-weight: 700;
+    padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+    border: 2px solid transparent; transition: border-color .2s, transform .15s;
+  }
+  .movie-links a:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .ml-watch { background: var(--accent); color: #fff; }
+  .ml-trailer { background: #eef6fa; color: var(--ink); }
+  .ml-imdb { background: #f5c518; color: #1a1a1a; }
   .again {
     margin-top: 20px; width: 100%; padding: 13px; border-radius: 14px;
     border: 2px solid var(--accent); background: transparent; color: var(--accent);
@@ -354,6 +379,61 @@ async function wikiSearch(query, limit = 2) {
   }));
 }
 
+// ---------- MOVIES (Wikidata, no API key) ----------
+// Wikidata IDs that mean "this entity is a populated place" (city, town, capital, etc.)
+const PLACE_TYPES = new Set(["Q515","Q486972","Q1549591","Q5119","Q200250","Q15284",
+  "Q3957","Q484170","Q1093829","Q1637706","Q1066984","Q15253706","Q494721","Q1187811"]);
+
+// Find the Wikidata entity for a city. A plain text search for "Tokyo" can return a
+// song or a person first, so we keep only candidates that are actually places and
+// prefer the best-known one (most language editions = most famous).
+async function wikidataCityId(name) {
+  const sUrl = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search=" +
+    encodeURIComponent(name) + "&language=en&format=json&origin=*&limit=7";
+  const s = await fetchJSON(sUrl);
+  const ids = (s.search || []).map(c => c.id);
+  if (!ids.length) return null;
+  const gUrl = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids=" +
+    ids.join("|") + "&props=claims|sitelinks&format=json&origin=*";
+  const g = await fetchJSON(gUrl);
+  const ents = g.entities || {};
+  let best = null, bestLinks = -1;
+  for (const qid of ids) {                       // keep original search ranking
+    const e = ents[qid]; if (!e) continue;
+    const types = new Set((e.claims?.P31 || [])
+      .map(c => c.mainsnak?.datavalue?.value?.id).filter(Boolean));
+    let isPlace = false;
+    for (const t of types) if (PLACE_TYPES.has(t)) { isPlace = true; break; }
+    if (!isPlace) continue;
+    const links = Object.keys(e.sitelinks || {}).length;
+    if (links > bestLinks) { bestLinks = links; best = qid; }
+  }
+  return best;
+}
+
+// Notable films either filmed in (P915) or set in (P840) the city, ranked by how
+// many Wikipedia editions cover them (a decent proxy for "you've heard of this one").
+async function wikidataFilms(qid, limit = 8) {
+  // wikibase:sitelinks is a precomputed popularity count, so ranking is fast even
+  // for film-heavy cities like London or Rome (avoids joining every sitelink row).
+  const sparql = `SELECT ?film ?filmLabel (MIN(YEAR(?date)) AS ?year)
+      (SAMPLE(?imdb) AS ?imdbId) (SAMPLE(?s) AS ?sl) WHERE {
+    ?film wdt:P31/wdt:P279* wd:Q11424 .
+    { ?film wdt:P915 wd:${qid} } UNION { ?film wdt:P840 wd:${qid} }
+    ?film wikibase:sitelinks ?s .
+    OPTIONAL { ?film wdt:P577 ?date }
+    OPTIONAL { ?film wdt:P345 ?imdb }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+  } GROUP BY ?film ?filmLabel ORDER BY DESC(?sl) LIMIT ${limit}`;
+  const url = "https://query.wikidata.org/sparql?format=json&query=" + encodeURIComponent(sparql);
+  const data = await fetchJSON(url, 12000);
+  return (data.results?.bindings || []).map(b => ({
+    title: b.filmLabel?.value || "Untitled",
+    year: b.year?.value || "",
+    imdb: b.imdbId?.value || ""
+  })).filter(m => m.title && !/^Q\d+$/.test(m.title));   // drop unlabeled rows
+}
+
 // ---------- WHIMSY ENGINE ----------
 // Picks a hand of untimed activities: one takeoff ritual, a few mid-flight
 // fancies (more for longer flights), and one landing ritual.
@@ -485,6 +565,59 @@ async function loadSkyUniversity(to, country) {
     <a href="https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(to)}" target="_blank" rel="noopener">searching Wikipedia for ${esc(to)}</a> directly.</p></div>`;
 }
 
+// Now Showing renders a placeholder first, then fills with real films from Wikidata
+function nowShowingShellHTML(to) {
+  return `
+  <div class="section">
+    <div class="section-title">🎬 Now Showing: ${esc(to)}</div>
+    <div class="section-blurb">Real movies filmed in or set in ${esc(to)} — the perfect pre-trip watchlist. Tap "Where to watch" to see which streaming service has it (or where to rent or buy).</div>
+    <div id="nowShowing"><div class="wiki-loading">🍿 Rolling the projector for ${esc(to)}…</div></div>
+  </div>`;
+}
+
+async function loadNowShowing(to) {
+  const el = () => document.getElementById("nowShowing");
+  try {
+    const qid = await wikidataCityId(to);
+    let films = qid ? await wikidataFilms(qid) : [];
+    const node = el(); if (!node) return;
+    if (films.length) {
+      node.innerHTML = films.map((m, i) => {
+        const q = encodeURIComponent(m.title);
+        const watch = "https://www.justwatch.com/us/search?q=" + q;
+        const trailer = yt(m.title + (m.year ? " " + m.year : "") + " trailer");
+        const imdb = m.imdb
+          ? "https://www.imdb.com/title/" + encodeURIComponent(m.imdb) + "/"
+          : "https://www.imdb.com/find/?q=" + q;
+        return `
+        <div class="movie">
+          <div class="movie-num">${i + 1}</div>
+          <div class="movie-main">
+            <span class="movie-title">${esc(m.title)}</span>${m.year ? `<span class="movie-year">${esc(m.year)}</span>` : ""}
+          </div>
+          <div class="movie-links">
+            <a class="ml-watch" href="${watch}" target="_blank" rel="noopener">▶ Where to watch</a>
+            <a class="ml-trailer" href="${trailer}" target="_blank" rel="noopener">🎞 Trailer</a>
+            <a class="ml-imdb" href="${imdb}" target="_blank" rel="noopener">IMDb</a>
+          </div>
+        </div>`;
+      }).join("");
+    } else {
+      node.innerHTML = `
+      <div class="res-card"><h4>No films catalogued for ${esc(to)} just yet 🎞️</h4>
+      <p>Our movie reel comes from Wikidata, which knows more about big cities than tiny towns.
+      Try a nearby major city, or browse
+      <a href="https://www.justwatch.com/us/search?q=${encodeURIComponent(to)}" target="_blank" rel="noopener">JustWatch for "${esc(to)}"</a>.</p></div>`;
+    }
+  } catch (e) {
+    const node = el(); if (!node) return;
+    node.innerHTML = `
+    <div class="res-card"><h4>The projector jammed 🎞️</h4>
+    <p>Couldn't reach the movie archive just now. You can still browse
+    <a href="https://www.justwatch.com/us/search?q=${encodeURIComponent(to)}" target="_blank" rel="noopener">JustWatch for "${esc(to)}"</a>.</p></div>`;
+  }
+}
+
 function whimsySectionHTML(fromName, toName, total) {
   const acts = pickActivities(total);
   let cards = "";
@@ -519,6 +652,7 @@ function renderItinerary(fromName, toName, total, distKm, country, cc) {
       <div><div class="bp-sub">To</div><div class="bp-city">${esc(toName)}</div></div>
     </div>`;
   html += mediaCartHTML(toName, country);
+  html += nowShowingShellHTML(toName);
   html += skyUniversityShellHTML(toName);
   html += sayHelloHTML(toName, country, cc);
   html += whenYouLandHTML(toName, country);
@@ -526,6 +660,7 @@ function renderItinerary(fromName, toName, total, distKm, country, cc) {
   box.innerHTML = html;
   box.style.display = "block";
   box.scrollIntoView({ behavior: "smooth", block: "start" });
+  loadNowShowing(toName);
   loadSkyUniversity(toName, country);
 }
 
